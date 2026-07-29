@@ -1,0 +1,17 @@
+{
+  "name": "aculion-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aculion Platform Monorepo",
+  "scripts": {
+    "dev": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd apps/web && npm run dev",
+    "dev:backend": "cd services/location-service && .venv\\Scripts\\activate && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload",
+    "install:frontend": "cd apps/web && npm install",
+    "install:backend": "cd services/location-service && pip install -r requirements.txt",
+    "setup": "npm run install:frontend && npm run install:backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

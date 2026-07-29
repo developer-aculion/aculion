@@ -1,0 +1,234 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
+import { useTheme } from "../../providers";
+import {
+  Bell,
+  MapPin,
+  Play,
+  ChevronDown,
+  Menu,
+} from "lucide-react";
+
+
+interface HeaderProps {
+  latitude: number;
+  longitude: number;
+  radius: number;
+  onAnalyze: (lat: number, lng: number, rad: number) => void;
+  isMapPickingActive: boolean;
+  setIsMapPickingActive: (active: boolean) => void;
+  area?: string;
+  onMenuClick?: () => void;
+}
+
+export default function Header({
+  latitude,
+  longitude,
+  radius,
+  onAnalyze,
+  isMapPickingActive,
+  setIsMapPickingActive,
+  area,
+  onMenuClick,
+}: HeaderProps) {
+  // Inputs
+  const [latVal, setLatVal] = useState<string>(latitude.toString());
+  const [lngVal, setLngVal] = useState<string>(longitude.toString());
+  const [radVal, setRadVal] = useState<number>(radius);
+  const [detectedArea, setDetectedArea] = useState("");
+  const [areaSearch, setAreaSearch] = useState("");
+
+  // Sync typed query when coordinates analysis updates detected area name
+  useEffect(() => {
+    if (detectedArea && detectedArea !== "Unknown") {
+      setAreaSearch(detectedArea);
+    } else if (area) {
+      setAreaSearch(area);
+    }
+  }, [detectedArea, area]);
+
+  // Auto-detect area name based on coordinates
+  useEffect(() => {
+    const lat = parseFloat(latVal);
+    const lng = parseFloat(lngVal);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const delayDebounce = setTimeout(() => {
+        axios.get("http://127.0.0.1:8000/api/v1/area/detect", {
+          params: { latitude: lat, longitude: lng }
+        }).then(res => {
+          setDetectedArea(res.data.area);
+        }).catch(() => {
+          setDetectedArea("Unknown");
+        });
+      }, 300);
+      return () => clearTimeout(delayDebounce);
+    }
+  }, [latVal, lngVal]);
+
+  // Sync inputs with parent state
+  useEffect(() => {
+    setLatVal(latitude.toString());
+  }, [latitude]);
+
+  useEffect(() => {
+    setLngVal(longitude.toString());
+  }, [longitude]);
+
+  useEffect(() => {
+    setRadVal(radius);
+  }, [radius]);
+
+  const handleAnalyzeClick = async () => {
+    // If a different area search name was typed by the user, geocode it first!
+    if (areaSearch && areaSearch !== detectedArea && areaSearch !== area) {
+      try {
+        const res = await axios.get("http://127.0.0.1:8000/api/v1/geocode", {
+          params: { q: areaSearch }
+        });
+        const { latitude: newLat, longitude: newLng } = res.data;
+        setLatVal(newLat.toString());
+        setLngVal(newLng.toString());
+        onAnalyze(newLat, newLng, radVal);
+        return;
+      } catch (err: any) {
+        console.error("Geocoding failed", err);
+        const detail = err.response?.data?.detail || "Location not found. Try T Nagar, Anna Nagar, Velachery, Adyar, OMR, Guindy, Porur, or Tambaram.";
+        alert(detail);
+        return;
+      }
+    }
+
+    const lat = parseFloat(latVal);
+    const lng = parseFloat(lngVal);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      onAnalyze(lat, lng, radVal);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleAnalyzeClick();
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-20 w-full border-b border-border bg-card/65 backdrop-blur-md px-4 py-2.5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+        
+        {/* Left Side: Logo */}
+        <Link to="/billboards" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest leading-none">Aculion</span>
+            <h1 className="text-xs font-black text-foreground tracking-tight leading-none mt-0.5">
+              Intelligence
+            </h1>
+          </div>
+        </Link>
+
+
+        {/* Middle: Map inputs in a single clean row */}
+        <div className="flex flex-wrap items-center gap-2 bg-background/25 p-1 border border-border/80 rounded-xl w-full lg:w-auto">
+          {/* Lat Input */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-background/80 border border-border rounded-lg flex-1 sm:flex-initial">
+            <span className="text-[9px] font-extrabold text-muted-foreground tracking-wider uppercase">LAT</span>
+            <input
+              type="number"
+              step="any"
+              value={latVal}
+              onChange={(e) => setLatVal(e.target.value)}
+              className="bg-transparent border-none text-xs w-16 focus:outline-none font-mono text-white p-0"
+            />
+          </div>
+
+          {/* Lng Input */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-background/80 border border-border rounded-lg flex-1 sm:flex-initial">
+            <span className="text-[9px] font-extrabold text-muted-foreground tracking-wider uppercase">LNG</span>
+            <input
+              type="number"
+              step="any"
+              value={lngVal}
+              onChange={(e) => setLngVal(e.target.value)}
+              className="bg-transparent border-none text-xs w-16 focus:outline-none font-mono text-white p-0"
+            />
+          </div>
+
+          {/* Area display */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-background/80 border border-border rounded-lg flex-1 sm:flex-initial">
+            <span className="text-[9px] font-extrabold text-muted-foreground tracking-wider uppercase">AREA</span>
+            <input
+              type="text"
+              value={areaSearch}
+              onChange={(e) => setAreaSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search area..."
+              className="bg-transparent border-none text-xs w-28 focus:outline-none font-bold text-white p-0 truncate"
+            />
+          </div>
+
+          {/* Radius Selector */}
+          <div className="relative flex-1 sm:flex-initial">
+            <select
+              value={radVal}
+              onChange={(e) => setRadVal(Number(e.target.value))}
+              className="appearance-none bg-background/80 border border-border rounded-lg pl-2.5 pr-7 py-1 text-xs font-semibold focus:outline-none hover:border-primary cursor-pointer w-full"
+            >
+              <option value="500">500 m</option>
+              <option value="1000">1.0 km</option>
+              <option value="2000">2.0 km</option>
+              <option value="5000">5.0 km</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Map Pin Picker Trigger */}
+          <button
+            onClick={() => setIsMapPickingActive(!isMapPickingActive)}
+            className={`flex items-center justify-center gap-1 px-2.5 py-1 border rounded-lg text-xs font-bold transition-all duration-200 flex-1 sm:flex-initial ${
+              isMapPickingActive
+                ? "bg-primary border-primary text-primary-foreground animate-pulse"
+                : "border-border bg-background hover:bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title="Click and select a point directly on the interactive map"
+          >
+            <MapPin size={12} className={isMapPickingActive ? "animate-bounce" : ""} />
+            <span>Pick</span>
+          </button>
+
+          {/* Analyze CTA */}
+          <button
+            onClick={handleAnalyzeClick}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1 bg-primary text-white hover:bg-blue-600 rounded-lg text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-95 transition-all duration-150 flex-1 sm:w-auto"
+          >
+            <Play size={10} className="fill-current" />
+            <span>Analyze</span>
+          </button>
+        </div>
+
+        {/* Right Side: Global Controls */}
+        <div className="flex items-center gap-2 self-end lg:self-auto">
+          {/* Notifications */}
+          <button className="p-1.5 border border-border bg-background/50 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200 relative">
+            <Bell size={13} />
+            <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+          </button>
+
+          {/* User Profile */}
+          <Link
+            to="/billboards"
+            title="Switch Billboard/Campaign"
+            className="flex items-center gap-2 border border-border bg-background/50 rounded-lg px-2.5 py-0.5 hover:bg-secondary transition-all duration-200 cursor-pointer"
+          >
+            <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-[9px]">
+              JD
+            </div>
+            <span className="text-[10px] font-medium hidden sm:inline">John Doe</span>
+          </Link>
+
+        </div>
+      </div>
+    </header>
+  );
+}

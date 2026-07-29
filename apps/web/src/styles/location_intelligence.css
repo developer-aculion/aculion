@@ -1,0 +1,300 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 15% 2%;
+  /* Midnight Black: #030305 */
+  --foreground: 0 0% 100%;
+  /* White: #ffffff */
+
+  --card: 240 10% 6%;
+  /* Graphite Dark: #0e0f12 */
+  --card-foreground: 0 0% 100%;
+  /* White */
+
+  --popover: 240 15% 2%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 220 100% 50%;
+  /* Electric Blue: #0055ff */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 240 8% 10%;
+  /* Graphite: #18191f */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 240 8% 10%;
+  --muted-foreground: 240 5% 75%;
+  /* Off-white/Light gray for readability */
+
+  --accent: 220 100% 50%;
+  /* Electric Blue */
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 240 8% 14%;
+  /* Graphite Border: #21222b */
+  --input: 240 8% 14%;
+  --ring: 220 100% 50%;
+
+  --radius: 12px;
+}
+
+.light {
+  --background: 240 15% 2%;
+  --foreground: 0 0% 100%;
+
+  --card: 240 10% 6%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 240 15% 2%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 220 100% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 240 8% 10%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 240 8% 10%;
+  --muted-foreground: 240 5% 75%;
+
+  --accent: 220 100% 50%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 240 8% 14%;
+  --input: 240 8% 14%;
+  --ring: 220 100% 50%;
+}
+
+* {
+  border-color: hsl(var(--border));
+  font-family: 'Inter', sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow-x: hidden;
+  letter-spacing: -0.011em;
+}
+
+/* Button default styling reset to prevent browser default white background */
+button {
+  background-color: transparent;
+  color: inherit;
+}
+
+/* Premium Card hover styles */
+.card-interactive {
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px) scale(1.015);
+  border-color: rgba(0, 85, 255, 0.45) !important;
+  box-shadow: 0 8px 24px rgba(0, 85, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Map control panel styling overrides */
+.map-control-panel {
+  background: rgba(14, 15, 18, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.map-control-button {
+  transition: all 200ms ease-in-out;
+}
+
+.map-control-button:hover {
+  background: rgba(0, 85, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Glassmorphism utility */
+.glassmorphism {
+  background: rgba(10, 11, 15, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.light .glassmorphism {
+  background: rgba(10, 11, 15, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Glassmorphism premium card hover styles */
+.glass-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 85, 255, 0.4);
+  box-shadow: 0 12px 30px rgba(0, 85, 255, 0.15);
+}
+
+/* Leaflet control fixes */
+.leaflet-container {
+  font-family: inherit;
+  background-color: #0b0b0f !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Thin modern dark scrollbar for sticky right recommendation panel */
+.right-panel-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.right-panel-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+.right-panel-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.right-panel-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 85, 255, 0.5);
+}
+.right-panel-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.02);
+}
+
+/* Heatmap animation pulse */
+@keyframes heatPulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.heatmap-pulse {
+  animation: heatPulse 3s infinite ease-in-out;
+}
+
+/* Global Form Controls & Select Overrides (Graphite & Electric Blue) */
+input,
+select,
+textarea {
+  background-color: #121318 !important;
+  color: #ffffff !important;
+  border: 1px solid #24252e !important;
+  border-radius: 12px !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #0055ff !important;
+  box-shadow: 0 0 0 1px #0055ff !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+select option {
+  background-color: #0e0f12 !important;
+  color: #ffffff !important;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+}
+
+/* Pin pulse & glow animation */
+@keyframes pinGlow {
+  0%, 100% {
+    filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0px 0px 4px rgba(59, 130, 246, 0.6));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0px 5px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0px 0px 10px rgba(59, 130, 246, 0.9));
+    transform: scale(1.1);
+  }
+}
+
+/* Premium Leaflet Popup Styling Override for Dark Mode */
+.leaflet-popup-content-wrapper {
+  background: rgba(14, 15, 18, 0.95) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(14, 15, 18, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-popup-close-button {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 14px !important;
+  padding: 4px 6px 0 0 !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
+}
+
+/* KPI Score Card Shared Icon Badge Style */
+.kpi-card-icon-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 10;
+}

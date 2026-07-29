@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Build & Cache Outputs
+dist/
+.next/
+.vite/
+*.tsbuildinfo
+cache/
+logs/
+scratch/
+__pycache__/
+*.pyc
+
+# Environment Files
+.env
+.env.local
+.env.production
+
+# System Files
+.DS_Store
+Thumbs.db
