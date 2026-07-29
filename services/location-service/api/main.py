@@ -115,7 +115,7 @@ app = FastAPI(title="Location Intelligence API", version="3.2")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://aculion-site.vercel.app"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
