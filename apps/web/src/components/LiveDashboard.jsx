@@ -407,7 +407,7 @@ export default function LiveDashboard({ navigateTo }) {
           </header>
 
           {/* Main Views Container */}
-          <main className={`flex-grow flex flex-col h-full min-w-0 ${activeNav === 'overview' ? 'overflow-y-auto overflow-x-hidden p-0 bg-[#030305]' : 'overflow-hidden bg-[#070913] p-4 gap-4'}`}>
+          <main className={`flex-grow flex flex-col h-full min-w-0 ${activeNav === 'overview' ? 'overflow-y-auto overflow-x-hidden p-0 bg-[#070913]' : 'overflow-hidden bg-[#070913] p-4 gap-4'}`}>
 
             {/* ═══════════════════════════════════════════════════
                1. LIVE VIEW

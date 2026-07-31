@@ -159,7 +159,7 @@ export default function LandUseChart({
             })}
 
             {/* Donut Center Label */}
-            <circle cx={center} cy={center} r={innerRadius - 2} fill="#090a0f" />
+            <circle cx={center} cy={center} r={innerRadius - 2} fill="#0f172a" />
             <text x={center} y={center - 4} textAnchor="middle" fill="#FFFFFF" className="text-base font-black font-mono">
               {activeIndex !== null ? `${processedData[activeIndex].value}%` : `${processedData[0]?.value}%`}
             </text>

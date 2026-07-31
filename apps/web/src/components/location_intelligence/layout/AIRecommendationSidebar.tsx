@@ -90,19 +90,6 @@ export default function AIRecommendationSidebar({ analytics }: AIRecommendationS
         </div>
       </div>
 
-      {/* 1. AREA STRENGTH SUMMARY */}
-      <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Sparkles size={40} className="text-primary" />
-        </div>
-        <div className="flex items-center gap-2">
-          <TrendingUp size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Area Strength Summary</h3>
-        </div>
-        <p className="text-xs text-foreground font-medium leading-relaxed">
-          {llmRec.area_strength_summary || "Spatial database returned empty POI context for this region."}
-        </p>
-      </div>
 
       {/* 2. REAL ESTATE POTENTIAL SCORE */}
       {analytics.real_estate_score !== undefined && (

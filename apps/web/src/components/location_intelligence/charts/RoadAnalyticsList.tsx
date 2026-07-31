@@ -52,7 +52,7 @@ export default function RoadAnalyticsList({ data }: RoadAnalyticsListProps) {
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#0e0f12",
+              backgroundColor: "#0f172a",
               borderColor: "rgba(255,255,255,0.08)",
               borderRadius: "12px",
               fontSize: "11px",

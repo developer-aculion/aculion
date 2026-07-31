@@ -123,7 +123,7 @@ export default function POIDistributionChart({
 
   return (
     <div className="w-full flex items-center justify-center select-none py-1">
-      <div className="w-full max-w-[500px] h-[250px] bg-[#06070a]/90 rounded-2xl border border-white/5 p-2 flex items-center justify-center relative overflow-hidden shadow-inner">
+      <div className="w-full max-w-[500px] h-[250px] bg-[#0d1527]/90 rounded-2xl border border-white/5 p-2 flex items-center justify-center relative overflow-hidden shadow-inner">
         <svg viewBox={`0 0 ${size} ${height}`} className="w-full h-full overflow-visible">
           {/* Concentric grid lines */}
           {[0.35, 0.65, 1.0].map((scale, i) => (

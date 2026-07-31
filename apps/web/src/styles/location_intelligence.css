@@ -5,74 +5,74 @@
 @tailwind utilities;
 
 :root {
-  --background: 240 15% 2%;
-  /* Midnight Black: #030305 */
+  --background: 224 45% 5%;
+  /* Midnight Navy: #070913 */
   --foreground: 0 0% 100%;
   /* White: #ffffff */
 
-  --card: 240 10% 6%;
-  /* Graphite Dark: #0e0f12 */
+  --card: 222 47% 11%;
+  /* Deep Blue Card: #0f172a */
   --card-foreground: 0 0% 100%;
   /* White */
 
-  --popover: 240 15% 2%;
+  --popover: 224 45% 5%;
   --popover-foreground: 0 0% 100%;
 
-  --primary: 220 100% 50%;
-  /* Electric Blue: #0055ff */
+  --primary: 217 91% 60%;
+  /* Electric Blue: #3b82f6 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 8% 10%;
-  /* Graphite: #18191f */
+  --secondary: 222 40% 13%;
+  /* Deep Midnight Secondary: #121829 */
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 8% 10%;
-  --muted-foreground: 240 5% 75%;
-  /* Off-white/Light gray for readability */
+  --muted: 222 40% 13%;
+  --muted-foreground: 215 20.2% 65.1%;
+  /* Slate Muted Text: #94a3b8 */
 
-  --accent: 220 100% 50%;
+  --accent: 217 91% 60%;
   /* Electric Blue */
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 240 8% 14%;
-  /* Graphite Border: #21222b */
-  --input: 240 8% 14%;
-  --ring: 220 100% 50%;
+  --border: 217 33% 17%;
+  /* Border: #1e293b */
+  --input: 217 33% 17%;
+  --ring: 217 91% 60%;
 
   --radius: 12px;
 }
 
 .light {
-  --background: 240 15% 2%;
+  --background: 224 45% 5%;
   --foreground: 0 0% 100%;
 
-  --card: 240 10% 6%;
+  --card: 222 47% 11%;
   --card-foreground: 0 0% 100%;
 
-  --popover: 240 15% 2%;
+  --popover: 224 45% 5%;
   --popover-foreground: 0 0% 100%;
 
-  --primary: 220 100% 50%;
+  --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 8% 10%;
+  --secondary: 222 40% 13%;
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 8% 10%;
-  --muted-foreground: 240 5% 75%;
+  --muted: 222 40% 13%;
+  --muted-foreground: 215 20.2% 65.1%;
 
-  --accent: 220 100% 50%;
+  --accent: 217 91% 60%;
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 240 8% 14%;
-  --input: 240 8% 14%;
-  --ring: 220 100% 50%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 217 91% 60%;
 }
 
 * {
@@ -102,13 +102,13 @@ button {
 
 .card-interactive:hover {
   transform: translateY(-2px) scale(1.015);
-  border-color: rgba(0, 85, 255, 0.45) !important;
-  box-shadow: 0 8px 24px rgba(0, 85, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Map control panel styling overrides */
 .map-control-panel {
-  background: rgba(14, 15, 18, 0.9) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
   backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
@@ -118,20 +118,20 @@ button {
 }
 
 .map-control-button:hover {
-  background: rgba(0, 85, 255, 0.15);
+  background: rgba(59, 130, 246, 0.15);
   color: #ffffff;
 }
 
 /* Glassmorphism utility */
 .glassmorphism {
-  background: rgba(10, 11, 15, 0.55);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .light .glassmorphism {
-  background: rgba(10, 11, 15, 0.55);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -212,21 +212,21 @@ button {
   animation: heatPulse 3s infinite ease-in-out;
 }
 
-/* Global Form Controls & Select Overrides (Graphite & Electric Blue) */
+/* Global Form Controls & Select Overrides (Midnight Navy & Electric Blue) */
 input,
 select,
 textarea {
-  background-color: #121318 !important;
+  background-color: #121829 !important;
   color: #ffffff !important;
-  border: 1px solid #24252e !important;
+  border: 1px solid #1e293b !important;
   border-radius: 12px !important;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #0055ff !important;
-  box-shadow: 0 0 0 1px #0055ff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px #3b82f6 !important;
   outline: none !important;
 }
 
@@ -236,7 +236,7 @@ textarea::placeholder {
 }
 
 select option {
-  background-color: #0e0f12 !important;
+  background-color: #0f172a !important;
   color: #ffffff !important;
 }
 
@@ -261,7 +261,7 @@ textarea:disabled {
 
 /* Premium Leaflet Popup Styling Override for Dark Mode */
 .leaflet-popup-content-wrapper {
-  background: rgba(14, 15, 18, 0.95) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(8px) !important;
@@ -270,7 +270,7 @@ textarea:disabled {
 }
 
 .leaflet-popup-tip {
-  background: rgba(14, 15, 18, 0.95) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
