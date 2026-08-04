@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { locationService } from "../../../services/location.service";
 import { LocationAnalytics, Billboard } from "../../../types/location";
 import { billboardService } from "../../../services/billboard.service";
@@ -14,15 +14,20 @@ import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileDown, Share2, Bookmark, Bot, RefreshCw,
-  Layers, MapPin, HelpCircle, FileSpreadsheet, X
+  Layers, MapPin, HelpCircle, FileSpreadsheet, X, Navigation
 } from "lucide-react";
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
+
   // ── UI State ──
   const [isMapPickingActive, setIsMapPickingActive] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [aiReportGenerating, setAiReportGenerating] = useState(false);
   const [aiReportContent, setAiReportContent] = useState("");
+  const [isGpsLoading, setIsGpsLoading] = useState(false);
+  const [gpsLoadingStage, setGpsLoadingStage] = useState("");
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // ── Candidate coordinate ──
   const [candidateLat, setCandidateLat] = useState(13.0827);
@@ -85,23 +90,27 @@ export default function Dashboard() {
     };
   }, [radius]);
 
-  const triggerAiReport = () => {
-    if (!analytics) return;
+  const triggerAiReport = (customAnalytics?: LocationAnalytics, customLat?: number, customLng?: number) => {
+    const data = customAnalytics || analytics;
+    if (!data) return;
+    const reportLat = customLat !== undefined ? customLat : latitude;
+    const reportLng = customLng !== undefined ? customLng : longitude;
+
     setActiveModal("ai");
     setAiReportGenerating(true);
     setAiReportContent("");
     setTimeout(() => {
-      const top = analytics.top_recommendations || [];
-      const k = analytics.kpis || { overall_score: 0, commercial_potential: 0, transit_connectivity: 0 };
-      const f = analytics.features || { poi_density: 0, walkability: 0, transit_accessibility: 0, commercial_density: 0, competition_index: 0, total_pois: 0, area_km2: 0 };
+      const top = data.top_recommendations || [];
+      const k = data.kpis || { overall_score: 0, commercial_potential: 0, transit_connectivity: 0 };
+      const f = data.features || { poi_density: 0, walkability: 0, transit_accessibility: 0, commercial_density: 0, competition_index: 0, total_pois: 0, area_km2: 0 };
       const noData = top.length === 0 && k.overall_score === 0;
-      const summaryNote = analytics.explanation?.summary
-        ? `\n> ⚠️ ${analytics.explanation.summary}\n`
+      const summaryNote = data.explanation?.summary
+        ? `\n> ⚠️ ${data.explanation.summary}\n`
         : "";
       setAiReportGenerating(false);
       setAiReportContent(
         `### Location Intelligence Assessment Report\n` +
-        `**Analysis Point**: Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)} | Radius: ${radius}m\n` +
+        `**Analysis Point**: Lat ${reportLat.toFixed(5)}, Lng ${reportLng.toFixed(5)} | Radius: ${radius}m\n` +
         `**Mode**: Custom Coordinates Evaluation\n` +
         summaryNote +
         `\n#### Overall Suitability: ${k.overall_score}/100\n` +
@@ -118,14 +127,82 @@ export default function Dashboard() {
         `- Transit Accessibility: ${f.transit_accessibility}\n` +
         `- Commercial Density: ${f.commercial_density}%\n` +
         `- Competition Index: ${f.competition_index}\n\n` +
-        (analytics.explanation?.positive && analytics.explanation.positive.length > 0
-          ? `#### Positive Signals\n` + analytics.explanation.positive.map((p) => `✓ ${p}`).join("\n")
+        (data.explanation?.positive && data.explanation.positive.length > 0
+          ? `#### Positive Signals\n` + data.explanation.positive.map((p) => `✓ ${p}`).join("\n")
           : "") +
-        (analytics.explanation?.negative && analytics.explanation.negative.length > 0
-          ? `\n\n#### Risk Factors\n` + analytics.explanation.negative.map((n) => `✗ ${n}`).join("\n")
+        (data.explanation?.negative && data.explanation.negative.length > 0
+          ? `\n\n#### Risk Factors\n` + data.explanation.negative.map((n) => `✗ ${n}`).join("\n")
           : "")
       );
     }, 1800);
+  };
+
+  const handleAnalyzeCurrentLocation = async () => {
+    setIsGpsLoading(true);
+    setGpsError(null);
+    setGpsLoadingStage("Locating...");
+
+    const getGpsCoordinates = (): Promise<{ lat: number; lng: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation is not supported by your browser."));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (error) => {
+            let msg = "GPS access denied or unavailable.";
+            if (error.code === error.PERMISSION_DENIED) {
+              msg = "GPS permission denied.";
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+              msg = "GPS position unavailable.";
+            } else if (error.code === error.TIMEOUT) {
+              msg = "GPS request timed out.";
+            }
+            reject(new Error(msg));
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      });
+    };
+
+    let targetLat = candidateLat;
+    let targetLng = candidateLng;
+
+    try {
+      const coords = await getGpsCoordinates();
+      targetLat = coords.lat;
+      targetLng = coords.lng;
+    } catch (err: any) {
+      console.warn("GPS lookup failed. Using selected map location.", err.message);
+      // We gracefully continue with the current candidate coordinates.
+    }
+
+    setGpsLoadingStage("Analyzing...");
+    try {
+      const data = await locationService.analyzeLocation(targetLat, targetLng, radius);
+      
+      setLatitude(targetLat);
+      setLongitude(targetLng);
+      setCandidateLat(targetLat);
+      setCandidateLng(targetLng);
+
+      queryClient.setQueryData(["analytics", targetLat, targetLng, radius], data);
+
+      triggerAiReport(data, targetLat, targetLng);
+    } catch (err: any) {
+      console.error(err);
+      const detail = err.response?.data?.detail || err.message || "Location intelligence analysis failed.";
+      setGpsError(detail);
+    } finally {
+      setIsGpsLoading(false);
+      setGpsLoadingStage("");
+    }
   };
 
   // ── Skeleton loader ──
@@ -256,6 +333,31 @@ export default function Dashboard() {
                         Custom evaluation mode. Click any location on the map and press Analyze to compute spatial features for that point.
                       </p>
                     </div>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={handleAnalyzeCurrentLocation}
+                        disabled={isGpsLoading}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-blue-600 hover:bg-white/95 disabled:bg-white/50 active:scale-95 transition-all duration-150 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-md shadow-white/5 disabled:opacity-50"
+                      >
+                        {isGpsLoading ? (
+                          <>
+                            <RefreshCw size={12} className="animate-spin shrink-0" />
+                            <span>{gpsLoadingStage}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Navigation size={12} className="fill-current shrink-0" />
+                            <span>Analyze Current Location</span>
+                          </>
+                        )}
+                      </button>
+                      {gpsError && (
+                        <p className="text-[10px] text-rose-300 font-bold text-center mt-1.5 leading-snug animate-pulse">
+                          ⚠️ {gpsError}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Analysis status row */}
@@ -370,7 +472,7 @@ export default function Dashboard() {
                     { label: "Print PDF", icon: FileDown, color: "text-rose-400", action: () => window.print() },
                     { label: "Share URL", icon: Share2, color: "text-blue-400", action: () => setActiveModal("share") },
                     { label: "Bookmark", icon: Bookmark, color: "text-amber-400", action: () => setActiveModal("save") },
-                    { label: "AI Synthesis", icon: Bot, color: "text-blue-500", action: triggerAiReport },
+                    { label: "AI Synthesis", icon: Bot, color: "text-blue-500", action: () => triggerAiReport() },
                     { label: "Refresh", icon: RefreshCw, color: "text-teal-400", action: handleRefresh, spin: isAnalyticsRefetching },
                   ].map((btn) => (
                     <button

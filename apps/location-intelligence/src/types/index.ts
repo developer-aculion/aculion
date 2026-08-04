@@ -126,6 +126,7 @@ export interface POIDistributionEnriched {
   weighted_score: number; // 0–100 normalized density score
   absolute_score?: number;
   relative_share?: number;
+  label?: string;
 }
 
 // Legacy alias kept for backward compat in chart components
