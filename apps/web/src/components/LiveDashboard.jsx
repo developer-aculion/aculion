@@ -279,7 +279,7 @@ export default function LiveDashboard({ navigateTo }) {
   const formattedTime = currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
   return (
-    <div className="w-full max-w-[1536px] h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative mx-auto border-x border-white/10 shadow-2xl">
+    <div className="w-screen h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
       
       {/* ═══════════════════════════════════════════════════
          MAIN BODY DECOUPLED COLUMNS

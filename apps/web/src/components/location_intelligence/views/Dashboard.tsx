@@ -8,7 +8,6 @@ import KPICardsGrid from "../cards/KPICardsGrid";
 import POIDistributionChart from "../charts/POIDistributionChart";
 import LandUseChart from "../charts/LandUseChart";
 import RoadAnalyticsList from "../charts/RoadAnalyticsList";
-import RealEstateChart from "../charts/RealEstateChart";
 import LocationMap from "../maps/LocationMap";
 import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -266,8 +265,8 @@ export default function Dashboard() {
 
       <div className="flex-1 overflow-y-auto min-h-0 w-full max-w-full overflow-x-hidden">
         <div className="flex flex-col lg:flex-row min-h-full w-full max-w-full overflow-x-hidden">
-          {/* ── Main Single Dashboard Column (3/4 width) ── */}
-          <main className="w-full lg:w-[75%] flex-1 min-w-0 p-5 space-y-5 overflow-x-hidden">
+          {/* ── Main Single Dashboard Column (fills remaining horizontal space) ── */}
+          <main className="w-full flex-1 min-w-0 p-5 space-y-5 overflow-x-hidden">
             {/* 1. KPI Cards — dynamic cards */}
             <KPICardsGrid analytics={analytics} />
 
@@ -408,9 +407,7 @@ export default function Dashboard() {
               </div>
 
               {/* Road Radar */}
-              <div className={`glassmorphism p-5 rounded-2xl border border-border space-y-3 ${
-                !(analytics.real_estate && analytics.real_estate.length > 0) ? "lg:col-span-2" : ""
-              }`}>
+              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3 lg:col-span-2">
                 <div>
                   <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Road & Transit Infrastructure</h3>
                   <p className="text-[9px] text-muted-foreground mt-0.5">
@@ -419,19 +416,6 @@ export default function Dashboard() {
                 </div>
                 <RoadAnalyticsList data={analytics.road_analytics} />
               </div>
-
-              {/* Real Estate price ranges */}
-              {analytics.real_estate && analytics.real_estate.length > 0 && (
-                <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3">
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Real Estate Prices</h3>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
-                      Property values in ₹ per sq.ft. for query surroundings
-                    </p>
-                  </div>
-                  <RealEstateChart data={analytics.real_estate} />
-                </div>
-              )}
             </div>
 
             {/* 4. Feature Insights + Quick Actions */}
@@ -489,8 +473,8 @@ export default function Dashboard() {
             </div>
           </main>
 
-          {/* ── Right AI Recommendation Sidebar (1/4 width) ── */}
-          <div className="w-full lg:w-[25%] lg:min-w-[280px] lg:max-w-[360px] shrink-0">
+          {/* ── Right AI Recommendation Sidebar (Fixed 320px width) ── */}
+          <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] shrink-0">
             <AIRecommendationSidebar analytics={analytics} />
           </div>
         </div>
