@@ -252,7 +252,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground w-full max-w-full flex-col">
+    <div className="flex h-full overflow-hidden bg-background text-foreground w-full max-w-full flex-col">
       <Header
         latitude={candidateLat}
         longitude={candidateLng}

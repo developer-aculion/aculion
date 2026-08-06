@@ -176,8 +176,12 @@ export default function LocationMap({
     if (!mapRef.current || !L) return;
     const map = mapRef.current;
     
-    // Force Leaflet to recalculate size to prevent grey background / partial load bugs
-    map.invalidateSize();
+    // Force Leaflet to recalculate size asynchronously to prevent paint loops or freezes
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 0);
 
     const targetLat = selectedLat || latitude;
     const targetLng = selectedLng || longitude;

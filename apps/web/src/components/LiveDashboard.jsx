@@ -410,7 +410,7 @@ export default function LiveDashboard({ navigateTo }) {
           {/* Main Views Container */}
           <main className={`flex-grow flex flex-col h-full min-w-0 ${
             activeNav === 'overview' 
-              ? 'overflow-y-auto overflow-x-hidden p-0 bg-[#070913]' 
+              ? 'overflow-hidden p-0 bg-[#070913]' 
               : activeNav === 'traffic' 
                 ? 'overflow-hidden p-0 bg-[#070913]' 
                 : 'overflow-hidden bg-[#070913] p-4 gap-4'
