@@ -273,8 +273,8 @@ export default function Dashboard() {
 
             {/* 2. Map + Asset Summary */}
             <div className="grid grid-cols-10 gap-5">
-              {/* Map (7/10) */}
-              <div className="col-span-10 lg:col-span-7">
+              {/* Map (10/10) */}
+              <div className="col-span-10">
                 <LocationMap
                   latitude={latitude}
                   longitude={longitude}
@@ -290,87 +290,86 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* Asset Summary (3/10) */}
-              <div className="col-span-10 lg:col-span-3">
+              {/* Asset Summary (10/10) */}
+              <div className="col-span-10">
                 <div
                   style={{ backgroundColor: "#0050fc" }}
-                  className="p-5 rounded-2xl border border-white/10 flex flex-col h-[520px] text-foreground"
+                  className="p-6 rounded-2xl border border-white/10 grid grid-cols-1 md:grid-cols-4 gap-6 text-foreground items-stretch"
                 >
-                  <div className="space-y-4 flex-1">
-                    <div className="border-b border-white/10 pb-3">
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest text-white/70 block">Selected Asset</span>
-                      <h2 className="text-sm font-extrabold text-white mt-0.5 truncate">
-                        {analytics?.area || "Custom Coordinates"}
-                      </h2>
-                      <span className="text-[9px] font-mono text-blue-200/50">
-                        ID: CUSTOM
-                      </span>
-                    </div>
+                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-white/70 block">Selected Asset</span>
+                    <h2 className="text-base font-extrabold text-white mt-1 truncate">
+                      {analytics?.area || "Custom Coordinates"}
+                    </h2>
+                    <span className="text-[9px] font-mono text-blue-200/50 mt-0.5">
+                      ID: CUSTOM
+                    </span>
+                  </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2.5 text-xs">
-                        <MapPin size={13} className="text-blue-300 shrink-0" />
-                        <div>
-                          <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Candidate Coords</span>
-                          <span className="font-mono text-white font-semibold text-[11px]">
-                            {candidateLat.toFixed(5)}N, {candidateLng.toFixed(5)}E
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 text-xs">
-                        <Layers size={13} className="text-blue-300 shrink-0" />
-                        <div>
-                          <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Analysis Radius</span>
-                          <span className="font-mono text-white font-semibold">{radius}m</span>
-                        </div>
+                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center space-y-3">
+                    <div className="flex items-center gap-2.5 text-xs">
+                      <MapPin size={13} className="text-blue-300 shrink-0" />
+                      <div>
+                        <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Candidate Coords</span>
+                        <span className="font-mono text-white font-semibold text-[11px]">
+                          {candidateLat.toFixed(5)}N, {candidateLng.toFixed(5)}E
+                        </span>
                       </div>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-3 rounded-xl text-[10px]">
+                    <div className="flex items-center gap-2.5 text-xs">
+                      <Layers size={13} className="text-blue-300 shrink-0" />
+                      <div>
+                        <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Analysis Radius</span>
+                        <span className="font-mono text-white font-semibold">{radius}m</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center">
+                    <div className="bg-white/5 border border-white/10 p-3 rounded-xl text-[10px] h-full flex flex-col justify-center">
                       <span className="text-[8px] font-extrabold uppercase text-blue-200/60 block mb-1">Executive Notes</span>
                       <p className="text-blue-100/80 leading-relaxed">
                         Custom evaluation mode. Click any location on the map and press Analyze to compute spatial features for that point.
                       </p>
                     </div>
-
-                    <div className="pt-2">
-                      <button
-                        onClick={handleAnalyzeCurrentLocation}
-                        disabled={isGpsLoading}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-blue-600 hover:bg-white/95 disabled:bg-white/50 active:scale-95 transition-all duration-150 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-md shadow-white/5 disabled:opacity-50"
-                      >
-                        {isGpsLoading ? (
-                          <>
-                            <RefreshCw size={12} className="animate-spin shrink-0" />
-                            <span>{gpsLoadingStage}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Navigation size={12} className="fill-current shrink-0" />
-                            <span>Analyze Current Location</span>
-                          </>
-                        )}
-                      </button>
-                      {gpsError && (
-                        <p className="text-[10px] text-rose-300 font-bold text-center mt-1.5 leading-snug animate-pulse">
-                          ⚠️ {gpsError}
-                        </p>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Analysis status row */}
-                  <div className="bg-white/5 border border-white/10 p-3 rounded-xl text-[10px] flex items-center justify-between mt-3">
-                    <div>
-                      <span className="text-[8px] font-bold text-blue-200/60 block">DATA SOURCE</span>
-                      <span className="text-[10px] text-emerald-400 font-extrabold">SPATIAL DB</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[8px] font-bold text-blue-200/60 block">STATUS</span>
-                      <span className={`text-[10px] font-extrabold ${isAnalyticsRefetching ? "text-amber-400 animate-pulse" : "text-emerald-400"}`}>
-                        {isAnalyticsRefetching ? "REFRESHING..." : "LIVE ANALYSIS"}
-                      </span>
+                  <div className="flex flex-col justify-center gap-3">
+                    <button
+                      onClick={handleAnalyzeCurrentLocation}
+                      disabled={isGpsLoading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-blue-600 hover:bg-white/95 disabled:bg-white/50 active:scale-95 transition-all duration-150 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-md shadow-white/5 disabled:opacity-50"
+                    >
+                      {isGpsLoading ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin shrink-0" />
+                          <span>{gpsLoadingStage}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Navigation size={12} className="fill-current shrink-0" />
+                          <span>Analyze Current Location</span>
+                        </>
+                      )}
+                    </button>
+                    {gpsError && (
+                      <p className="text-[10px] text-rose-300 font-bold text-center mt-1 leading-snug animate-pulse">
+                        ⚠️ {gpsError}
+                      </p>
+                    )}
+
+                    <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl text-[10px] flex items-center justify-between">
+                      <div>
+                        <span className="text-[8px] font-bold text-blue-200/60 block">DATA SOURCE</span>
+                        <span className="text-[10px] text-emerald-400 font-extrabold">SPATIAL DB</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] font-bold text-blue-200/60 block">STATUS</span>
+                        <span className={`text-[10px] font-extrabold ${isAnalyticsRefetching ? "text-amber-400 animate-pulse" : "text-emerald-400"}`}>
+                          {isAnalyticsRefetching ? "REFRESHING..." : "LIVE ANALYSIS"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

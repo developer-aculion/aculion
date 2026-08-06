@@ -129,6 +129,15 @@ export default function LocationMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady]);
 
+  // ── Force Invalidate Size after leaflet initialization finishes ──
+  useEffect(() => {
+    if (!leafletReady || !mapRef.current) return;
+    const timer = setTimeout(() => {
+      mapRef.current.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [leafletReady]);
+
   // ── Swap Base Tile Layer (reactive to mapType) ──
   useEffect(() => {
     if (!mapRef.current || !L) return;
@@ -166,6 +175,9 @@ export default function LocationMap({
   useEffect(() => {
     if (!mapRef.current || !L) return;
     const map = mapRef.current;
+    
+    // Force Leaflet to recalculate size to prevent grey background / partial load bugs
+    map.invalidateSize();
 
     const targetLat = selectedLat || latitude;
     const targetLng = selectedLng || longitude;

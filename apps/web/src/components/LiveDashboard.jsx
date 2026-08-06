@@ -316,6 +316,7 @@ export default function LiveDashboard({ navigateTo }) {
             <span className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2.5 mb-1.5">LOCATION INTELLIGENCE</span>
             {[
               { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
+              { id: 'traffic', icon: 'fa-car', label: 'Traffic Overview' },
               { id: 'overview', icon: 'fa-chart-pie', label: 'Location Overview' },
               { id: 'corridor', icon: 'fa-route', label: 'Corridor Intelligence' },
               { id: 'zone', icon: 'fa-chart-simple', label: 'Zone Comparison' },
@@ -407,7 +408,13 @@ export default function LiveDashboard({ navigateTo }) {
           </header>
 
           {/* Main Views Container */}
-          <main className={`flex-grow flex flex-col h-full min-w-0 ${activeNav === 'overview' ? 'overflow-y-auto overflow-x-hidden p-0 bg-[#070913]' : 'overflow-hidden bg-[#070913] p-4 gap-4'}`}>
+          <main className={`flex-grow flex flex-col h-full min-w-0 ${
+            activeNav === 'overview' 
+              ? 'overflow-y-auto overflow-x-hidden p-0 bg-[#070913]' 
+              : activeNav === 'traffic' 
+                ? 'overflow-hidden p-0 bg-[#070913]' 
+                : 'overflow-hidden bg-[#070913] p-4 gap-4'
+          }`}>
 
             {/* ═══════════════════════════════════════════════════
                1. LIVE VIEW
@@ -833,6 +840,17 @@ export default function LiveDashboard({ navigateTo }) {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* ═══════════════════════════════════════════════════
+               TRAFFIC OVERVIEW
+            ═══════════════════════════════════════════════════ */}
+            {activeNav === 'traffic' && (
+              <iframe
+                src="/traffic_ui/index.html"
+                title="Traffic Overview"
+                className="w-full h-full border-none"
+              />
             )}
 
             {/* ═══════════════════════════════════════════════════
