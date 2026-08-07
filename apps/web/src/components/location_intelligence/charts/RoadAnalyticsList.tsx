@@ -34,42 +34,40 @@ export default function RoadAnalyticsList({ data }: RoadAnalyticsListProps) {
   ]);
 
   return (
-    <div className="w-full h-[300px] relative">
-      <div className="absolute inset-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-            <PolarGrid stroke="rgba(255, 255, 255, 0.08)" />
-            <PolarAngleAxis 
-              dataKey="subject" 
-              stroke="#ffffff" 
-              fontSize={10}
-              tick={{ fill: "#ffffff", fontSize: 10 }}
-            />
-            <PolarRadiusAxis 
-              angle={30} 
-              domain={[0, 100]} 
-              stroke="rgba(255, 255, 255, 0.25)" 
-              tick={{ fill: "rgba(255, 255, 255, 0.5)", fontSize: 8 }}
-            />
-            <Radar
-              name="Infrastructure Rating"
-              dataKey="value"
-              stroke="#0055ff"
-              fill="#0055ff"
-              fillOpacity={0.25}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#0f172a",
-                borderColor: "rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                fontSize: "11px",
-                color: "#ffffff"
-              }}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="w-full h-[280px] flex items-center justify-center">
+      <ResponsiveContainer width="99%" height="100%">
+        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+          <PolarGrid stroke="rgba(255, 255, 255, 0.08)" />
+          <PolarAngleAxis 
+            dataKey="subject" 
+            stroke="#ffffff" 
+            fontSize={10}
+            tick={{ fill: "#ffffff", fontSize: 10 }}
+          />
+          <PolarRadiusAxis 
+            angle={30} 
+            domain={[0, 100]} 
+            stroke="rgba(255, 255, 255, 0.25)" 
+            tick={{ fill: "rgba(255, 255, 255, 0.5)", fontSize: 8 }}
+          />
+          <Radar
+            name="Infrastructure Rating"
+            dataKey="value"
+            stroke="#0055ff"
+            fill="#0055ff"
+            fillOpacity={0.25}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#0f172a",
+              borderColor: "rgba(255,255,255,0.08)",
+              borderRadius: "12px",
+              fontSize: "11px",
+              color: "#ffffff"
+            }}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

@@ -58,34 +58,10 @@ export default function AIRecommendationSidebar({
 
   const hasDomains = llmRec.best_advertising_domains && llmRec.best_advertising_domains.length > 0;
 
-  const score = analytics.real_estate_score ?? 0;
-  const circleRadius = 36;
-  const circumference = 2 * Math.PI * circleRadius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
 
-  let tier = "Weak";
-  let tierColor = "text-rose-500 border-rose-500/20 bg-rose-500/10";
-  let ringColor = "#F43F5E"; // rose-500
-  if (score >= 85) {
-    tier = "Premium";
-    tierColor = "text-emerald-400 border-emerald-500/20 bg-emerald-500/10";
-    ringColor = "#34D399"; // emerald-400
-  } else if (score >= 70) {
-    tier = "Strong";
-    tierColor = "text-blue-400 border-blue-500/20 bg-blue-500/10";
-    ringColor = "#60A5FA"; // blue-400
-  } else if (score >= 55) {
-    tier = "Good";
-    tierColor = "text-amber-400 border-amber-500/20 bg-amber-500/10";
-    ringColor = "#FBBF24"; // amber-400
-  } else if (score >= 40) {
-    tier = "Emerging";
-    tierColor = "text-orange-400 border-orange-500/20 bg-orange-500/10";
-    ringColor = "#FB923C"; // orange-400
-  }
 
   return (
-    <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-card/20 p-5 flex flex-col space-y-6 lg:h-screen lg:overflow-y-auto text-foreground shrink-0">
+    <div className="w-full lg:w-[380px] lg:min-w-[380px] lg:max-w-[380px] border-t lg:border-t-0 lg:border-l border-border bg-card/20 p-6 flex flex-col space-y-6 lg:h-screen lg:overflow-y-auto text-foreground shrink-0">
       
       {/* ── Selected Asset Box (Moved from Selected Asset section) ── */}
       <div
@@ -135,51 +111,7 @@ export default function AIRecommendationSidebar({
       </div>
 
 
-      {/* 2. REAL ESTATE POTENTIAL SCORE */}
-      {analytics.real_estate_score !== undefined && (
-        <div className="glassmorphism p-5 rounded-2xl border border-border flex flex-col items-center justify-center space-y-4">
-          <div className="flex items-center gap-2 self-start">
-            <Award size={14} className="text-primary" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Real Estate Potential</h3>
-          </div>
-          
-          <div className="relative flex items-center justify-center w-24 h-24">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle
-                cx="48"
-                cy="48"
-                r="36"
-                className="stroke-white/5"
-                strokeWidth="6"
-                fill="transparent"
-              />
-              <circle
-                cx="48"
-                cy="48"
-                r="36"
-                stroke={ringColor}
-                strokeWidth="6"
-                fill="transparent"
-                strokeDasharray={226.2}
-                strokeDashoffset={strokeDashoffset}
-                className="transition-all duration-1000 ease-out"
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-3xl font-black text-white leading-none">{score}</span>
-              <span className="text-[8px] text-muted-foreground font-bold uppercase mt-1">Score</span>
-            </div>
-          </div>
 
-          <div className="text-center space-y-1">
-            <p className="text-xs font-bold text-foreground">Real Estate Score</p>
-            <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${tierColor}`}>
-              {tier} Potential
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* 3. BEST ADVERTISING DOMAINS */}
       <div className="glassmorphism p-5 rounded-2xl border border-border space-y-4">

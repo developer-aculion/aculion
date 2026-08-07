@@ -10,20 +10,13 @@ import LandUseChart from "../charts/LandUseChart";
 import RoadAnalyticsList from "../charts/RoadAnalyticsList";
 import LocationMap from "../maps/LocationMap";
 import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  FileDown, Share2, Bookmark, Bot, RefreshCw,
-  Layers, MapPin, HelpCircle, FileSpreadsheet, X
-} from "lucide-react";
+import { Layers, HelpCircle } from "lucide-react";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
 
   // ── UI State ──
   const [isMapPickingActive, setIsMapPickingActive] = useState(false);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [aiReportGenerating, setAiReportGenerating] = useState(false);
-  const [aiReportContent, setAiReportContent] = useState("");
 
   // ── Candidate coordinate ──
   const [candidateLat, setCandidateLat] = useState(13.0827);
@@ -39,7 +32,6 @@ export default function Dashboard() {
     data: analytics,
     isLoading: isAnalyticsLoading,
     refetch: refetchAnalytics,
-    isRefetching: isAnalyticsRefetching,
   } = useQuery<LocationAnalytics>({
     queryKey: ["analytics", latitude, longitude, radius],
     queryFn: () => locationService.analyzeLocation(latitude, longitude, radius, undefined),
@@ -72,8 +64,6 @@ export default function Dashboard() {
     setIsMapPickingActive(false);
   };
 
-  const handleRefresh = () => refetchAnalytics();
-
   // ── Listen for chatbot analyze actions ──
   useEffect(() => {
     const handleChatAnalyzeSite = (e: any) => {
@@ -85,53 +75,6 @@ export default function Dashboard() {
       window.removeEventListener("chat-analyze-site", handleChatAnalyzeSite);
     };
   }, [radius]);
-
-  const triggerAiReport = (customAnalytics?: LocationAnalytics, customLat?: number, customLng?: number) => {
-    const data = customAnalytics || analytics;
-    if (!data) return;
-    const reportLat = customLat !== undefined ? customLat : latitude;
-    const reportLng = customLng !== undefined ? customLng : longitude;
-
-    setActiveModal("ai");
-    setAiReportGenerating(true);
-    setAiReportContent("");
-    setTimeout(() => {
-      const top = data.top_recommendations || [];
-      const k = data.kpis || { overall_score: 0, commercial_potential: 0, transit_connectivity: 0 };
-      const f = data.features || { poi_density: 0, walkability: 0, transit_accessibility: 0, commercial_density: 0, competition_index: 0, total_pois: 0, area_km2: 0 };
-      const noData = top.length === 0 && k.overall_score === 0;
-      const summaryNote = data.explanation?.summary
-        ? `\n> ⚠️ ${data.explanation.summary}\n`
-        : "";
-      setAiReportGenerating(false);
-      setAiReportContent(
-        `### Location Intelligence Assessment Report\n` +
-        `**Analysis Point**: Lat ${reportLat.toFixed(5)}, Lng ${reportLng.toFixed(5)} | Radius: ${radius}m\n` +
-        `**Mode**: Custom Coordinates Evaluation\n` +
-        summaryNote +
-        `\n#### Overall Suitability: ${k.overall_score}/100\n` +
-        (noData
-          ? `No spatial data was found within the selected radius. All KPI values are 0. Please select a location with GIS data in the database.\n`
-          : `This site scores ${k.overall_score}% overall — driven by ${k.commercial_potential}% commercial potential and ${k.transit_connectivity}% transit connectivity.\n`) +
-        `\n#### Top Recommended Ad Categories\n` +
-        (top.length > 0
-          ? top.map((r, i) => `${i + 1}. **${r.category}** (Score: ${r.score}, Confidence: ${r.confidence}%)\n   → ${r.reason}`).join("\n")
-          : "_No recommendations — insufficient spatial data at this location._") +
-        `\n\n#### Key Feature Metrics\n` +
-        `- POI Density: ${f.poi_density}/km² within ${radius}m radius\n` +
-        `- Walkability Index: ${f.walkability}%\n` +
-        `- Transit Accessibility: ${f.transit_accessibility}\n` +
-        `- Commercial Density: ${f.commercial_density}%\n` +
-        `- Competition Index: ${f.competition_index}\n\n` +
-        (data.explanation?.positive && data.explanation.positive.length > 0
-          ? `#### Positive Signals\n` + data.explanation.positive.map((p) => `✓ ${p}`).join("\n")
-          : "") +
-        (data.explanation?.negative && data.explanation.negative.length > 0
-          ? `\n\n#### Risk Factors\n` + data.explanation.negative.map((n) => `✗ ${n}`).join("\n")
-          : "")
-      );
-    }, 1800);
-  };
 
 
   // ── Skeleton loader ──
@@ -224,7 +167,7 @@ export default function Dashboard() {
 
             {/* 3. Analytics Charts row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3">
+              <div className="glassmorphism glass-hover p-6 rounded-2xl border border-border space-y-4">
                 <div>
                   <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">POI Category Density</h3>
                   <p className="text-[9px] text-muted-foreground mt-0.5">
@@ -239,7 +182,7 @@ export default function Dashboard() {
               </div>
 
               {/* Land Use */}
-              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3">
+              <div className="glassmorphism glass-hover p-6 rounded-2xl border border-border space-y-4">
                 <div>
                   <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Zoning & Land Use</h3>
                   <p className="text-[9px] text-muted-foreground mt-0.5">
@@ -254,7 +197,7 @@ export default function Dashboard() {
               </div>
 
               {/* Road Radar */}
-              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3 lg:col-span-2">
+              <div className="glassmorphism glass-hover p-6 rounded-2xl border border-border space-y-4 lg:col-span-2">
                 <div>
                   <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Road & Transit Infrastructure</h3>
                   <p className="text-[9px] text-muted-foreground mt-0.5">
@@ -268,7 +211,7 @@ export default function Dashboard() {
             {/* 4. Feature Insights + Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Feature Explorer */}
-              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-4">
+              <div className="glassmorphism glass-hover p-6 rounded-2xl border border-border space-y-5">
                 <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Feature Explorer</h3>
                 <div className="grid grid-cols-2 gap-2.5">
                   {[
@@ -289,39 +232,11 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-
-              {/* Quick Operations */}
-              <div className="glassmorphism p-5 rounded-2xl border border-border space-y-4">
-                <div>
-                  <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Quick Operations</h3>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">Export, share, or generate AI synthesis reports.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Export CSV", icon: FileSpreadsheet, color: "text-emerald-400", action: () => setActiveModal("export") },
-                    { label: "Print PDF", icon: FileDown, color: "text-rose-400", action: () => window.print() },
-                    { label: "Share URL", icon: Share2, color: "text-blue-400", action: () => setActiveModal("share") },
-                    { label: "Bookmark", icon: Bookmark, color: "text-amber-400", action: () => setActiveModal("save") },
-                    { label: "AI Synthesis", icon: Bot, color: "text-blue-500", action: () => triggerAiReport() },
-                    { label: "Refresh", icon: RefreshCw, color: "text-teal-400", action: handleRefresh, spin: isAnalyticsRefetching },
-                  ].map((btn) => (
-                    <button
-                      key={btn.label}
-                      onClick={btn.action}
-                      disabled={isAnalyticsRefetching && btn.label === "Refresh"}
-                      className="flex flex-col items-center justify-center p-3 border border-border bg-background/50 hover:bg-secondary rounded-xl gap-2 group transition-all duration-200 disabled:opacity-50"
-                    >
-                      <btn.icon className={`h-5 w-5 ${btn.color} group-hover:scale-110 transition-transform ${(btn as any).spin ? "animate-spin" : ""}`} />
-                      <span className="text-[11px] font-bold">{btn.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </main>
 
           {/* ── Right AI Recommendation Sidebar (Fixed 320px width) ── */}
-          <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] shrink-0">
+          <div className="w-full lg:w-[380px] lg:min-w-[380px] lg:max-w-[380px] shrink-0">
             <AIRecommendationSidebar
               analytics={analytics}
               candidateLat={candidateLat}
@@ -332,99 +247,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Modals ── */}
-      <AnimatePresence>
-        {activeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setActiveModal(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-            <motion.div
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-              className="relative bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl text-foreground text-xs"
-            >
-              <button onClick={() => setActiveModal(null)}
-                className="absolute top-4 right-4 p-1 rounded-lg border border-border hover:bg-secondary text-muted-foreground">
-                <X size={14} />
-              </button>
-
-              {activeModal === "export" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-emerald-400">
-                    <FileSpreadsheet size={18} />
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider">Export Analysis</h3>
-                  </div>
-                  <p className="text-muted-foreground text-[11px]">
-                    Export spatial analytics for <span className="font-semibold text-foreground">Custom Coordinates</span> as CSV.
-                  </p>
-                  <div className="flex justify-end gap-3">
-                    <button onClick={() => setActiveModal(null)} className="px-3.5 py-1.5 border border-border hover:bg-secondary rounded-lg font-bold">Cancel</button>
-                    <button onClick={() => { setActiveModal(null); alert("CSV export triggered!"); }}
-                      className="px-4 py-1.5 bg-emerald-500 hover:opacity-90 text-zinc-950 font-extrabold rounded-lg">Download</button>
-                  </div>
-                </div>
-              )}
-
-              {activeModal === "share" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-blue-400">
-                    <Share2 size={18} />
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider">Share Analysis Link</h3>
-                  </div>
-                  <div className="bg-background/70 border border-border p-2.5 rounded-xl font-mono text-[10px] text-primary select-all break-all">
-                    {typeof window !== "undefined" ? window.location.href : ""}
-                  </div>
-                  <div className="flex justify-end">
-                    <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setActiveModal(null); }}
-                      className="px-4 py-1.5 bg-primary text-primary-foreground font-extrabold rounded-lg">Copy Link</button>
-                  </div>
-                </div>
-              )}
-
-              {activeModal === "save" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-amber-400">
-                    <Bookmark size={18} />
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider">Bookmark Location</h3>
-                  </div>
-                  <p className="text-muted-foreground text-[11px]">Bookmark this analysis profile for future reference.</p>
-                  <div className="flex justify-end gap-3">
-                    <button onClick={() => setActiveModal(null)} className="px-3.5 py-1.5 border border-border hover:bg-secondary rounded-lg font-bold">Cancel</button>
-                    <button onClick={() => { setActiveModal(null); alert("Bookmarked!"); }}
-                      className="px-4 py-1.5 bg-amber-500 text-zinc-950 font-extrabold rounded-lg">Confirm</button>
-                  </div>
-                </div>
-              )}
-
-              {activeModal === "ai" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-blue-500">
-                    <Bot size={18} className={aiReportGenerating ? "animate-spin" : ""} />
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider">AI Synthesis Report</h3>
-                  </div>
-                  {aiReportGenerating ? (
-                    <div className="py-8 flex flex-col items-center gap-3">
-                      <Layers className="h-6 w-6 text-primary animate-spin" />
-                      <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                        Generating spatial intelligence report...
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="max-h-[320px] overflow-y-auto bg-background/50 border border-border/80 p-3.5 rounded-xl text-[11px] leading-relaxed text-muted-foreground whitespace-pre-line">
-                      {aiReportContent}
-                    </div>
-                  )}
-                  <div className="flex justify-end pt-1 border-t border-border/40">
-                    <button onClick={() => setActiveModal(null)} disabled={aiReportGenerating}
-                      className="px-4 py-1.5 bg-primary text-primary-foreground font-bold rounded-lg disabled:opacity-50">Close</button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -290,7 +290,7 @@ export default function LiveDashboard({ navigateTo }) {
         <aside className="w-[280px] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0">
           
           {/* Logo brand section (Moved to sidebar matching reference) */}
-          <div className="p-5 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
+          <div className="p-6 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
             <div className="flex items-center gap-[12px]">
               {/* Logo container vertically centered with the wordmark */}
               <img 
@@ -311,7 +311,7 @@ export default function LiveDashboard({ navigateTo }) {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col justify-between p-4 gap-2 overflow-y-auto min-h-0">
+          <div className="flex-1 flex flex-col justify-between p-5 gap-2.5 overflow-y-auto min-h-0">
             {[
               { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
               { id: 'traffic', icon: 'fa-car', label: 'Traffic Overview' },
@@ -327,7 +327,7 @@ export default function LiveDashboard({ navigateTo }) {
               <button
                 key={item.id}
                 onClick={() => setActiveNav(item.id)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-[12px] font-bold transition-all !w-full !border-none !shadow-none ${
+                className={`flex items-center gap-3 px-5 py-3.5 rounded-xl text-left text-[12px] font-bold transition-all !w-full !border-none !shadow-none ${
                   activeNav === item.id 
                     ? '!bg-blue-600 !text-white border border-blue-400/20 shadow-[0_0_12px_rgba(37,99,235,0.3)]' 
                     : '!bg-[#121829]/75 hover:!bg-[#1a233a] !text-white/50 hover:!text-white border border-white/5'
@@ -340,14 +340,14 @@ export default function LiveDashboard({ navigateTo }) {
           </div>
 
           {/* Location Summary card */}
-          <div className="p-3 border-t border-white/5 bg-[#06080e]/60 flex-shrink-0">
+          <div className="p-4 border-t border-white/5 bg-[#06080e]/60 flex-shrink-0">
             <div className="border border-white/10 rounded-lg bg-white/[0.01] overflow-hidden">
-              <span className="text-[8px] font-bold tracking-wider text-white/30 uppercase block px-2.5 block pt-2 pb-0.5">Selected Location</span>
+              <span className="text-[8px] font-bold tracking-wider text-white/30 uppercase block px-2.5 pt-2 pb-0.5">Selected Location</span>
               <div className="h-[56px] overflow-hidden relative">
                 <img src="/anna_nagar_location.png" alt="Anna Nagar" className="w-full h-full object-cover opacity-70" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#06080e] to-transparent"></div>
               </div>
-              <div className="p-2.5">
+              <div className="p-3">
                 <h4 className="text-[11px] font-bold text-white/90 leading-none font-heading">Anna Nagar</h4>
                 <p className="text-[9.5px] text-white/40 leading-normal mt-0.5">Shanthi Colony Junction,<br />Chennai - 600040</p>
                 <div className="flex items-center gap-1 text-[9px] text-emerald-400 font-semibold mt-1.5">
@@ -355,7 +355,7 @@ export default function LiveDashboard({ navigateTo }) {
                   Live Since 09:12:45 AM
                 </div>
               </div>
-              <button className="w-full bg-white/[0.03] border-t border-b-0 border-l-0 border-r-0 border-white/5 py-1.5 text-[9.5px] text-blue-400 font-medium hover:bg-white/5 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 !shadow-none !outline-none border-t border-white/5">
+              <button className="w-full bg-white/[0.03] border-t border-b-0 border-l-0 border-r-0 border-white/5 py-1.5 text-[9.5px] text-blue-400 font-medium hover:bg-white/5 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 !shadow-none !outline-none">
                 Change Location
                 <i className="fa-solid fa-chevron-right text-[8px] text-blue-400/50" />
               </button>
