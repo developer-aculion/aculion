@@ -233,10 +233,10 @@ export default function App() {
 
   React.useEffect(() => {
     const testUser = {
-      email: 'pdivyadharshini04@gmail.com',
+      email: 'connect@aculion.com',
       password: '92c3bb3b439c7907d48ade01205c6bcf46b56df92c8f12f79194cf7011542d67', // SHA-256 of Divyadivya09
       company: 'Aculion Intelligence Corp',
-      fullName: 'Divya Dharshini',
+      fullName: 'Aculion',
       role: 'Media Owner (Billboard Operator)',
       regNumber: 'ACU-1234'
     };
@@ -275,7 +275,7 @@ export default function App() {
         const parsed = JSON.parse(usersStr);
         let updated = false;
 
-        const testUserIdx = parsed.findIndex(u => u.email && u.email.trim().toLowerCase() === 'pdivyadharshini04@gmail.com');
+        const testUserIdx = parsed.findIndex(u => u.email && u.email.trim().toLowerCase() === 'connect@aculion.com');
         if (testUserIdx === -1) {
           parsed.push(testUser);
           updated = true;
@@ -291,7 +291,7 @@ export default function App() {
           if (u.role === 'owner') { u.role = 'Media Owner (Billboard Operator)'; updated = true; }
           if (u.role === 'brand') { u.role = 'Brand Advertiser'; updated = true; }
           if (u.role === 'admin') { u.role = 'Administrator'; updated = true; }
-          
+
           if (u.email === 'demo@aculion.com' && !u.regNumber) { u.regNumber = 'ACU-1234'; updated = true; }
           if (u.email === 'brand@aculion.com' && !u.regNumber) { u.regNumber = 'ACU-5678'; updated = true; }
           if (u.email === 'admin@aculion.com' && !u.regNumber) { u.regNumber = 'ACU-9012'; updated = true; }
@@ -612,14 +612,14 @@ export default function App() {
 
     // Success! Authenticate and show success message
     const userRole = matchedUser.role || 'Media Owner (Billboard Operator)';
-    
+
     setSigninSuccessMessage('Login successful. Welcome to Aculion Intelligence Console.');
-    
+
     // We delay the actual loginAction and navigateTo so the user can read the success banner
     setTimeout(() => {
       loginAction(
-        matchedUser.email || 'demo@aculion.com', 
-        matchedUser.company || 'Aculion Client', 
+        matchedUser.email || 'demo@aculion.com',
+        matchedUser.company || 'Aculion Client',
         userRole,
         matchedUser.fullName || matchedUser.username
       );
@@ -645,7 +645,7 @@ export default function App() {
       }
 
       const users = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-      const matchedUser = users.find(u => 
+      const matchedUser = users.find(u =>
         (u.email && u.email.trim().toLowerCase() === input.toLowerCase()) ||
         (u.regNumber && u.regNumber.trim().toUpperCase() === input.toUpperCase())
       );
@@ -659,7 +659,7 @@ export default function App() {
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       setForgotGeneratedOtp(otpCode);
       setForgotTargetEmail(userEmail);
-      
+
       // Simulate sending OTP/reset link
       sendOtpEmail(userEmail, otpCode);
 
@@ -1039,373 +1039,373 @@ export default function App() {
         /* Logged Out / Media Owner View */
         <main className="fade-in-content">
           {route === '/media-owner' ? (
-            <MediaOwnerPage 
-              navigateTo={navigateTo} 
-              isLoggedIn={isLoggedIn} 
-              setShowRegister={setShowRegister} 
-              setShowSignin={setShowSignin} 
-              handleLogout={handleLogout} 
-              user={user} 
+            <MediaOwnerPage
+              navigateTo={navigateTo}
+              isLoggedIn={isLoggedIn}
+              setShowRegister={setShowRegister}
+              setShowSignin={setShowSignin}
+              handleLogout={handleLogout}
+              user={user}
             />
           ) : (
             <>
               {/* Hero Section */}
               <section id="hero" className="hero-section">
-            <div className="section-container hero-container">
-              <div className="hero-content">
-                <div className="hero-accent">
-                  <span className="accent-line"></span>
-                  <span className="accent-pulse"></span>
-                </div>
-                <div className="hero-title-container">
-                  <div className="hero-title-glow"></div>
-                  <h1 className="hero-title">The Intelligence<br />Layer for<br />Outdoor<br /><span className="text-gradient">Advertising</span></h1>
-                </div>
-                <p className="hero-subtitle">
-                  Aculion is an independent data intelligence provider measuring attention, traffic, and campaign performance across physical billboards in real-time—delivering complete transparency and measurable ROI to outdoor advertising.
-                </p>
-              </div>
-              <HeroCityAnalytics />
-            </div>
-          </section>
-
-          {/* Metrics bar */}
-          <section className="metrics-bar">
-            <div className="section-container metrics-container">
-              <div className="metric-item">
-                <h3 className="metric-value">150+</h3>
-                <p className="metric-label"> Active Production Tests</p>
-              </div>
-              <div className="metric-divider"></div>
-              <div className="metric-item">
-                <h3 className="metric-value">10K+</h3>
-                <p className="metric-label">Real-World Traffic Intelligence</p>
-              </div>
-              <div className="metric-divider"></div>
-              <div className="metric-item">
-                <h3 className="metric-value">82,000+</h3>
-                <p className="metric-label">Points of Interest (POIs)</p>
-              </div>
-              <div className="metric-divider"></div>
-              <div className="metric-item">
-                <h3 className="metric-value">92.7%</h3>
-                <p className="metric-label">Vehicle Classification Accuracy</p>
-              </div>
-              <div className="metric-divider"></div>
-              <div className="metric-item">
-                <h3 className="metric-value">100%</h3>
-                <p className="metric-label">Privacy Secure</p>
-              </div>
-            </div>
-          </section>
-
-          {/* ESOMAR Member Trust Section */}
-          <section className="esomar-trust-section">
-            <div className="esomar-fade-top"></div>
-            <div className="section-container esomar-inner">
-              <div className="esomar-card">
-                <div className="esomar-icon-wrap">
-                  <i className="fa-solid fa-shield-halved esomar-icon"></i>
-                </div>
-                <span className="esomar-badge">GLOBAL RESEARCH COMMITMENT</span>
-                <p className="esomar-description">
-                  Aculion follows internationally recognized research methodologies inspired by ESOMAR's ethical framework while our membership application is in progress.
-                </p>
-              </div>
-            </div>
-            <div className="esomar-fade-bottom"></div>
-          </section>
-
-          {/* Features Pillar */}
-          <section id="features" className="features-section">
-            <div className="section-container">
-              <div className="section-header">
-                <span className="section-tag">Key Pillars</span>
-                <h2 className="section-title">Apex-Tier Analytics</h2>
-                <p className="section-desc">High-performance AI designed to process complex physical footprints with clinical precision, safeguarding privacy while uncovering absolute truth.</p>
-              </div>
-              <div className="features-grid">
-                <div className="feature-card">
-                  <div className="card-shine"></div>
-                  <div className="feature-icon"><i className="fa-solid fa-person-walking"></i></div>
-                  <h3 className="feature-title">Traffic Intelligence</h3>
-                  <p className="feature-text">Real-time movement intelligence for every road, intersection, and billboard.</p>
-                </div>
-                <div className="feature-card cursor-pointer" onClick={(e) => navigateTo(e, '/location-intelligence')} style={{ cursor: 'pointer' }}>
-                  <div className="card-shine"></div>
-                  <div className="feature-icon"><i className="fa-solid fa-eye"></i></div>
-                  <h3 className="feature-title">Location Intelligence</h3>
-                  <p className="feature-text">Deep contextual intelligence about where your media exists.</p>
-                </div>
-                <div className="feature-card">
-                  <div className="card-shine"></div>
-                  <div className="feature-icon"><i className="fa-solid fa-hourglass-half"></i></div>
-                  <h3 className="feature-title">Audience Intelligence</h3>
-                  <p className="feature-text">Understand who sees your media and how valuable that audience is</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Solutions Section */}
-          {/* id="insights" alias lets the #insights hash and old references still work */}
-          <span id="insights" aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none' }}></span>
-          <section id="solutions" className="solutions-section pt-28 sm:pt-32 lg:pt-[100px] scroll-mt-20">
-            <div className="section-container">
-              <div className="section-header relative" style={{ zIndex: 10 }}>
-                <span className="section-tag">Solutions</span>
-                <h2 className="section-title text-4xl sm:text-5xl lg:text-[40px]">Insights That Drive Better Decisions.</h2>
-                <p className="section-desc mt-5 lg:mt-0">Purpose-built, data-driven solutions for media owners and billboard operators.</p>
-              </div>
-
-              {/* Tab Content: Media Owners */}
-              <div className="solutions-tab-content active">
-                <div className="solutions-intro-card glass-panel">
-                  <div className="solutions-intro-icon" style={{ color: '#00f0ff' }}>
-                    <i className="fa-solid fa-circle-nodes"></i>
-                  </div>
-                  <div className="solutions-intro-text">
-                    <h3>Every Billboard Has Value. Aculion Helps You Prove It.</h3>
-                    <p>For decades, outdoor advertising has relied on estimates instead of evidence. Aculion changes that by transforming every billboard into a measurable, data-driven advertising asset. With real-time traffic, location, and audience insights, media owners can measure performance, optimize inventory utilization, and make smarter pricing decisions.</p>
-                    <ul className="solutions-intro-list">
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>AI-powered traffic and audience intelligence.</span>
-                      </li>
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>Monthly performance reports, available anytime.</span>
-                      </li>
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>Premium listing to attract more advertisers.</span>
-                      </li>
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>Receive direct enquiries from potential advertisers.</span>
-                      </li>
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>Data-backed pricing instead of assumptions.</span>
-                      </li>
-                      <li>
-                        <i className="fa-solid fa-circle-check text-cyan"></i>
-                        <span>Turn digital screens into programmatic-ready assets.</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <h3 className="solutions-grid-title">Why Media Owners Choose Aculion</h3>
-                <div className="solutions-grid">
-                  {[
-                    { title: "Increase Advertiser Confidence", desc: "Help advertisers make informed buying decisions by providing transparent, measurable media performance.", icon: "fa-shield-heart" },
-                    { title: "Price with Confidence", desc: "Replace guesswork with real intelligence when determining media rates and negotiating campaigns.", icon: "fa-tags" },
-                    { title: "Future-Ready Infrastructure", desc: "Prepare your media assets for data-driven and programmatic outdoor advertising as the industry evolves.", icon: "fa-network-wired" },
-                    { title: "Turn Data into Revenue", desc: "Demonstrate the true value of your locations with verified traffic intelligence and performance analytics.", icon: "fa-sack-dollar" },
-                    { title: "Premium Media Listings", desc: "Stand out on the Aculion platform with verified performance data, making your inventory more discoverable to premium advertisers.", icon: "fa-star" },
-                    { title: "Generate Qualified Sales Leads", desc: "Advertisers can discover your media inventory and connect with you directly—bringing new business opportunities without intermediaries.", icon: "fa-envelope-open-text" },
-                    { title: "Monthly Performance Reports", desc: "Download professionally designed reports anytime, complete with historical trends and performance insights.", icon: "fa-file-invoice-dollar" },
-                    { title: "Understand Your Audience", desc: "Measure traffic volume, vehicle mix, peak hours, dwell patterns, and other key intelligence that helps explain why a location performs.", icon: "fa-chart-pie" },
-                  ].map((item, idx) => (
-                    <div className="solutions-card glass-panel" key={idx}>
-                      <div className="solutions-card-icon"><i className={`fa-solid ${item.icon}`}></i></div>
-                      <h4>{item.title}</h4>
-                      <p>{item.desc}</p>
+                <div className="section-container hero-container">
+                  <div className="hero-content">
+                    <div className="hero-accent">
+                      <span className="accent-line"></span>
+                      <span className="accent-pulse"></span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Why Aculion Exists Section */}
-              <div className="manifesto-section glass-panel">
-                <div className="manifesto-glow"></div>
-                <div className="manifesto-header">
-                  <span className="manifesto-tag">Why Aculion Exists</span>
-                  <h3 className="manifesto-title">From Assumptions to <span className="text-gradient">Intelligence</span></h3>
-                  <p className="manifesto-desc">Outdoor advertising deserves the same level of measurement and accountability as digital advertising. Aculion is building the independent intelligence platform that empowers every outdoor advertising decision with trusted, AI-driven insights.</p>
-                </div>
-                <div className="manifesto-grid">
-                  {[
-                    { title: "Real-Time Intelligence", desc: "Measure live traffic, audience, and location insights with AI-powered computer vision.", icon: "fa-bolt", color: "#00f0ff" },
-                    { title: "Independent Measurement", desc: "Access transparent, third-party analytics to verify campaign delivery and media performance.", icon: "fa-shield-halved", color: "#8b5cf6" },
-                    { title: "Smarter Inventory Planning", desc: "Compare locations, predict campaign performance, and optimize inventory allocation for maximum yield.", icon: "fa-compass", color: "#0052ff" },
-                    { title: "Actionable Insights", desc: "Turn complex data into clear recommendations that help maximize campaign performance and ROI.", icon: "fa-chart-line", color: "#10b981" }
-                  ].map((item, idx) => (
-                    <div className="manifesto-card" key={idx}>
-                      <div className="manifesto-card-icon" style={{ color: item.color }}><i className={`fa-solid ${item.icon}`}></i></div>
-                      <h4>{item.title}</h4>
-                      <p>{item.desc}</p>
+                    <div className="hero-title-container">
+                      <div className="hero-title-glow"></div>
+                      <h1 className="hero-title">The Intelligence<br />Layer for<br />Outdoor<br /><span className="text-gradient">Advertising</span></h1>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </section>
-
-          {/* ═══════════════════════════════════════════════════════════════
-               INTERACTIVE DASHBOARD PREVIEW — Full-Width Mockup
-          ═══════════════════════════════════════════════════════════════ */}
-          <section id="dashboard-section" className="dashboard-section" style={{ padding: '80px 0 60px' }}>
-            <div className="section-container" style={{ maxWidth: '1360px' }}>
-
-              {/* Section Header */}
-              <div className="section-header" style={{ textAlign: 'center', marginBottom: '48px' }}>
-                <span className="section-tag">Live Intelligence Platform</span>
-                <h2 className="section-title">Experience ACULION Live Intelligence</h2>
-                <p className="section-desc" style={{ maxWidth: '680px', margin: '0 auto' }}>
-                  Explore real-time location intelligence powered by AE. Monitor live traffic movement, vehicle density, dwell time, heatmaps, and location performance through our enterprise analytics dashboard.
-                </p>
-              </div>
-
-              {/* ── Dashboard Mockup Container ── */}
-              <div style={{
-                position: 'relative',
-                borderRadius: '16px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'linear-gradient(135deg, rgba(8,12,22,0.95), rgba(10,14,26,0.98))',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 0 60px rgba(59,130,246,0.08), 0 25px 80px rgba(0,0,0,0.6)',
-                overflow: 'hidden',
-                fontFamily: "'Inter', sans-serif"
-              }}>
-
-                {/* Ambient glow overlays */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.06), transparent 60%)', pointerEvents: 'none', zIndex: 0 }} />
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.04), transparent 60%)', pointerEvents: 'none', zIndex: 0 }} />
-
-                {/* ── MOCK TOP BAR ── */}
-                <div style={{
-                  height: '48px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0 20px', background: 'rgba(8,12,22,0.7)', position: 'relative', zIndex: 1
-                }}>
-
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>Anna Nagar – Shanthi Colony Junction</span>
-                    <span style={{ padding: '1px 6px', borderRadius: '4px', fontSize: '7px', fontWeight: 700, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s ease-in-out infinite' }} />
-                      LIVE
-                    </span>
+                    <p className="hero-subtitle">
+                      Aculion is an independent data intelligence provider measuring attention, traffic, and campaign performance across physical billboards in real-time—delivering complete transparency and measurable ROI to outdoor advertising.
+                    </p>
                   </div>
+                  <HeroCityAnalytics />
+                </div>
+              </section>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.03)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>📅 08 Jul 2025</span>
-                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.03)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', fontFamily: 'monospace' }}>🕐 10:24:35 AM</span>
+              {/* Metrics bar */}
+              <section className="metrics-bar">
+                <div className="section-container metrics-container">
+                  <div className="metric-item">
+                    <h3 className="metric-value">150+</h3>
+                    <p className="metric-label"> Active Production Tests</p>
+                  </div>
+                  <div className="metric-divider"></div>
+                  <div className="metric-item">
+                    <h3 className="metric-value">10K+</h3>
+                    <p className="metric-label">Real-World Traffic Intelligence</p>
+                  </div>
+                  <div className="metric-divider"></div>
+                  <div className="metric-item">
+                    <h3 className="metric-value">82,000+</h3>
+                    <p className="metric-label">Points of Interest (POIs)</p>
+                  </div>
+                  <div className="metric-divider"></div>
+                  <div className="metric-item">
+                    <h3 className="metric-value">92.7%</h3>
+                    <p className="metric-label">Vehicle Classification Accuracy</p>
+                  </div>
+                  <div className="metric-divider"></div>
+                  <div className="metric-item">
+                    <h3 className="metric-value">100%</h3>
+                    <p className="metric-label">Privacy Secure</p>
                   </div>
                 </div>
+              </section>
 
-                {/* ── BODY: SIDEBAR + MAIN ── */}
-                <div style={{ display: 'flex', position: 'relative', zIndex: 1 }}>
+              {/* ESOMAR Member Trust Section */}
+              <section className="esomar-trust-section">
+                <div className="esomar-fade-top"></div>
+                <div className="section-container esomar-inner">
+                  <div className="esomar-card">
+                    <div className="esomar-icon-wrap">
+                      <i className="fa-solid fa-shield-halved esomar-icon"></i>
+                    </div>
+                    <span className="esomar-badge">GLOBAL RESEARCH COMMITMENT</span>
+                    <p className="esomar-description">
+                      Aculion follows internationally recognized research methodologies inspired by ESOMAR's ethical framework while our membership application is in progress.
+                    </p>
+                  </div>
+                </div>
+                <div className="esomar-fade-bottom"></div>
+              </section>
 
-                  {/* Sidebar */}
-                  <div style={{
-                    width: '170px', borderRight: '1px solid rgba(255,255,255,0.05)',
-                    background: 'rgba(8,11,21,0.5)', padding: '12px 8px', flexShrink: 0,
-                    display: 'flex', flexDirection: 'column', gap: '3px'
-                  }}>
-                    <span style={{ fontSize: '7px', fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', padding: '0 8px 6px' }}>Location Intelligence</span>
-                    {[
-                      { icon: 'fa-circle-dot', label: 'Live View', active: true }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '6px 10px', borderRadius: '6px',
-                        background: item.active ? '#2563eb' : 'rgba(255,255,255,0.02)',
-                        border: item.active ? '1px solid rgba(96,165,250,0.3)' : '1px solid transparent',
-                        color: item.active ? 'white' : 'rgba(255,255,255,0.35)',
-                        fontSize: '9px', fontWeight: item.active ? 600 : 500,
-                        transition: 'all 0.2s',
-                        boxShadow: item.active ? '0 0 12px rgba(37,99,235,0.3)' : 'none'
-                      }}>
-                        <i className={`fa-solid ${item.icon}`} style={{ width: '12px', textAlign: 'center', fontSize: '8px' }} />
-                        <span>{item.label}</span>
+              {/* Features Pillar */}
+              <section id="features" className="features-section">
+                <div className="section-container">
+                  <div className="section-header">
+                    <span className="section-tag">Key Pillars</span>
+                    <h2 className="section-title">Apex-Tier Analytics</h2>
+                    <p className="section-desc">High-performance AI designed to process complex physical footprints with clinical precision, safeguarding privacy while uncovering absolute truth.</p>
+                  </div>
+                  <div className="features-grid">
+                    <div className="feature-card">
+                      <div className="card-shine"></div>
+                      <div className="feature-icon"><i className="fa-solid fa-person-walking"></i></div>
+                      <h3 className="feature-title">Traffic Intelligence</h3>
+                      <p className="feature-text">Real-time movement intelligence for every road, intersection, and billboard.</p>
+                    </div>
+                    <div className="feature-card cursor-pointer" onClick={(e) => navigateTo(e, '/location-intelligence')} style={{ cursor: 'pointer' }}>
+                      <div className="card-shine"></div>
+                      <div className="feature-icon"><i className="fa-solid fa-eye"></i></div>
+                      <h3 className="feature-title">Location Intelligence</h3>
+                      <p className="feature-text">Deep contextual intelligence about where your media exists.</p>
+                    </div>
+                    <div className="feature-card">
+                      <div className="card-shine"></div>
+                      <div className="feature-icon"><i className="fa-solid fa-hourglass-half"></i></div>
+                      <h3 className="feature-title">Audience Intelligence</h3>
+                      <p className="feature-text">Understand who sees your media and how valuable that audience is</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Solutions Section */}
+              {/* id="insights" alias lets the #insights hash and old references still work */}
+              <span id="insights" aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none' }}></span>
+              <section id="solutions" className="solutions-section pt-28 sm:pt-32 lg:pt-[100px] scroll-mt-20">
+                <div className="section-container">
+                  <div className="section-header relative" style={{ zIndex: 10 }}>
+                    <span className="section-tag">Solutions</span>
+                    <h2 className="section-title text-4xl sm:text-5xl lg:text-[40px]">Insights That Drive Better Decisions.</h2>
+                    <p className="section-desc mt-5 lg:mt-0">Purpose-built, data-driven solutions for media owners and billboard operators.</p>
+                  </div>
+
+                  {/* Tab Content: Media Owners */}
+                  <div className="solutions-tab-content active">
+                    <div className="solutions-intro-card glass-panel">
+                      <div className="solutions-intro-icon" style={{ color: '#00f0ff' }}>
+                        <i className="fa-solid fa-circle-nodes"></i>
                       </div>
-                    ))}
-
-                    {/* Selected Location mini-card */}
-                    <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ fontSize: '6.5px', fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', display: 'block', marginBottom: '4px', paddingLeft: '4px' }}>Selected Location</span>
-                      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '8px', fontSize: '8px' }}>
-                        <div style={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '2px' }}>Anna Nagar</div>
-                        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px', lineHeight: '1.3' }}>Shanthi Colony Junction,<br />Chennai - 600040</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#22c55e', fontSize: '7px', fontWeight: 600, marginTop: '4px' }}>
-                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e' }} />
-                          Live Since 09:12:45 AM
-                        </div>
+                      <div className="solutions-intro-text">
+                        <h3>Every Billboard Has Value. Aculion Helps You Prove It.</h3>
+                        <p>For decades, outdoor advertising has relied on estimates instead of evidence. Aculion changes that by transforming every billboard into a measurable, data-driven advertising asset. With real-time traffic, location, and audience insights, media owners can measure performance, optimize inventory utilization, and make smarter pricing decisions.</p>
+                        <ul className="solutions-intro-list">
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>AI-powered traffic and audience intelligence.</span>
+                          </li>
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>Monthly performance reports, available anytime.</span>
+                          </li>
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>Premium listing to attract more advertisers.</span>
+                          </li>
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>Receive direct enquiries from potential advertisers.</span>
+                          </li>
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>Data-backed pricing instead of assumptions.</span>
+                          </li>
+                          <li>
+                            <i className="fa-solid fa-circle-check text-cyan"></i>
+                            <span>Turn digital screens into programmatic-ready assets.</span>
+                          </li>
+                        </ul>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Main Content Area */}
-                  <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
-
-                    {/* KPI CARDS ROW */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                    <h3 className="solutions-grid-title">Why Media Owners Choose Aculion</h3>
+                    <div className="solutions-grid">
                       {[
-                        { label: 'People Count (Now)', value: '1,246', change: '↑ 18.6%', icon: 'fa-person-walking', iconColor: '#3b82f6', iconBg: 'rgba(59,130,246,0.1)' },
-                        { label: 'Vehicles Count (Now)', value: '862', change: '↑ 12.4%', icon: 'fa-car', iconColor: '#06b6d4', iconBg: 'rgba(6,182,212,0.1)' },
-                        { label: 'Avg. Dwell Time', value: '38 sec', change: '↑ 6.3%', icon: 'fa-clock', iconColor: '#8b5cf6', iconBg: 'rgba(139,92,246,0.1)' },
-                        { label: 'Peak Time Today', value: '6–8 PM', sub: 'Highest volume', icon: 'fa-chart-simple', iconColor: '#a78bfa', iconBg: 'rgba(167,139,250,0.1)' },
-                        { label: 'Location Score', value: '87', suffix: '/100', badge: 'High Potential', icon: 'fa-star', iconColor: '#f59e0b', iconBg: 'rgba(245,158,11,0.1)' }
-                      ].map((kpi, idx) => (
-                        <div key={idx} style={{
-                          background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px'
-                        }}>
-                          <div style={{
-                            width: '28px', height: '28px', borderRadius: '6px',
-                            background: kpi.iconBg, border: `1px solid ${kpi.iconColor}30`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: kpi.iconColor, fontSize: '10px', flexShrink: 0
-                          }}>
-                            <i className={`fa-solid ${kpi.icon}`} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kpi.label}</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px', marginTop: '2px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 800, color: 'white', lineHeight: 1 }}>{kpi.value}</span>
-                              {kpi.suffix && <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)' }}>{kpi.suffix}</span>}
-                            </div>
-                            {kpi.change && <span style={{ fontSize: '7px', color: '#22c55e', fontWeight: 700, marginTop: '2px', display: 'block' }}>{kpi.change} <span style={{ color: 'rgba(255,255,255,0.15)', fontWeight: 500 }}>vs yesterday</span></span>}
-                            {kpi.badge && <span style={{ fontSize: '6px', color: '#22c55e', fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', padding: '1px 4px', borderRadius: '3px', marginTop: '2px', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.badge}</span>}
-                            {kpi.sub && <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.2)', display: 'block', marginTop: '1px' }}>{kpi.sub}</span>}
-                          </div>
+                        { title: "Increase Advertiser Confidence", desc: "Help advertisers make informed buying decisions by providing transparent, measurable media performance.", icon: "fa-shield-heart" },
+                        { title: "Price with Confidence", desc: "Replace guesswork with real intelligence when determining media rates and negotiating campaigns.", icon: "fa-tags" },
+                        { title: "Future-Ready Infrastructure", desc: "Prepare your media assets for data-driven and programmatic outdoor advertising as the industry evolves.", icon: "fa-network-wired" },
+                        { title: "Turn Data into Revenue", desc: "Demonstrate the true value of your locations with verified traffic intelligence and performance analytics.", icon: "fa-sack-dollar" },
+                        { title: "Premium Media Listings", desc: "Stand out on the Aculion platform with verified performance data, making your inventory more discoverable to premium advertisers.", icon: "fa-star" },
+                        { title: "Generate Qualified Sales Leads", desc: "Advertisers can discover your media inventory and connect with you directly—bringing new business opportunities without intermediaries.", icon: "fa-envelope-open-text" },
+                        { title: "Monthly Performance Reports", desc: "Download professionally designed reports anytime, complete with historical trends and performance insights.", icon: "fa-file-invoice-dollar" },
+                        { title: "Understand Your Audience", desc: "Measure traffic volume, vehicle mix, peak hours, dwell patterns, and other key intelligence that helps explain why a location performs.", icon: "fa-chart-pie" },
+                      ].map((item, idx) => (
+                        <div className="solutions-card glass-panel" key={idx}>
+                          <div className="solutions-card-icon"><i className={`fa-solid ${item.icon}`}></i></div>
+                          <h4>{item.title}</h4>
+                          <p>{item.desc}</p>
                         </div>
                       ))}
                     </div>
+                  </div>
 
-                    {/* MAP + RIGHT PANEL ROW */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '10px', flex: 1, minHeight: '220px' }}>
+                  {/* Why Aculion Exists Section */}
+                  <div className="manifesto-section glass-panel">
+                    <div className="manifesto-glow"></div>
+                    <div className="manifesto-header">
+                      <span className="manifesto-tag">Why Aculion Exists</span>
+                      <h3 className="manifesto-title">From Assumptions to <span className="text-gradient">Intelligence</span></h3>
+                      <p className="manifesto-desc">Outdoor advertising deserves the same level of measurement and accountability as digital advertising. Aculion is building the independent intelligence platform that empowers every outdoor advertising decision with trusted, AI-driven insights.</p>
+                    </div>
+                    <div className="manifesto-grid">
+                      {[
+                        { title: "Real-Time Intelligence", desc: "Measure live traffic, audience, and location insights with AI-powered computer vision.", icon: "fa-bolt", color: "#00f0ff" },
+                        { title: "Independent Measurement", desc: "Access transparent, third-party analytics to verify campaign delivery and media performance.", icon: "fa-shield-halved", color: "#8b5cf6" },
+                        { title: "Smarter Inventory Planning", desc: "Compare locations, predict campaign performance, and optimize inventory allocation for maximum yield.", icon: "fa-compass", color: "#0052ff" },
+                        { title: "Actionable Insights", desc: "Turn complex data into clear recommendations that help maximize campaign performance and ROI.", icon: "fa-chart-line", color: "#10b981" }
+                      ].map((item, idx) => (
+                        <div className="manifesto-card" key={idx}>
+                          <div className="manifesto-card-icon" style={{ color: item.color }}><i className={`fa-solid ${item.icon}`}></i></div>
+                          <h4>{item.title}</h4>
+                          <p>{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                      {/* Map Panel */}
+                </div>
+              </section>
+
+              {/* ═══════════════════════════════════════════════════════════════
+               INTERACTIVE DASHBOARD PREVIEW — Full-Width Mockup
+          ═══════════════════════════════════════════════════════════════ */}
+              <section id="dashboard-section" className="dashboard-section" style={{ padding: '80px 0 60px' }}>
+                <div className="section-container" style={{ maxWidth: '1360px' }}>
+
+                  {/* Section Header */}
+                  <div className="section-header" style={{ textAlign: 'center', marginBottom: '48px' }}>
+                    <span className="section-tag">Live Intelligence Platform</span>
+                    <h2 className="section-title">Experience ACULION Live Intelligence</h2>
+                    <p className="section-desc" style={{ maxWidth: '680px', margin: '0 auto' }}>
+                      Explore real-time location intelligence powered by AE. Monitor live traffic movement, vehicle density, dwell time, heatmaps, and location performance through our enterprise analytics dashboard.
+                    </p>
+                  </div>
+
+                  {/* ── Dashboard Mockup Container ── */}
+                  <div style={{
+                    position: 'relative',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'linear-gradient(135deg, rgba(8,12,22,0.95), rgba(10,14,26,0.98))',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 0 60px rgba(59,130,246,0.08), 0 25px 80px rgba(0,0,0,0.6)',
+                    overflow: 'hidden',
+                    fontFamily: "'Inter', sans-serif"
+                  }}>
+
+                    {/* Ambient glow overlays */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.06), transparent 60%)', pointerEvents: 'none', zIndex: 0 }} />
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.04), transparent 60%)', pointerEvents: 'none', zIndex: 0 }} />
+
+                    {/* ── MOCK TOP BAR ── */}
+                    <div style={{
+                      height: '48px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0 20px', background: 'rgba(8,12,22,0.7)', position: 'relative', zIndex: 1
+                    }}>
+
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>Anna Nagar – Shanthi Colony Junction</span>
+                        <span style={{ padding: '1px 6px', borderRadius: '4px', fontSize: '7px', fontWeight: 700, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s ease-in-out infinite' }} />
+                          LIVE
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.03)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>📅 08 Jul 2025</span>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.03)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', fontFamily: 'monospace' }}>🕐 10:24:35 AM</span>
+                      </div>
+                    </div>
+
+                    {/* ── BODY: SIDEBAR + MAIN ── */}
+                    <div style={{ display: 'flex', position: 'relative', zIndex: 1 }}>
+
+                      {/* Sidebar */}
                       <div style={{
-                        background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '8px', overflow: 'hidden', position: 'relative'
+                        width: '170px', borderRight: '1px solid rgba(255,255,255,0.05)',
+                        background: 'rgba(8,11,21,0.5)', padding: '12px 8px', flexShrink: 0,
+                        display: 'flex', flexDirection: 'column', gap: '3px'
                       }}>
-                        <div style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Live Location Intelligence</div>
-                        <div style={{ position: 'relative', height: '200px', background: 'linear-gradient(135deg, #070a13, #0d1424)' }}>
-                          <svg width="100%" height="100%" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid slice">
-                            <defs>
-                              <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="5" result="blur" />
-                                <feMerge>
-                                  <feMergeNode in="blur" />
-                                  <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                              </filter>
-                              <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255, 255, 255, 0.015)" strokeWidth="1"/>
-                              </pattern>
-                            </defs>
+                        <span style={{ fontSize: '7px', fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', padding: '0 8px 6px' }}>Location Intelligence</span>
+                        {[
+                          { icon: 'fa-circle-dot', label: 'Live View', active: true }
+                        ].map((item, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '6px 10px', borderRadius: '6px',
+                            background: item.active ? '#2563eb' : 'rgba(255,255,255,0.02)',
+                            border: item.active ? '1px solid rgba(96,165,250,0.3)' : '1px solid transparent',
+                            color: item.active ? 'white' : 'rgba(255,255,255,0.35)',
+                            fontSize: '9px', fontWeight: item.active ? 600 : 500,
+                            transition: 'all 0.2s',
+                            boxShadow: item.active ? '0 0 12px rgba(37,99,235,0.3)' : 'none'
+                          }}>
+                            <i className={`fa-solid ${item.icon}`} style={{ width: '12px', textAlign: 'center', fontSize: '8px' }} />
+                            <span>{item.label}</span>
+                          </div>
+                        ))}
 
-                            <rect width="100%" height="100%" fill="url(#grid)" />
+                        {/* Selected Location mini-card */}
+                        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ fontSize: '6.5px', fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', display: 'block', marginBottom: '4px', paddingLeft: '4px' }}>Selected Location</span>
+                          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '8px', fontSize: '8px' }}>
+                            <div style={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '2px' }}>Anna Nagar</div>
+                            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '7px', lineHeight: '1.3' }}>Shanthi Colony Junction,<br />Chennai - 600040</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#22c55e', fontSize: '7px', fontWeight: 600, marginTop: '4px' }}>
+                              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e' }} />
+                              Live Since 09:12:45 AM
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                            {/* Self-contained animations inside SVG */}
-                            <style>
-                              {`
+                      {/* Main Content Area */}
+                      <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
+
+                        {/* KPI CARDS ROW */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                          {[
+                            { label: 'People Count (Now)', value: '1,246', change: '↑ 18.6%', icon: 'fa-person-walking', iconColor: '#3b82f6', iconBg: 'rgba(59,130,246,0.1)' },
+                            { label: 'Vehicles Count (Now)', value: '862', change: '↑ 12.4%', icon: 'fa-car', iconColor: '#06b6d4', iconBg: 'rgba(6,182,212,0.1)' },
+                            { label: 'Avg. Dwell Time', value: '38 sec', change: '↑ 6.3%', icon: 'fa-clock', iconColor: '#8b5cf6', iconBg: 'rgba(139,92,246,0.1)' },
+                            { label: 'Peak Time Today', value: '6–8 PM', sub: 'Highest volume', icon: 'fa-chart-simple', iconColor: '#a78bfa', iconBg: 'rgba(167,139,250,0.1)' },
+                            { label: 'Location Score', value: '87', suffix: '/100', badge: 'High Potential', icon: 'fa-star', iconColor: '#f59e0b', iconBg: 'rgba(245,158,11,0.1)' }
+                          ].map((kpi, idx) => (
+                            <div key={idx} style={{
+                              background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
+                              borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px'
+                            }}>
+                              <div style={{
+                                width: '28px', height: '28px', borderRadius: '6px',
+                                background: kpi.iconBg, border: `1px solid ${kpi.iconColor}30`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: kpi.iconColor, fontSize: '10px', flexShrink: 0
+                              }}>
+                                <i className={`fa-solid ${kpi.icon}`} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kpi.label}</div>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px', marginTop: '2px' }}>
+                                  <span style={{ fontSize: '14px', fontWeight: 800, color: 'white', lineHeight: 1 }}>{kpi.value}</span>
+                                  {kpi.suffix && <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)' }}>{kpi.suffix}</span>}
+                                </div>
+                                {kpi.change && <span style={{ fontSize: '7px', color: '#22c55e', fontWeight: 700, marginTop: '2px', display: 'block' }}>{kpi.change} <span style={{ color: 'rgba(255,255,255,0.15)', fontWeight: 500 }}>vs yesterday</span></span>}
+                                {kpi.badge && <span style={{ fontSize: '6px', color: '#22c55e', fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', padding: '1px 4px', borderRadius: '3px', marginTop: '2px', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.badge}</span>}
+                                {kpi.sub && <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.2)', display: 'block', marginTop: '1px' }}>{kpi.sub}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* MAP + RIGHT PANEL ROW */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '10px', flex: 1, minHeight: '220px' }}>
+
+                          {/* Map Panel */}
+                          <div style={{
+                            background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: '8px', overflow: 'hidden', position: 'relative'
+                          }}>
+                            <div style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Live Location Intelligence</div>
+                            <div style={{ position: 'relative', height: '200px', background: 'linear-gradient(135deg, #070a13, #0d1424)' }}>
+                              <svg width="100%" height="100%" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid slice">
+                                <defs>
+                                  <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="5" result="blur" />
+                                    <feMerge>
+                                      <feMergeNode in="blur" />
+                                      <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                  </filter>
+                                  <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255, 255, 255, 0.015)" strokeWidth="1" />
+                                  </pattern>
+                                </defs>
+
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                                {/* Self-contained animations inside SVG */}
+                                <style>
+                                  {`
                                 @keyframes flowEast { to { stroke-dashoffset: -20; } }
                                 @keyframes flowWest { to { stroke-dashoffset: 20; } }
                                 @keyframes flowSouth { to { stroke-dashoffset: -20; } }
@@ -1416,594 +1416,594 @@ export default function App() {
                                 .flow-south { animation: flowSouth 1.8s linear infinite; }
                                 .flow-north { animation: flowNorth 1.8s linear infinite; }
                               `}
-                            </style>
+                                </style>
 
-                            {/* Road Outlines ( Slate-800 bodies ) */}
-                            <path d="M -50,100 L 550,100" stroke="#131b2e" strokeWidth="12" fill="none" />
-                            <path d="M 250,-50 L 250,250" stroke="#131b2e" strokeWidth="12" fill="none" />
-                            <path d="M -50,-20 L 550,220" stroke="#131b2e" strokeWidth="10" fill="none" />
-                            <path d="M 550,-20 L -50,220" stroke="#131b2e" strokeWidth="10" fill="none" />
-                            <path d="M 110,-50 L 110,250" stroke="#131b2e" strokeWidth="8" fill="none" />
-                            <path d="M 390,-50 L 390,250" stroke="#131b2e" strokeWidth="8" fill="none" />
+                                {/* Road Outlines ( Slate-800 bodies ) */}
+                                <path d="M -50,100 L 550,100" stroke="#131b2e" strokeWidth="12" fill="none" />
+                                <path d="M 250,-50 L 250,250" stroke="#131b2e" strokeWidth="12" fill="none" />
+                                <path d="M -50,-20 L 550,220" stroke="#131b2e" strokeWidth="10" fill="none" />
+                                <path d="M 550,-20 L -50,220" stroke="#131b2e" strokeWidth="10" fill="none" />
+                                <path d="M 110,-50 L 110,250" stroke="#131b2e" strokeWidth="8" fill="none" />
+                                <path d="M 390,-50 L 390,250" stroke="#131b2e" strokeWidth="8" fill="none" />
 
-                            {/* Road Lanes ( dashed center lines ) */}
-                            <path d="M -50,100 L 550,100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                            <path d="M 250,-50 L 250,250" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                            <path d="M -50,-20 L 550,220" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                            <path d="M 550,-20 L -50,220" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
+                                {/* Road Lanes ( dashed center lines ) */}
+                                <path d="M -50,100 L 550,100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
+                                <path d="M 250,-50 L 250,250" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
+                                <path d="M -50,-20 L 550,220" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
+                                <path d="M 550,-20 L -50,220" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
 
-                            {/* Glowing Active Traffic Flows */}
-                            <path d="M -50,100 L 550,100" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-east" />
-                            <path d="M 250,-50 L 250,250" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-south" />
-                            <path d="M -50,-20 L 550,220" stroke="rgba(34, 197, 94, 0.2)" strokeWidth="1.2" strokeDasharray="6 6" fill="none" className="flow-east" />
+                                {/* Glowing Active Traffic Flows */}
+                                <path d="M -50,100 L 550,100" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-east" />
+                                <path d="M 250,-50 L 250,250" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-south" />
+                                <path d="M -50,-20 L 550,220" stroke="rgba(34, 197, 94, 0.2)" strokeWidth="1.2" strokeDasharray="6 6" fill="none" className="flow-east" />
 
-                            {/* Concentric Geofence Rings */}
-                            <circle cx="250" cy="100" r="30" fill="none" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="0.8" strokeDasharray="3 3" />
-                            <circle cx="250" cy="100" r="60" fill="none" stroke="rgba(59, 130, 246, 0.15)" strokeWidth="0.8" />
-                            <circle cx="250" cy="100" r="90" fill="none" stroke="rgba(59, 130, 246, 0.08)" strokeWidth="0.8" strokeDasharray="5 5" />
+                                {/* Concentric Geofence Rings */}
+                                <circle cx="250" cy="100" r="30" fill="none" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="0.8" strokeDasharray="3 3" />
+                                <circle cx="250" cy="100" r="60" fill="none" stroke="rgba(59, 130, 246, 0.15)" strokeWidth="0.8" />
+                                <circle cx="250" cy="100" r="90" fill="none" stroke="rgba(59, 130, 246, 0.08)" strokeWidth="0.8" strokeDasharray="5 5" />
 
-                            {/* Glowing Geofence Diamond Star Boundary */}
-                            <path 
-                              d="M 250,100 L 130,96 Q 200,100 250,150 Q 250,110 370,110 Q 290,105 250,50 Q 235,85 130,96" 
-                              fill="rgba(37, 99, 235, 0.1)" 
-                              stroke="#2563eb" 
-                              strokeWidth="1.2" 
-                              filter="url(#blueGlow)" 
-                            />
+                                {/* Glowing Geofence Diamond Star Boundary */}
+                                <path
+                                  d="M 250,100 L 130,96 Q 200,100 250,150 Q 250,110 370,110 Q 290,105 250,50 Q 235,85 130,96"
+                                  fill="rgba(37, 99, 235, 0.1)"
+                                  stroke="#2563eb"
+                                  strokeWidth="1.2"
+                                  filter="url(#blueGlow)"
+                                />
 
-                            {/* Animated Density Points (Pedestrian & Vehicle activity flows) */}
-                            {/* Road 1: N-S */}
-                            <circle r="2.5" fill="#ef4444"><animateMotion dur="10s" repeatCount="indefinite" path="M 250,-20 L 250,220" begin="0s" /></circle>
-                            <circle r="2.5" fill="#22c55e"><animateMotion dur="14s" repeatCount="indefinite" path="M 250,220 L 250,-20" begin="-3s" /></circle>
-                            <circle r="2" fill="#3b82f6"><animateMotion dur="12s" repeatCount="indefinite" path="M 250,-20 L 250,220" begin="-6s" /></circle>
-                            {/* Road 2: E-W */}
-                            <circle r="3" fill="#ef4444"><animateMotion dur="8s" repeatCount="indefinite" path="M -20,100 L 520,100" begin="-1s" /></circle>
-                            <circle r="2.2" fill="#eab308"><animateMotion dur="11s" repeatCount="indefinite" path="M 520,100 L -20,100" begin="-4s" /></circle>
-                            <circle r="2.8" fill="#f97316"><animateMotion dur="9s" repeatCount="indefinite" path="M -20,100 L 520,100" begin="-7s" /></circle>
-                            {/* Road 3: NW-SE */}
-                            <circle r="2.5" fill="#22c55e"><animateMotion dur="12s" repeatCount="indefinite" path="M -20,-10 L 520,210" begin="-2s" /></circle>
-                            <circle r="2" fill="#ef4444"><animateMotion dur="15s" repeatCount="indefinite" path="M 520,210 L -20,-10" begin="-5s" /></circle>
-                            {/* Road 4: NE-SW */}
-                            <circle r="2.5" fill="#3b82f6"><animateMotion dur="11s" repeatCount="indefinite" path="M 520,-10 L -20,210" begin="0s" /></circle>
-                            <circle r="3" fill="#eab308"><animateMotion dur="13s" repeatCount="indefinite" path="M -20,210 L 520,-10" begin="-8s" /></circle>
+                                {/* Animated Density Points (Pedestrian & Vehicle activity flows) */}
+                                {/* Road 1: N-S */}
+                                <circle r="2.5" fill="#ef4444"><animateMotion dur="10s" repeatCount="indefinite" path="M 250,-20 L 250,220" begin="0s" /></circle>
+                                <circle r="2.5" fill="#22c55e"><animateMotion dur="14s" repeatCount="indefinite" path="M 250,220 L 250,-20" begin="-3s" /></circle>
+                                <circle r="2" fill="#3b82f6"><animateMotion dur="12s" repeatCount="indefinite" path="M 250,-20 L 250,220" begin="-6s" /></circle>
+                                {/* Road 2: E-W */}
+                                <circle r="3" fill="#ef4444"><animateMotion dur="8s" repeatCount="indefinite" path="M -20,100 L 520,100" begin="-1s" /></circle>
+                                <circle r="2.2" fill="#eab308"><animateMotion dur="11s" repeatCount="indefinite" path="M 520,100 L -20,100" begin="-4s" /></circle>
+                                <circle r="2.8" fill="#f97316"><animateMotion dur="9s" repeatCount="indefinite" path="M -20,100 L 520,100" begin="-7s" /></circle>
+                                {/* Road 3: NW-SE */}
+                                <circle r="2.5" fill="#22c55e"><animateMotion dur="12s" repeatCount="indefinite" path="M -20,-10 L 520,210" begin="-2s" /></circle>
+                                <circle r="2" fill="#ef4444"><animateMotion dur="15s" repeatCount="indefinite" path="M 520,210 L -20,-10" begin="-5s" /></circle>
+                                {/* Road 4: NE-SW */}
+                                <circle r="2.5" fill="#3b82f6"><animateMotion dur="11s" repeatCount="indefinite" path="M 520,-10 L -20,210" begin="0s" /></circle>
+                                <circle r="3" fill="#eab308"><animateMotion dur="13s" repeatCount="indefinite" path="M -20,210 L 520,-10" begin="-8s" /></circle>
 
-                            {/* Street & Landmark Labels */}
-                            <g fontSize="7.5" fontFamily="Inter, sans-serif" fill="rgba(255,255,255,0.3)" fontWeight="500">
-                              <text x="80" y="45" textAnchor="middle">Anna Nagar West</text>
-                              <text x="80" y="165" textAnchor="middle">Shanthi Colony</text>
-                              <text x="375" y="175" textAnchor="middle">Anna Nagar East</text>
-                              <text x="365" y="60" textAnchor="middle">PVR VR Mall</text>
-                              <text x="420" y="130" textAnchor="middle">Anna Nagar Tower</text>
-                              <text x="415" y="80" textAnchor="middle">Blue Star</text>
-                              <text x="285" y="30" textAnchor="middle">Roundtana</text>
-                              
-                              <text x="330" y="145" fill="rgba(255,255,255,0.18)" fontSize="6.5" transform="rotate(22, 330, 145)">Arya Gowda Road</text>
-                              <text x="60" y="108" fill="rgba(255,255,255,0.18)" fontSize="6.5">Shanthi Ave</text>
-                            </g>
+                                {/* Street & Landmark Labels */}
+                                <g fontSize="7.5" fontFamily="Inter, sans-serif" fill="rgba(255,255,255,0.3)" fontWeight="500">
+                                  <text x="80" y="45" textAnchor="middle">Anna Nagar West</text>
+                                  <text x="80" y="165" textAnchor="middle">Shanthi Colony</text>
+                                  <text x="375" y="175" textAnchor="middle">Anna Nagar East</text>
+                                  <text x="365" y="60" textAnchor="middle">PVR VR Mall</text>
+                                  <text x="420" y="130" textAnchor="middle">Anna Nagar Tower</text>
+                                  <text x="415" y="80" textAnchor="middle">Blue Star</text>
+                                  <text x="285" y="30" textAnchor="middle">Roundtana</text>
 
-                            {/* Glowing central anchor pin */}
-                            <g transform="translate(250, 100)">
-                              <circle cx="0" cy="0" r="14" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.4)" strokeWidth="1" />
-                              <circle cx="0" cy="0" r="5" fill="#2563eb" stroke="white" strokeWidth="1.5" />
-                              <circle cx="0" cy="0" r="1.5" fill="white" />
-                            </g>
-                          </svg>
+                                  <text x="330" y="145" fill="rgba(255,255,255,0.18)" fontSize="6.5" transform="rotate(22, 330, 145)">Arya Gowda Road</text>
+                                  <text x="60" y="108" fill="rgba(255,255,255,0.18)" fontSize="6.5">Shanthi Ave</text>
+                                </g>
 
-                          {/* Camera tag */}
-                          <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '4px', fontSize: '7.5px', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)', shadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                            Camera 1
-                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e' }} />
-                            <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '6.5px', letterSpacing: '0.1em' }}>LIVE</span>
-                          </div>
+                                {/* Glowing central anchor pin */}
+                                <g transform="translate(250, 100)">
+                                  <circle cx="0" cy="0" r="14" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.4)" strokeWidth="1" />
+                                  <circle cx="0" cy="0" r="5" fill="#2563eb" stroke="white" strokeWidth="1.5" />
+                                  <circle cx="0" cy="0" r="1.5" fill="white" />
+                                </g>
+                              </svg>
 
-                          {/* Density legend */}
-                          <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: '2px', backdropFilter: 'blur(4px)', shadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                            <span style={{ fontSize: '6.5px', fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Live Density (People/min)</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span style={{ fontSize: '6px', color: 'rgba(255,255,255,0.3)' }}>Low</span>
-                              <div style={{ width: '60px', height: '4px', borderRadius: '2px', background: 'linear-gradient(to right, #3b82f6, #10b981, #eab308, #f97316, #ef4444)' }} />
-                              <span style={{ fontSize: '6px', color: 'rgba(255,255,255,0.3)' }}>High</span>
+                              {/* Camera tag */}
+                              <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '4px', fontSize: '7.5px', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)', shadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                                Camera 1
+                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e' }} />
+                                <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '6.5px', letterSpacing: '0.1em' }}>LIVE</span>
+                              </div>
+
+                              {/* Density legend */}
+                              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: '2px', backdropFilter: 'blur(4px)', shadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                                <span style={{ fontSize: '6.5px', fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Live Density (People/min)</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '6px', color: 'rgba(255,255,255,0.3)' }}>Low</span>
+                                  <div style={{ width: '60px', height: '4px', borderRadius: '2px', background: 'linear-gradient(to right, #3b82f6, #10b981, #eab308, #f97316, #ef4444)' }} />
+                                  <span style={{ fontSize: '6px', color: 'rgba(255,255,255,0.3)' }}>High</span>
+                                </div>
+                              </div>
+
+                              {/* Zoom controls */}
+                              <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>+</button>
+                                <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>−</button>
+                                <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>
+                                  <i className="fa-solid fa-crosshairs"></i>
+                                </button>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Zoom controls */}
-                          <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>+</button>
-                            <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>−</button>
-                            <button style={{ width: '20px', height: '20px', borderRadius: '3px', background: 'rgba(10,15,29,0.92)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', shadow: '0 2px 6px rgba(0,0,0,0.4)' }}>
-                              <i className="fa-solid fa-crosshairs"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right stacked panels */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {/* Camera Feed */}
-                        <div style={{
-                          background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '8px', overflow: 'hidden', height: '110px'
-                        }}>
-                          <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Live Camera Feed</span>
-                            <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '6.5px', fontWeight: 700, background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s ease-in-out infinite' }} />
-                              LIVE
-                            </span>
-                          </div>
-                          <div style={{ height: 'calc(100% - 26px)', background: '#000', position: 'relative' }}>
-                            <img src="/anna_nagar_feed.png" alt="Camera Feed" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />
-                          </div>
-                        </div>
-
-                        {/* Location Summary */}
-                        <div style={{
-                          background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '8px', flex: 1, overflow: 'hidden'
-                        }}>
-                          <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Location Summary <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 500 }}>(Today)</span></span>
-                          </div>
-                          <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {[
-                              { icon: 'fa-person-walking', color: '#3b82f6', label: 'Total People', val: '45,782', change: '↑ 16.8%' },
-                              { icon: 'fa-car', color: '#06b6d4', label: 'Total Vehicles', val: '32,605', change: '↑ 11.3%' },
-                              { icon: 'fa-clock', color: '#8b5cf6', label: 'Avg. Dwell Time', val: '38 sec', change: '↑ 6.3%' },
-                              { icon: 'fa-chart-line', color: '#a78bfa', label: 'Peak Hour', val: '6–8 PM' },
-                              { icon: 'fa-calendar-days', color: '#f59e0b', label: 'Busiest Day', val: 'Friday' }
-                            ].map((row, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px', fontSize: '8px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.45)' }}>
-                                  <i className={`fa-solid ${row.icon}`} style={{ color: row.color, fontSize: '8px', width: '12px', textAlign: 'center' }} />
-                                  <span>{row.label}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                  <span style={{ fontWeight: 700, color: 'white' }}>{row.val}</span>
-                                  {row.change && <span style={{ fontSize: '7px', color: '#22c55e', fontWeight: 700 }}>{row.change}</span>}
-                                </div>
+                          {/* Right stacked panels */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {/* Camera Feed */}
+                            <div style={{
+                              background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
+                              borderRadius: '8px', overflow: 'hidden', height: '110px'
+                            }}>
+                              <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Live Camera Feed</span>
+                                <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '6.5px', fontWeight: 700, background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                  <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s ease-in-out infinite' }} />
+                                  LIVE
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* CHARTS ROW */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-
-                      {/* People Count Trend */}
-                      <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>People Count Trend</span>
-                          <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
-                        </div>
-                        <svg width="100%" height="95" viewBox="0 0 300 95" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="prevArea" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-                              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
-                          {/* Grid lines */}
-                          {[20, 40, 60, 80].map(y => <line key={y} x1="0" y1={y} x2="300" y2={y} stroke="rgba(255,255,255,0.03)" />)}
-                          {/* Y-axis labels */}
-                          <text x="2" y="18" fill="rgba(255,255,255,0.2)" fontSize="5">2K</text>
-                          <text x="2" y="38" fill="rgba(255,255,255,0.2)" fontSize="5">1.5K</text>
-                          <text x="2" y="58" fill="rgba(255,255,255,0.2)" fontSize="5">1K</text>
-                          <text x="2" y="78" fill="rgba(255,255,255,0.2)" fontSize="5">500</text>
-                          <text x="2" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">0</text>
-                          {/* Area fill */}
-                          <path d="M 20,88 L 50,90 80,92 110,82 140,60 170,38 200,48 230,42 260,28 280,22 295,40 L 295,95 20,95 Z" fill="url(#prevArea)" />
-                          {/* Line */}
-                          <path d="M 20,88 L 50,90 80,92 110,82 140,60 170,38 200,48 230,42 260,28 280,22 295,40" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
-                          {/* Tooltip dot */}
-                          <circle cx="170" cy="38" r="3" fill="#3b82f6" stroke="white" strokeWidth="1">
-                            <animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite" />
-                          </circle>
-                          {/* X labels */}
-                          <text x="20" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">12 AM</text>
-                          <text x="110" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">08 AM</text>
-                          <text x="200" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">04 PM</text>
-                          <text x="280" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">12 AM</text>
-                        </svg>
-                        {/* Tooltip annotation */}
-                        <div style={{ position: 'relative' }}>
-                          <div style={{ position: 'absolute', left: '52%', bottom: '55px', transform: 'translateX(-50%)', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 5px', borderRadius: '3px', fontSize: '6.5px', color: 'white', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-                            <span style={{ color: 'rgba(255,255,255,0.4)' }}>10:00 AM</span> · <span style={{ fontWeight: 700 }}>1,246 People</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Hourly Heatmap */}
-                      <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Hourly Heatmap (People)</span>
-                          <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dIdx) => {
-                            const heatRow = [
-                              [0.05, 0.08, 0.12, 0.22, 0.35, 0.48, 0.65, 0.72, 0.58, 0.32, 0.15, 0.08],
-                              [0.08, 0.05, 0.10, 0.25, 0.38, 0.52, 0.78, 0.85, 0.62, 0.35, 0.18, 0.10],
-                              [0.06, 0.07, 0.11, 0.24, 0.40, 0.55, 0.82, 0.95, 0.68, 0.38, 0.20, 0.12],
-                              [0.07, 0.06, 0.13, 0.26, 0.42, 0.50, 0.75, 0.88, 0.60, 0.34, 0.19, 0.09],
-                              [0.09, 0.08, 0.15, 0.30, 0.48, 0.65, 0.88, 0.92, 0.75, 0.42, 0.25, 0.15],
-                              [0.12, 0.10, 0.18, 0.35, 0.44, 0.48, 0.52, 0.58, 0.45, 0.30, 0.22, 0.18],
-                              [0.10, 0.08, 0.12, 0.20, 0.30, 0.35, 0.40, 0.45, 0.38, 0.25, 0.15, 0.10]
-                            ][dIdx];
-                            const getColor = (v) => {
-                              if (v < 0.15) return '#101626';
-                              if (v < 0.30) return '#1e3a8a';
-                              if (v < 0.45) return '#2563eb';
-                              if (v < 0.60) return '#22c55e';
-                              if (v < 0.75) return '#d97706';
-                              if (v < 0.90) return '#ea580c';
-                              return '#dc2626';
-                            };
-                            return (
-                              <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                <span style={{ width: '18px', fontSize: '6px', color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>{day}</span>
-                                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5px' }}>
-                                  {heatRow.map((v, hIdx) => (
-                                    <div key={hIdx} style={{ height: '8px', borderRadius: '1px', background: getColor(v) }} />
-                                  ))}
-                                </div>
+                              <div style={{ height: 'calc(100% - 26px)', background: '#000', position: 'relative' }}>
+                                <img src="/anna_nagar_feed.png" alt="Camera Feed" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />
                               </div>
-                            );
-                          })}
-                        </div>
-                        {/* X-axis + legend */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '21px', marginTop: '3px' }}>
-                          {['12AM', '04AM', '08AM', '12PM', '04PM', '08PM'].map(t => (
-                            <span key={t} style={{ fontSize: '5px', color: 'rgba(255,255,255,0.2)' }}>{t}</span>
-                          ))}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '3px' }}>
-                          <span style={{ fontSize: '5.5px', color: 'rgba(255,255,255,0.25)' }}>Low</span>
-                          <div style={{ width: '60px', height: '3px', borderRadius: '2px', background: 'linear-gradient(to right, #101626, #1e3a8a, #2563eb, #22c55e, #d97706, #ea580c, #dc2626)' }} />
-                          <span style={{ fontSize: '5.5px', color: 'rgba(255,255,255,0.25)' }}>High</span>
-                        </div>
-                      </div>
+                            </div>
 
-                      {/* Dwell Time Distribution */}
-                      <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Dwell Time Distribution</span>
-                          <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
+                            {/* Location Summary */}
+                            <div style={{
+                              background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)',
+                              borderRadius: '8px', flex: 1, overflow: 'hidden'
+                            }}>
+                              <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Location Summary <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 500 }}>(Today)</span></span>
+                              </div>
+                              <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {[
+                                  { icon: 'fa-person-walking', color: '#3b82f6', label: 'Total People', val: '45,782', change: '↑ 16.8%' },
+                                  { icon: 'fa-car', color: '#06b6d4', label: 'Total Vehicles', val: '32,605', change: '↑ 11.3%' },
+                                  { icon: 'fa-clock', color: '#8b5cf6', label: 'Avg. Dwell Time', val: '38 sec', change: '↑ 6.3%' },
+                                  { icon: 'fa-chart-line', color: '#a78bfa', label: 'Peak Hour', val: '6–8 PM' },
+                                  { icon: 'fa-calendar-days', color: '#f59e0b', label: 'Busiest Day', val: 'Friday' }
+                                ].map((row, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px', fontSize: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.45)' }}>
+                                      <i className={`fa-solid ${row.icon}`} style={{ color: row.color, fontSize: '8px', width: '12px', textAlign: 'center' }} />
+                                      <span>{row.label}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      <span style={{ fontWeight: 700, color: 'white' }}>{row.val}</span>
+                                      {row.change && <span style={{ fontSize: '7px', color: '#22c55e', fontWeight: 700 }}>{row.change}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', alignItems: 'center', gap: '10px' }}>
-                          {/* Donut SVG */}
-                          <div style={{ position: 'relative', width: '70px', height: '70px' }}>
-                            <svg viewBox="0 0 36 36" width="70" height="70">
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="22.1 77.9" strokeDashoffset="0" />
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#6366f1" strokeWidth="3" strokeDasharray="31.4 68.6" strokeDashoffset="-22.1" />
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="28.7 71.3" strokeDashoffset="-53.5" />
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#22c55e" strokeWidth="3" strokeDasharray="17.8 82.2" strokeDashoffset="-82.2" />
+
+                        {/* CHARTS ROW */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+
+                          {/* People Count Trend */}
+                          <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>People Count Trend</span>
+                              <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
+                            </div>
+                            <svg width="100%" height="95" viewBox="0 0 300 95" preserveAspectRatio="none">
+                              <defs>
+                                <linearGradient id="prevArea" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+                                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              {/* Grid lines */}
+                              {[20, 40, 60, 80].map(y => <line key={y} x1="0" y1={y} x2="300" y2={y} stroke="rgba(255,255,255,0.03)" />)}
+                              {/* Y-axis labels */}
+                              <text x="2" y="18" fill="rgba(255,255,255,0.2)" fontSize="5">2K</text>
+                              <text x="2" y="38" fill="rgba(255,255,255,0.2)" fontSize="5">1.5K</text>
+                              <text x="2" y="58" fill="rgba(255,255,255,0.2)" fontSize="5">1K</text>
+                              <text x="2" y="78" fill="rgba(255,255,255,0.2)" fontSize="5">500</text>
+                              <text x="2" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">0</text>
+                              {/* Area fill */}
+                              <path d="M 20,88 L 50,90 80,92 110,82 140,60 170,38 200,48 230,42 260,28 280,22 295,40 L 295,95 20,95 Z" fill="url(#prevArea)" />
+                              {/* Line */}
+                              <path d="M 20,88 L 50,90 80,92 110,82 140,60 170,38 200,48 230,42 260,28 280,22 295,40" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
+                              {/* Tooltip dot */}
+                              <circle cx="170" cy="38" r="3" fill="#3b82f6" stroke="white" strokeWidth="1">
+                                <animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite" />
+                              </circle>
+                              {/* X labels */}
+                              <text x="20" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">12 AM</text>
+                              <text x="110" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">08 AM</text>
+                              <text x="200" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">04 PM</text>
+                              <text x="280" y="93" fill="rgba(255,255,255,0.2)" fontSize="5">12 AM</text>
                             </svg>
-                            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 800, color: 'white', lineHeight: 1 }}>38</span>
-                              <span style={{ fontSize: '5px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>sec</span>
-                              <span style={{ fontSize: '4.5px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Average</span>
+                            {/* Tooltip annotation */}
+                            <div style={{ position: 'relative' }}>
+                              <div style={{ position: 'absolute', left: '52%', bottom: '55px', transform: 'translateX(-50%)', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 5px', borderRadius: '3px', fontSize: '6.5px', color: 'white', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>10:00 AM</span> · <span style={{ fontWeight: 700 }}>1,246 People</span>
+                              </div>
                             </div>
                           </div>
-                          {/* Legend */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {[
-                              { color: '#3b82f6', label: '0–15 sec', pct: '22.1%' },
-                              { color: '#6366f1', label: '15–30 sec', pct: '31.4%' },
-                              { color: '#f59e0b', label: '30–60 sec', pct: '28.7%' },
-                              { color: '#22c55e', label: '60+ sec', pct: '17.8%' }
-                            ].map((item, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '7.5px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(255,255,255,0.4)' }}>
-                                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-                                  <span>{item.label}</span>
-                                </div>
-                                <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace' }}>{item.pct}</span>
-                              </div>
-                            ))}
+
+                          {/* Hourly Heatmap */}
+                          <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Hourly Heatmap (People)</span>
+                              <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dIdx) => {
+                                const heatRow = [
+                                  [0.05, 0.08, 0.12, 0.22, 0.35, 0.48, 0.65, 0.72, 0.58, 0.32, 0.15, 0.08],
+                                  [0.08, 0.05, 0.10, 0.25, 0.38, 0.52, 0.78, 0.85, 0.62, 0.35, 0.18, 0.10],
+                                  [0.06, 0.07, 0.11, 0.24, 0.40, 0.55, 0.82, 0.95, 0.68, 0.38, 0.20, 0.12],
+                                  [0.07, 0.06, 0.13, 0.26, 0.42, 0.50, 0.75, 0.88, 0.60, 0.34, 0.19, 0.09],
+                                  [0.09, 0.08, 0.15, 0.30, 0.48, 0.65, 0.88, 0.92, 0.75, 0.42, 0.25, 0.15],
+                                  [0.12, 0.10, 0.18, 0.35, 0.44, 0.48, 0.52, 0.58, 0.45, 0.30, 0.22, 0.18],
+                                  [0.10, 0.08, 0.12, 0.20, 0.30, 0.35, 0.40, 0.45, 0.38, 0.25, 0.15, 0.10]
+                                ][dIdx];
+                                const getColor = (v) => {
+                                  if (v < 0.15) return '#101626';
+                                  if (v < 0.30) return '#1e3a8a';
+                                  if (v < 0.45) return '#2563eb';
+                                  if (v < 0.60) return '#22c55e';
+                                  if (v < 0.75) return '#d97706';
+                                  if (v < 0.90) return '#ea580c';
+                                  return '#dc2626';
+                                };
+                                return (
+                                  <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <span style={{ width: '18px', fontSize: '6px', color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>{day}</span>
+                                    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5px' }}>
+                                      {heatRow.map((v, hIdx) => (
+                                        <div key={hIdx} style={{ height: '8px', borderRadius: '1px', background: getColor(v) }} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* X-axis + legend */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '21px', marginTop: '3px' }}>
+                              {['12AM', '04AM', '08AM', '12PM', '04PM', '08PM'].map(t => (
+                                <span key={t} style={{ fontSize: '5px', color: 'rgba(255,255,255,0.2)' }}>{t}</span>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '3px' }}>
+                              <span style={{ fontSize: '5.5px', color: 'rgba(255,255,255,0.25)' }}>Low</span>
+                              <div style={{ width: '60px', height: '3px', borderRadius: '2px', background: 'linear-gradient(to right, #101626, #1e3a8a, #2563eb, #22c55e, #d97706, #ea580c, #dc2626)' }} />
+                              <span style={{ fontSize: '5.5px', color: 'rgba(255,255,255,0.25)' }}>High</span>
+                            </div>
                           </div>
+
+                          {/* Dwell Time Distribution */}
+                          <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', height: '140px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Dwell Time Distribution</span>
+                              <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.05)' }}>Today ▾</span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', alignItems: 'center', gap: '10px' }}>
+                              {/* Donut SVG */}
+                              <div style={{ position: 'relative', width: '70px', height: '70px' }}>
+                                <svg viewBox="0 0 36 36" width="70" height="70">
+                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="22.1 77.9" strokeDashoffset="0" />
+                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#6366f1" strokeWidth="3" strokeDasharray="31.4 68.6" strokeDashoffset="-22.1" />
+                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="28.7 71.3" strokeDashoffset="-53.5" />
+                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#22c55e" strokeWidth="3" strokeDasharray="17.8 82.2" strokeDashoffset="-82.2" />
+                                </svg>
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'white', lineHeight: 1 }}>38</span>
+                                  <span style={{ fontSize: '5px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>sec</span>
+                                  <span style={{ fontSize: '4.5px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Average</span>
+                                </div>
+                              </div>
+                              {/* Legend */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {[
+                                  { color: '#3b82f6', label: '0–15 sec', pct: '22.1%' },
+                                  { color: '#6366f1', label: '15–30 sec', pct: '31.4%' },
+                                  { color: '#f59e0b', label: '30–60 sec', pct: '28.7%' },
+                                  { color: '#22c55e', label: '60+ sec', pct: '17.8%' }
+                                ].map((item, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '7.5px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(255,255,255,0.4)' }}>
+                                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                                      <span>{item.label}</span>
+                                    </div>
+                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace' }}>{item.pct}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Footer bar */}
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '5px 12px', borderTop: '1px solid rgba(255,255,255,0.04)',
+                          fontSize: '7px', color: 'rgba(255,255,255,0.2)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#22c55e', fontWeight: 600 }}>
+                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 4px rgba(34,197,94,0.5)' }} />
+                            All systems operational
+                          </div>
+                          <span>Location Intelligence Platform <span style={{ margin: '0 6px', color: 'rgba(255,255,255,0.06)' }}>|</span> Real-time human & mobility insights</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(59,130,246,0.7)', fontWeight: 600 }}>
+                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.5)', animation: 'pulse 2s ease-in-out infinite' }} />
+                            Data updates every 5 seconds
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Floating data particles */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} style={{
+                          position: 'absolute',
+                          width: `${2 + Math.random() * 3}px`,
+                          height: `${2 + Math.random() * 3}px`,
+                          borderRadius: '50%',
+                          background: i % 2 === 0 ? 'rgba(59,130,246,0.4)' : 'rgba(99,102,241,0.3)',
+                          left: `${10 + Math.random() * 80}%`,
+                          top: `${10 + Math.random() * 80}%`,
+                          animation: `float ${4 + Math.random() * 6}s ease-in-out infinite`,
+                          animationDelay: `${Math.random() * 5}s`
+                        }} />
+                      ))}
+                    </div>
+
+                  </div>
+
+                  {/* CTA Button */}
+                  <div style={{ textAlign: 'center', marginTop: '40px' }}>
+                    <a
+                      href="/media-owner"
+                      onClick={(e) => navigateTo(e, '/media-owner')}
+                      className="btn btn-primary btn-lg"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '10px',
+                        padding: '14px 36px', fontSize: '15px', fontWeight: 700,
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #2563eb, #3b82f6, #6366f1)',
+                        border: '1px solid rgba(96,165,250,0.3)',
+                        boxShadow: '0 0 30px rgba(59,130,246,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+                        color: 'white',
+                        transition: 'all 0.3s ease',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <i className="fa-solid fa-rocket" style={{ fontSize: '14px' }} />
+                      Explore Media Owner Platform
+                      <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px', opacity: 0.7 }} />
+                    </a>
+                  </div>
+
+                </div>
+              </section>
+
+              {/* Scroll Timeline Component (Roadmap) */}
+              <section id="roadmap" className="roadmap-section">
+                <div className="section-container">
+                  <div className="section-header">
+                    <span className="section-tag">Evolution</span>
+                    <h2 className="section-title">Building the Future of Outdoor Intelligence</h2>
+                    <p className="section-desc">Our roadmap to becoming the world’s independent intelligence platform for outdoor media.</p>
+                  </div>
+                  <RoadmapTimeline />
+                </div>
+              </section>
+
+              {/* Services Section */}
+              <section id="services" className="services-section scroll-mt-20">
+
+                <div className="section-container" style={{ position: 'relative', zIndex: 10 }}>
+                  <div className="section-header text-center" style={{ position: 'relative', zIndex: 10 }}>
+                    <span className="section-tag">SERVICES</span>
+                    <h2 className="section-title">Simple Pricing. Powerful Intelligence.</h2>
+                    <p className="section-desc">Choose the plan that fits your media and transform every billboard into a measurable advertising asset.</p>
+                  </div>
+
+                  {/* Tab Contents */}
+                  <div className="services-tab-content-active">
+                    <div className="services-grid cols-2">
+                      {/* Media Owners Card 1 */}
+                      <div className="services-card">
+                        <div className="services-card-top">
+                          <h3 className="services-plan-name">Static Billboard Intelligence</h3>
+                          <p className="services-plan-desc">Everything you need to measure, understand, and increase the value of your static billboard.</p>
+                          <ul className="services-plan-features">
+                            <li><i className="fa-solid fa-check"></i> Live Traffic Intelligence</li>
+                            <li><i className="fa-solid fa-check"></i> Audience & Vehicle Insights</li>
+                            <li><i className="fa-solid fa-check"></i> Location Intelligence</li>
+                            <li><i className="fa-solid fa-check"></i> Peak Hour & Trend Analysis</li>
+                            <li><i className="fa-solid fa-check"></i> Historical Performance Data</li>
+                            <li><i className="fa-solid fa-check"></i> Monthly Performance Reports</li>
+                            <li><i className="fa-solid fa-check"></i> AI-Powered Recommendations</li>
+                            <li><i className="fa-solid fa-check"></i> Featured Media Listing</li>
+                            <li><i className="fa-solid fa-check"></i> Direct Advertiser Enquiries</li>
+                            <li><i className="fa-solid fa-check"></i> Cloud Dashboard Access</li>
+                          </ul>
+                        </div>
+                        <div className="services-card-bottom">
+                          <div className="services-best-for">
+                            <strong>Best For</strong>
+                            Media owners looking to prove billboard performance, attract more advertisers, and increase media value.
+                          </div>
+                          <button
+                            className="btn btn-outline w-full"
+                            onClick={() => handleContactNavigation('Contact Sales')}
+                          >
+                            Get Started
+                          </button>
                         </div>
                       </div>
 
-                    </div>
-
-                    {/* Footer bar */}
-                    <div style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '5px 12px', borderTop: '1px solid rgba(255,255,255,0.04)',
-                      fontSize: '7px', color: 'rgba(255,255,255,0.2)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#22c55e', fontWeight: 600 }}>
-                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 4px rgba(34,197,94,0.5)' }} />
-                        All systems operational
+                      {/* Media Owners Card 2 */}
+                      <div className="services-card premium">
+                        <div className="services-premium-badge">MOST POPULAR</div>
+                        <div className="services-card-top">
+                          <h3 className="services-plan-name">DOOH Intelligence</h3>
+                          <p className="services-plan-desc">Everything in the Static Intelligence plan, plus advanced tools to manage, monetize, and automate your digital screens.</p>
+                          <ul className="services-plan-features">
+                            <li className="feature-header-extra">Includes everything in Static plan, plus:</li>
+                            <li><i className="fa-solid fa-check"></i> Digital Screen Health Monitoring</li>
+                            <li><i className="fa-solid fa-check"></i> Campaign Scheduling</li>
+                            <li><i className="fa-solid fa-check"></i> Remote Content Management</li>
+                            <li><i className="fa-solid fa-check"></i> Live Campaign Reporting</li>
+                            <li><i className="fa-solid fa-check"></i> Proof-of-Play Verification</li>
+                            <li><i className="fa-solid fa-check"></i> Advertiser Self-Service Booking</li>
+                            <li><i className="fa-solid fa-check"></i> Campaign Management Dashboard</li>
+                            <li><i className="fa-solid fa-check"></i> Programmatic-Ready Infrastructure</li>
+                            <li><i className="fa-solid fa-check"></i> AI-Powered Campaign Optimization</li>
+                            <li><i className="fa-solid fa-check"></i> Direct Revenue Opportunities from Advertisers</li>
+                          </ul>
+                        </div>
+                        <div className="services-card-bottom">
+                          <div className="services-best-for">
+                            <strong>Best For</strong>
+                            Digital media owners looking to maximize occupancy, automate operations, and unlock new revenue opportunities.
+                          </div>
+                          <button
+                            className="btn btn-primary w-full"
+                            onClick={() => handleContactNavigation('Contact Sales')}
+                          >
+                            Get Started
+                          </button>
+                        </div>
                       </div>
-                      <span>Location Intelligence Platform <span style={{ margin: '0 6px', color: 'rgba(255,255,255,0.06)' }}>|</span> Real-time human & mobility insights</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(59,130,246,0.7)', fontWeight: 600 }}>
-                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.5)', animation: 'pulse 2s ease-in-out infinite' }} />
-                        Data updates every 5 seconds
-                      </div>
                     </div>
-
                   </div>
+
+                  {/* Included with Every Plan */}
+                  <div className="included-features-section">
+                    <div className="section-header text-center">
+                      <h3 className="section-title" style={{ fontSize: '28px' }}>Included with Every Plan</h3>
+                    </div>
+                    <div className="included-features-grid">
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-shield-halved"></i></div>
+                        <span className="included-feature-text">Secure Cloud Platform</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-chart-line"></i></div>
+                        <span className="included-feature-text">Real-Time Dashboard</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-rotate"></i></div>
+                        <span className="included-feature-text">Automatic Software Updates</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-brain"></i></div>
+                        <span className="included-feature-text">AI-Powered Insights</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-map-location-dot"></i></div>
+                        <span className="included-feature-text">Traffic, Audience & Location Intelligence</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-chart-simple"></i></div>
+                        <span className="included-feature-text">Real-Time Campaign Analytics</span>
+                      </div>
+                      <div className="included-feature-card">
+                        <div className="included-feature-icon"><i className="fa-solid fa-headset"></i></div>
+                        <span className="included-feature-text">Dedicated Customer Support</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Final CTA Section */}
+                  <div className="services-cta-section">
+                    <div className="services-cta-card">
+                      <h3 className="services-cta-title">Measure. Optimize. Grow.</h3>
+                      <p className="services-cta-desc">Transform outdoor advertising into measurable business intelligence with an AE platform.</p>
+                      <div className="services-cta-actions">
+                        <button
+                          className="btn btn-primary btn-lg"
+                          onClick={() => handleContactNavigation('Book a Demo')}
+                        >
+                          Book a Demo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
+              </section>
 
-                {/* Floating data particles */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} style={{
-                      position: 'absolute',
-                      width: `${2 + Math.random() * 3}px`,
-                      height: `${2 + Math.random() * 3}px`,
-                      borderRadius: '50%',
-                      background: i % 2 === 0 ? 'rgba(59,130,246,0.4)' : 'rgba(99,102,241,0.3)',
-                      left: `${10 + Math.random() * 80}%`,
-                      top: `${10 + Math.random() * 80}%`,
-                      animation: `float ${4 + Math.random() * 6}s ease-in-out infinite`,
-                      animationDelay: `${Math.random() * 5}s`
-                    }} />
-                  ))}
-                </div>
+              {/* ── About Us ── */}
+              <section id="about" className="about-section">
+                <div className="section-container">
 
-              </div>
+                  {/* 1. THE HERO HOOK & TAGLINE */}
+                  <div className="section-header about-header" style={{ margin: '0 auto 60px auto', textAlign: 'center', maxWidth: '800px' }}>
+                    <span className="section-tag" style={{ margin: '0 auto 16px auto' }}>About Us</span>
+                    <h2 className="section-title" style={{ fontSize: '44px', lineHeight: '1.2' }}>
+                      We Don't Measure Billboards.<br />
+                      We Decode <span className="text-gradient">Attention.</span>
+                    </h2>
+                    <p className="section-desc" style={{ fontSize: '18px', margin: '16px auto 0 auto', maxWidth: '650px' }}>
+                      Transforming Every Physical Advertisement into an Intelligent Digital Experience.
+                    </p>
+                  </div>
 
-              {/* CTA Button */}
-              <div style={{ textAlign: 'center', marginTop: '40px' }}>
-                <a
-                  href="/media-owner"
-                  onClick={(e) => navigateTo(e, '/media-owner')}
-                  className="btn btn-primary btn-lg"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '10px',
-                    padding: '14px 36px', fontSize: '15px', fontWeight: 700,
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #2563eb, #3b82f6, #6366f1)',
-                    border: '1px solid rgba(96,165,250,0.3)',
-                    boxShadow: '0 0 30px rgba(59,130,246,0.3), 0 4px 20px rgba(0,0,0,0.4)',
-                    color: 'white',
-                    transition: 'all 0.3s ease',
-                    textDecoration: 'none'
-                  }}
-                >
-                  <i className="fa-solid fa-rocket" style={{ fontSize: '14px' }} />
-                  Explore Media Owner Platform
-                  <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px', opacity: 0.7 }} />
-                </a>
-              </div>
+                  {/* 2. TWO CONTENT CARDS (COMPARISON) */}
+                  <div className="about-duality-grid">
 
-            </div>
-          </section>
-
-          {/* Scroll Timeline Component (Roadmap) */}
-          <section id="roadmap" className="roadmap-section">
-            <div className="section-container">
-              <div className="section-header">
-                <span className="section-tag">Evolution</span>
-                <h2 className="section-title">Building the Future of Outdoor Intelligence</h2>
-                <p className="section-desc">Our roadmap to becoming the world’s independent intelligence platform for outdoor media.</p>
-              </div>
-              <RoadmapTimeline />
-            </div>
-          </section>
-
-          {/* Services Section */}
-          <section id="services" className="services-section scroll-mt-20">
-
-            <div className="section-container" style={{ position: 'relative', zIndex: 10 }}>
-              <div className="section-header text-center" style={{ position: 'relative', zIndex: 10 }}>
-                <span className="section-tag">SERVICES</span>
-                <h2 className="section-title">Simple Pricing. Powerful Intelligence.</h2>
-                <p className="section-desc">Choose the plan that fits your media and transform every billboard into a measurable advertising asset.</p>
-              </div>
-
-              {/* Tab Contents */}
-              <div className="services-tab-content-active">
-                <div className="services-grid cols-2">
-                  {/* Media Owners Card 1 */}
-                  <div className="services-card">
-                    <div className="services-card-top">
-                      <h3 className="services-plan-name">Static Billboard Intelligence</h3>
-                      <p className="services-plan-desc">Everything you need to measure, understand, and increase the value of your static billboard.</p>
-                      <ul className="services-plan-features">
-                        <li><i className="fa-solid fa-check"></i> Live Traffic Intelligence</li>
-                        <li><i className="fa-solid fa-check"></i> Audience & Vehicle Insights</li>
-                        <li><i className="fa-solid fa-check"></i> Location Intelligence</li>
-                        <li><i className="fa-solid fa-check"></i> Peak Hour & Trend Analysis</li>
-                        <li><i className="fa-solid fa-check"></i> Historical Performance Data</li>
-                        <li><i className="fa-solid fa-check"></i> Monthly Performance Reports</li>
-                        <li><i className="fa-solid fa-check"></i> AI-Powered Recommendations</li>
-                        <li><i className="fa-solid fa-check"></i> Featured Media Listing</li>
-                        <li><i className="fa-solid fa-check"></i> Direct Advertiser Enquiries</li>
-                        <li><i className="fa-solid fa-check"></i> Cloud Dashboard Access</li>
+                    {/* The Old Way */}
+                    <div className="about-duality-card about-problem-card">
+                      <div className="about-duality-badge problem-badge">
+                        <i className="fa-solid fa-triangle-exclamation"></i> The Old Way
+                      </div>
+                      <h3>Outdoor Advertising Has Been Flying Blind</h3>
+                      <ul className="about-callout-list">
+                        <li>
+                          <i className="fa-solid fa-xmark"></i>
+                          <span><strong>Traffic "estimates"</strong> based on decade-old census data</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-xmark"></i>
+                          <span><strong>Zero attention metrics</strong> — did anyone even look?</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-xmark"></i>
+                          <span><strong>Quarterly reports</strong> that arrive after campaigns are already dead</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-xmark"></i>
+                          <span><strong>Millions spent</strong> on gut instinct and hope</span>
+                        </li>
                       </ul>
+                      <p className="about-callout-punchline">
+                        "Spend big, pray hard, measure never." That era is <strong>over</strong>.
+                      </p>
                     </div>
-                    <div className="services-card-bottom">
-                      <div className="services-best-for">
-                        <strong>Best For</strong>
-                        Media owners looking to prove billboard performance, attract more advertisers, and increase media value.
-                      </div>
-                      <button 
-                        className="btn btn-outline w-full"
-                        onClick={() => handleContactNavigation('Contact Sales')}
-                      >
-                        Get Started
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* Media Owners Card 2 */}
-                  <div className="services-card premium">
-                    <div className="services-premium-badge">MOST POPULAR</div>
-                    <div className="services-card-top">
-                      <h3 className="services-plan-name">DOOH Intelligence</h3>
-                      <p className="services-plan-desc">Everything in the Static Intelligence plan, plus advanced tools to manage, monetize, and automate your digital screens.</p>
-                      <ul className="services-plan-features">
-                        <li className="feature-header-extra">Includes everything in Static plan, plus:</li>
-                        <li><i className="fa-solid fa-check"></i> Digital Screen Health Monitoring</li>
-                        <li><i className="fa-solid fa-check"></i> Campaign Scheduling</li>
-                        <li><i className="fa-solid fa-check"></i> Remote Content Management</li>
-                        <li><i className="fa-solid fa-check"></i> Live Campaign Reporting</li>
-                        <li><i className="fa-solid fa-check"></i> Proof-of-Play Verification</li>
-                        <li><i className="fa-solid fa-check"></i> Advertiser Self-Service Booking</li>
-                        <li><i className="fa-solid fa-check"></i> Campaign Management Dashboard</li>
-                        <li><i className="fa-solid fa-check"></i> Programmatic-Ready Infrastructure</li>
-                        <li><i className="fa-solid fa-check"></i> AI-Powered Campaign Optimization</li>
-                        <li><i className="fa-solid fa-check"></i> Direct Revenue Opportunities from Advertisers</li>
+                    {/* The Solution (The Aculion Way) */}
+                    <div className="about-duality-card about-solution-card">
+                      <div className="about-duality-badge solution-badge">
+                        <i className="fa-solid fa-rocket"></i> The Aculion Way
+                      </div>
+                      <h3>Making the Unmeasurable, Unmistakable</h3>
+                      <ul className="about-callout-list solution-list">
+                        <li>
+                          <i className="fa-solid fa-check"></i>
+                          <span><strong>Edge-deployed computer vision</strong> — AI that lives on the billboard itself</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-check"></i>
+                          <span><strong>Real-time pedestrian & vehicle counting</strong> — not estimates, reality</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-check"></i>
+                          <span><strong>Gaze & dwell-time analytics</strong> — who looked, how long, what happened next</span>
+                        </li>
+                        <li>
+                          <i className="fa-solid fa-check"></i>
+                          <span><strong>Privacy-first architecture</strong> — GDPR compliant, faces blurred, data encrypted</span>
+                        </li>
                       </ul>
-                    </div>
-                    <div className="services-card-bottom">
-                      <div className="services-best-for">
-                        <strong>Best For</strong>
-                        Digital media owners looking to maximize occupancy, automate operations, and unlock new revenue opportunities.
-                      </div>
-                      <button 
-                        className="btn btn-primary w-full"
-                        onClick={() => handleContactNavigation('Contact Sales')}
-                      >
-                        Get Started
-                      </button>
+                      <p className="about-callout-punchline solution-punchline">
+                        Beyond billboards. Into <span className="text-gradient">intelligence.</span>
+                      </p>
                     </div>
                   </div>
+
                 </div>
-              </div>
-
-              {/* Included with Every Plan */}
-              <div className="included-features-section">
-                <div className="section-header text-center">
-                  <h3 className="section-title" style={{ fontSize: '28px' }}>Included with Every Plan</h3>
-                </div>
-                <div className="included-features-grid">
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-shield-halved"></i></div>
-                    <span className="included-feature-text">Secure Cloud Platform</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-chart-line"></i></div>
-                    <span className="included-feature-text">Real-Time Dashboard</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-rotate"></i></div>
-                    <span className="included-feature-text">Automatic Software Updates</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-brain"></i></div>
-                    <span className="included-feature-text">AI-Powered Insights</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-map-location-dot"></i></div>
-                    <span className="included-feature-text">Traffic, Audience & Location Intelligence</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-chart-simple"></i></div>
-                    <span className="included-feature-text">Real-Time Campaign Analytics</span>
-                  </div>
-                  <div className="included-feature-card">
-                    <div className="included-feature-icon"><i className="fa-solid fa-headset"></i></div>
-                    <span className="included-feature-text">Dedicated Customer Support</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Final CTA Section */}
-              <div className="services-cta-section">
-                <div className="services-cta-card">
-                  <h3 className="services-cta-title">Measure. Optimize. Grow.</h3>
-                  <p className="services-cta-desc">Transform outdoor advertising into measurable business intelligence with an AE platform.</p>
-                  <div className="services-cta-actions">
-                    <button 
-                      className="btn btn-primary btn-lg"
-                      onClick={() => handleContactNavigation('Book a Demo')}
-                    >
-                      Book a Demo
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </section>
-
-          {/* ── About Us ── */}
-          <section id="about" className="about-section">
-            <div className="section-container">
-
-              {/* 1. THE HERO HOOK & TAGLINE */}
-              <div className="section-header about-header" style={{ margin: '0 auto 60px auto', textAlign: 'center', maxWidth: '800px' }}>
-                <span className="section-tag" style={{ margin: '0 auto 16px auto' }}>About Us</span>
-                <h2 className="section-title" style={{ fontSize: '44px', lineHeight: '1.2' }}>
-                  We Don't Measure Billboards.<br />
-                  We Decode <span className="text-gradient">Attention.</span>
-                </h2>
-                <p className="section-desc" style={{ fontSize: '18px', margin: '16px auto 0 auto', maxWidth: '650px' }}>
-                  Transforming Every Physical Advertisement into an Intelligent Digital Experience.
-                </p>
-              </div>
-
-              {/* 2. TWO CONTENT CARDS (COMPARISON) */}
-              <div className="about-duality-grid">
-
-                {/* The Old Way */}
-                <div className="about-duality-card about-problem-card">
-                  <div className="about-duality-badge problem-badge">
-                    <i className="fa-solid fa-triangle-exclamation"></i> The Old Way
-                  </div>
-                  <h3>Outdoor Advertising Has Been Flying Blind</h3>
-                  <ul className="about-callout-list">
-                    <li>
-                      <i className="fa-solid fa-xmark"></i>
-                      <span><strong>Traffic "estimates"</strong> based on decade-old census data</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-xmark"></i>
-                      <span><strong>Zero attention metrics</strong> — did anyone even look?</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-xmark"></i>
-                      <span><strong>Quarterly reports</strong> that arrive after campaigns are already dead</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-xmark"></i>
-                      <span><strong>Millions spent</strong> on gut instinct and hope</span>
-                    </li>
-                  </ul>
-                  <p className="about-callout-punchline">
-                    "Spend big, pray hard, measure never." That era is <strong>over</strong>.
-                  </p>
-                </div>
-
-                {/* The Solution (The Aculion Way) */}
-                <div className="about-duality-card about-solution-card">
-                  <div className="about-duality-badge solution-badge">
-                    <i className="fa-solid fa-rocket"></i> The Aculion Way
-                  </div>
-                  <h3>Making the Unmeasurable, Unmistakable</h3>
-                  <ul className="about-callout-list solution-list">
-                    <li>
-                      <i className="fa-solid fa-check"></i>
-                      <span><strong>Edge-deployed computer vision</strong> — AI that lives on the billboard itself</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-check"></i>
-                      <span><strong>Real-time pedestrian & vehicle counting</strong> — not estimates, reality</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-check"></i>
-                      <span><strong>Gaze & dwell-time analytics</strong> — who looked, how long, what happened next</span>
-                    </li>
-                    <li>
-                      <i className="fa-solid fa-check"></i>
-                      <span><strong>Privacy-first architecture</strong> — GDPR compliant, faces blurred, data encrypted</span>
-                    </li>
-                  </ul>
-                  <p className="about-callout-punchline solution-punchline">
-                    Beyond billboards. Into <span className="text-gradient">intelligence.</span>
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </section>
+              </section>
 
             </>
           )}
@@ -2021,7 +2021,7 @@ export default function App() {
                 </a>
                 <p className="footer-desc">Building the intelligence infrastructure for the next generation of Out-of-Home advertising.</p>
                 <div className="footer-social-links">
-                  <a href="mailto:Aculion.connect@gmail.com" aria-label="Email Us" className="footer-social-icon"><i className="fa-solid fa-envelope"></i></a>
+                  <a href="mailto:connect@aculion.com" aria-label="Email Us" className="footer-social-icon"><i className="fa-solid fa-envelope"></i></a>
                   <a href="tel:+919176590590" aria-label="Call Us" className="footer-social-icon"><i className="fa-solid fa-phone"></i></a>
                   <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')} aria-label="Contact Section" className="footer-social-icon"><i className="fa-solid fa-headset"></i></a>
                 </div>
@@ -2060,7 +2060,7 @@ export default function App() {
                 <h4 className="footer-col-title">CONTACT</h4>
                 <div className="footer-contact-item">
                   <i className="fa-solid fa-envelope footer-contact-icon"></i>
-                  <a href="mailto:Aculion.connect@gmail.com" className="footer-contact-link">Aculion.connect@gmail.com</a>
+                  <a href="mailto:connect@aculion.com" className="footer-contact-link">connect@aculion.com</a>
                 </div>
                 <div className="footer-contact-item">
                   <i className="fa-solid fa-phone footer-contact-icon"></i>

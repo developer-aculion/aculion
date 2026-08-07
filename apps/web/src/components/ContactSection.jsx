@@ -66,10 +66,10 @@ export default function ContactSection({ initialInquiryType = 'Contact Sales' })
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...contactForm, ...meta }),
+        body: JSON.stringify({ ...contactForm, ...meta, _honeypot: '' }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error || 'Server error');
+      if (!res.ok) throw new Error(data.message || data.details || data.error || 'Server error');
       setContactState({ loading: false, success: true, error: '' });
       setContactForm({
         name: '',
@@ -85,19 +85,10 @@ export default function ContactSection({ initialInquiryType = 'Contact Sales' })
       });
     } catch (err) {
       console.error('Contact form submission error:', err);
-      // Graceful fallback for standalone frontend / dev mode
-      setContactState({ loading: false, success: true, error: '' });
-      setContactForm({
-        name: '',
-        company: '',
-        email: '',
-        phone: '',
-        billboards: '',
-        message: '',
-        inquiryType: contactForm.inquiryType,
-        preferredDate: '',
-        preferredTime: '',
-        preferredMeetingMode: 'Google Meet',
+      setContactState({
+        loading: false,
+        success: false,
+        error: err.message || 'Unable to send your inquiry right now. Please try again.',
       });
     } finally {
       setTimeout(() => {
@@ -132,7 +123,7 @@ export default function ContactSection({ initialInquiryType = 'Contact Sales' })
                 </div>
                 <div>
                   <div className="cs-contact-label">Email Us</div>
-                  <div className="cs-contact-value">Aculion.connect@gmail.com</div>
+                  <div className="cs-contact-value">connect@aculion.com</div>
                 </div>
               </div>
               <div className="cs-contact-item">
