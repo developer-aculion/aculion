@@ -57,7 +57,6 @@ export default function RoadAnalyticsList({ data }: RoadAnalyticsListProps) {
               stroke="#0055ff"
               fill="#0055ff"
               fillOpacity={0.25}
-              animationActive={false}
             />
             <Tooltip
               contentStyle={{
