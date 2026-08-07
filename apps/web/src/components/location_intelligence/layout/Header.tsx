@@ -52,7 +52,7 @@ export default function Header({
     const lng = parseFloat(lngVal);
     if (!isNaN(lat) && !isNaN(lng)) {
       const delayDebounce = setTimeout(() => {
-        axios.get("http://127.0.0.1:8000/api/v1/area/detect", {
+        axios.get("http://127.0.0.1:8001/api/v1/area/detect", {
           params: { latitude: lat, longitude: lng }
         }).then(res => {
           setDetectedArea(res.data.area);
@@ -81,7 +81,7 @@ export default function Header({
     // If a different area search name was typed by the user, geocode it first!
     if (areaSearch && areaSearch !== detectedArea && areaSearch !== area) {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/api/v1/geocode", {
+        const res = await axios.get("http://127.0.0.1:8001/api/v1/geocode", {
           params: { q: areaSearch }
         });
         const { latitude: newLat, longitude: newLng } = res.data;
@@ -181,7 +181,7 @@ export default function Header({
           {/* Map Pin Picker Trigger */}
           <button
             onClick={() => setIsMapPickingActive(!isMapPickingActive)}
-            className={`flex items-center justify-center gap-1 px-2.5 py-1 border rounded-lg text-xs font-bold transition-all duration-200 flex-1 sm:flex-initial ${
+            className={`flex items-center justify-center gap-1 px-2.5 py-1 border rounded-lg text-xs font-bold transition-all duration-200 shrink-0 ${
               isMapPickingActive
                 ? "bg-primary border-primary text-primary-foreground animate-pulse"
                 : "border-border bg-background hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -195,7 +195,7 @@ export default function Header({
           {/* Analyze CTA */}
           <button
             onClick={handleAnalyzeClick}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-1 bg-primary text-white hover:bg-blue-600 rounded-lg text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-95 transition-all duration-150 flex-1 sm:w-auto"
+            className="flex items-center justify-center gap-1 px-2.5 py-1 bg-primary text-white hover:bg-blue-600 rounded-lg text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 w-20"
           >
             <Play size={10} className="fill-current" />
             <span>Analyze</span>

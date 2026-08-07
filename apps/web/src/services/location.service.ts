@@ -1,8 +1,8 @@
 import axios from "axios";
 import { LocationAnalytics, POILocation, HeatmapPoint, AdRecommendation } from "../types/location";
 
-const API_BASE = "http://127.0.0.1:8000";
-const TIMEOUT_MS = 5000;
+const API_BASE = "http://127.0.0.1:8001";
+const TIMEOUT_MS = 30000;
 
 /**
  * Deterministic pseudo-spatial hash function for coordinate-based variation [0, 1)
@@ -219,14 +219,14 @@ export function generateMockAnalytics(
     },
     kpi_labels: {
       kpi_labels: {
-        overall_score: { value: overallScore, tier: overallScore >= 90 ? "Exceptional" : overallScore >= 60 ? "Strong" : overallScore >= 40 ? "Developing" : "Emerging", label: `Overall Suitability (${overallScore}%)`, threshold: overallScore >= 90 ? 90 : overallScore >= 60 ? 60 : overallScore >= 40 ? 40 : 20 },
-        accessibility: { value: accessibility, tier: accessibility >= 90 ? "Exceptional" : accessibility >= 60 ? "Strong" : accessibility >= 40 ? "Developing" : "Emerging", label: `Accessibility (${accessibility}%)`, threshold: accessibility >= 90 ? 90 : accessibility >= 60 ? 60 : accessibility >= 40 ? 40 : 20 },
-        commercial_potential: { value: commercialPotential, tier: commercialPotential >= 90 ? "Exceptional" : commercialPotential >= 60 ? "Strong" : commercialPotential >= 40 ? "Developing" : "Emerging", label: `Commercial Potential (${commercialPotential}%)`, threshold: commercialPotential >= 90 ? 90 : commercialPotential >= 60 ? 60 : commercialPotential >= 40 ? 40 : 20 },
-        residential_density: { value: Math.round(40 + h5 * 45), tier: Math.round(40 + h5 * 45) >= 90 ? "Exceptional" : Math.round(40 + h5 * 45) >= 60 ? "Strong" : Math.round(40 + h5 * 45) >= 40 ? "Developing" : "Emerging", label: `Residential Density (${Math.round(40 + h5 * 45)}%)`, threshold: Math.round(40 + h5 * 45) >= 90 ? 90 : Math.round(40 + h5 * 45) >= 60 ? 60 : Math.round(40 + h5 * 45) >= 40 ? 40 : 20 },
-        transit_connectivity: { value: transitConnectivity, tier: transitConnectivity >= 90 ? "Exceptional" : transitConnectivity >= 60 ? "Strong" : transitConnectivity >= 40 ? "Developing" : "Emerging", label: `Transit Connectivity (${transitConnectivity}%)`, threshold: transitConnectivity >= 90 ? 90 : transitConnectivity >= 60 ? 60 : transitConnectivity >= 40 ? 40 : 20 },
-        green_coverage: { value: Math.round(15 + h6 * 35), tier: Math.round(15 + h6 * 35) >= 90 ? "Exceptional" : Math.round(15 + h6 * 35) >= 60 ? "Strong" : Math.round(15 + h6 * 35) >= 40 ? "Developing" : "Emerging", label: `Green Coverage (${Math.round(15 + h6 * 35)}%)`, threshold: Math.round(15 + h6 * 35) >= 90 ? 90 : Math.round(15 + h6 * 35) >= 60 ? 60 : Math.round(15 + h6 * 35) >= 40 ? 40 : 20 },
-        building_density: { value: buildingDensity, tier: buildingDensity >= 90 ? "Exceptional" : buildingDensity >= 60 ? "Strong" : buildingDensity >= 40 ? "Developing" : "Emerging", label: `Building Density (${buildingDensity}%)`, threshold: buildingDensity >= 90 ? 90 : buildingDensity >= 60 ? 60 : buildingDensity >= 40 ? 40 : 20 },
-        footfall_potential: { value: footfallPotential, tier: footfallPotential >= 90 ? "Exceptional" : footfallPotential >= 60 ? "Strong" : footfallPotential >= 40 ? "Developing" : "Emerging", label: `Footfall Potential (${footfallPotential}%)`, threshold: footfallPotential >= 90 ? 90 : footfallPotential >= 60 ? 60 : footfallPotential >= 40 ? 40 : 20 },
+        overall_score: { value: overallScore, tier: overallScore >= 80 ? "Exceptional" : overallScore >= 60 ? "Strong" : overallScore >= 40 ? "Developing" : "Emerging", label: `Overall Suitability (${overallScore}%)`, threshold: overallScore >= 80 ? 80 : overallScore >= 60 ? 60 : overallScore >= 40 ? 40 : 20 },
+        accessibility: { value: accessibility, tier: accessibility >= 80 ? "Exceptional" : accessibility >= 60 ? "Strong" : accessibility >= 40 ? "Developing" : "Emerging", label: `Accessibility (${accessibility}%)`, threshold: accessibility >= 80 ? 80 : accessibility >= 60 ? 60 : accessibility >= 40 ? 40 : 20 },
+        commercial_potential: { value: commercialPotential, tier: commercialPotential >= 80 ? "Exceptional" : commercialPotential >= 60 ? "Strong" : commercialPotential >= 40 ? "Developing" : "Emerging", label: `Commercial Potential (${commercialPotential}%)`, threshold: commercialPotential >= 80 ? 80 : commercialPotential >= 60 ? 60 : commercialPotential >= 40 ? 40 : 20 },
+        residential_density: { value: Math.round(40 + h5 * 45), tier: Math.round(40 + h5 * 45) >= 80 ? "Exceptional" : Math.round(40 + h5 * 45) >= 60 ? "Strong" : Math.round(40 + h5 * 45) >= 40 ? "Developing" : "Emerging", label: `Residential Density (${Math.round(40 + h5 * 45)}%)`, threshold: Math.round(40 + h5 * 45) >= 80 ? 80 : Math.round(40 + h5 * 45) >= 60 ? 60 : Math.round(40 + h5 * 45) >= 40 ? 40 : 20 },
+        transit_connectivity: { value: transitConnectivity, tier: transitConnectivity >= 80 ? "Exceptional" : transitConnectivity >= 60 ? "Strong" : transitConnectivity >= 40 ? "Developing" : "Emerging", label: `Transit Connectivity (${transitConnectivity}%)`, threshold: transitConnectivity >= 80 ? 80 : transitConnectivity >= 60 ? 60 : transitConnectivity >= 40 ? 40 : 20 },
+        green_coverage: { value: Math.round(15 + h6 * 35), tier: Math.round(15 + h6 * 35) >= 80 ? "Exceptional" : Math.round(15 + h6 * 35) >= 60 ? "Strong" : Math.round(15 + h6 * 35) >= 40 ? "Developing" : "Emerging", label: `Green Coverage (${Math.round(15 + h6 * 35)}%)`, threshold: Math.round(15 + h6 * 35) >= 80 ? 80 : Math.round(15 + h6 * 35) >= 60 ? 60 : Math.round(15 + h6 * 35) >= 40 ? 40 : 20 },
+        building_density: { value: buildingDensity, tier: buildingDensity >= 80 ? "Exceptional" : buildingDensity >= 60 ? "Strong" : buildingDensity >= 40 ? "Developing" : "Emerging", label: `Building Density (${buildingDensity}%)`, threshold: buildingDensity >= 80 ? 80 : buildingDensity >= 60 ? 60 : buildingDensity >= 40 ? 40 : 20 },
+        footfall_potential: { value: footfallPotential, tier: footfallPotential >= 80 ? "Exceptional" : footfallPotential >= 60 ? "Strong" : footfallPotential >= 40 ? "Developing" : "Emerging", label: `Footfall Potential (${footfallPotential}%)`, threshold: footfallPotential >= 80 ? 80 : footfallPotential >= 60 ? 60 : footfallPotential >= 40 ? 40 : 20 },
         ai_confidence: { value: aiConfidence, tier: aiConfidence >= 80 ? "High" : "Moderate", label: `AI Confidence (${aiConfidence}%)`, threshold: 80 },
       },
       data_confidence_note: null,

@@ -286,8 +286,8 @@ export default function LiveDashboard({ navigateTo }) {
       ═══════════════════════════════════════════════════ */}
       <div className="flex flex-1 overflow-hidden min-h-0 w-full relative">
 
-        {/* ── SIDEBAR (Left Column - 240px width) ── */}
-        <aside className="w-[240px] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0">
+        {/* ── SIDEBAR (Left Column - 280px width) ── */}
+        <aside className="w-[280px] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0">
           
           {/* Logo brand section (Moved to sidebar matching reference) */}
           <div className="p-5 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
@@ -311,9 +311,7 @@ export default function LiveDashboard({ navigateTo }) {
             </div>
           </div>
 
-          <div className="flex flex-col p-3 gap-1.5 overflow-y-auto min-h-0">
-            {/* Sidebar header */}
-            <span className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2.5 mb-1.5">LOCATION INTELLIGENCE</span>
+          <div className="flex-1 flex flex-col justify-between p-4 gap-2 overflow-y-auto min-h-0">
             {[
               { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
               { id: 'traffic', icon: 'fa-car', label: 'Traffic Overview' },
@@ -329,13 +327,13 @@ export default function LiveDashboard({ navigateTo }) {
               <button
                 key={item.id}
                 onClick={() => setActiveNav(item.id)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[11px] font-semibold transition-all !w-full !border-none !shadow-none ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-[12px] font-bold transition-all !w-full !border-none !shadow-none ${
                   activeNav === item.id 
-                    ? '!bg-blue-600 !text-white border border-blue-400/20 shadow-[0_0_8px_rgba(37,99,235,0.25)]' 
+                    ? '!bg-blue-600 !text-white border border-blue-400/20 shadow-[0_0_12px_rgba(37,99,235,0.3)]' 
                     : '!bg-[#121829]/75 hover:!bg-[#1a233a] !text-white/50 hover:!text-white border border-white/5'
                 }`}
               >
-                <i className={`fa-solid ${item.icon} text-[11px] w-3.5 text-center`}></i>
+                <i className={`fa-solid ${item.icon} text-[12px] w-4 text-center`}></i>
                 <span>{item.label}</span>
               </button>
             ))}

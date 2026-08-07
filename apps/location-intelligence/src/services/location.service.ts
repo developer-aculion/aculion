@@ -1,8 +1,8 @@
 import axios from "axios";
 import { LocationAnalytics } from "@/types";
 
-const API_BASE = "http://127.0.0.1:8000";
-const TIMEOUT_MS = 12000;
+const API_BASE = "http://127.0.0.1:8001";
+const TIMEOUT_MS = 30000;
 
 // ---------------------------------------------------------------------------
 // Service

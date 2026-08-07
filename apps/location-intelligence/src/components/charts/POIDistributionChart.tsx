@@ -9,7 +9,7 @@ interface POIDistributionChartProps {
 }
 
 const SCORE_LABELS = [
-  { min: 90.0, label: "Exceptional", color: "#2458C9", textClass: "text-[#2458C9]" },
+  { min: 80.0, label: "Exceptional", color: "#2458C9", textClass: "text-[#2458C9]" },
   { min: 60.0, label: "Strong",      color: "#1978E0", textClass: "text-[#1978E0]" },
   { min: 40.0, label: "Developing",  color: "#0D9ED4", textClass: "text-[#0D9ED4]" }, // midpoint blend
   { min: 20.0, label: "Emerging",    color: "#03D4C4", textClass: "text-[#03D4C4]" },

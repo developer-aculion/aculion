@@ -115,7 +115,7 @@ app = FastAPI(title="Location Intelligence API", version="3.2")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://aculion-site.vercel.app"],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -296,14 +296,14 @@ def _expand(x: float, gamma: float = 0.65) -> float:
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # 4-tier label system (revised):
-#   > 90  Exceptional
+#   > 80  Exceptional
 #   > 60  Strong
 #   > 40  Developing
 #   > 20  Emerging
 #   <= 20 No Data (score too low for a qualitative label)
 # ---------------------------------------------------------------------------
 _LABEL_BANDS = [
-    (90.0, "Exceptional"),
+    (80.0, "Exceptional"),
     (60.0, "Strong"),
     (40.0, "Developing"),
     (20.0, "Emerging"),
@@ -363,7 +363,7 @@ _KPI_ADAPTIVE_LABELS: dict[str, dict[str, str]] = {
 
 # Threshold displayed on the card (what tier boundary the score crossed)
 _TIER_THRESHOLDS = {
-    "Exceptional": 90,
+    "Exceptional": 80,
     "Strong": 60,
     "Developing": 40,
     "Emerging": 20,
@@ -373,7 +373,7 @@ _TIER_THRESHOLDS = {
 def _score_to_tier(score: float) -> str | None:
     """
     Returns the tier name for a score:
-      > 90  -> Exceptional
+      > 80  -> Exceptional
       > 60  -> Strong
       > 40  -> Developing
       > 0   -> Emerging  (any non-zero score shows a card)

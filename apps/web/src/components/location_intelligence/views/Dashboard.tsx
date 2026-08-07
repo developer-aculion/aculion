@@ -13,7 +13,7 @@ import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileDown, Share2, Bookmark, Bot, RefreshCw,
-  Layers, MapPin, HelpCircle, FileSpreadsheet, X, Navigation
+  Layers, MapPin, HelpCircle, FileSpreadsheet, X
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -24,9 +24,6 @@ export default function Dashboard() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [aiReportGenerating, setAiReportGenerating] = useState(false);
   const [aiReportContent, setAiReportContent] = useState("");
-  const [isGpsLoading, setIsGpsLoading] = useState(false);
-  const [gpsLoadingStage, setGpsLoadingStage] = useState("");
-  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // ── Candidate coordinate ──
   const [candidateLat, setCandidateLat] = useState(13.0827);
@@ -136,73 +133,6 @@ export default function Dashboard() {
     }, 1800);
   };
 
-  const handleAnalyzeCurrentLocation = async () => {
-    setIsGpsLoading(true);
-    setGpsError(null);
-    setGpsLoadingStage("Locating...");
-
-    const getGpsCoordinates = (): Promise<{ lat: number; lng: number }> => {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("Geolocation is not supported by your browser."));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
-          },
-          (error) => {
-            let msg = "GPS access denied or unavailable.";
-            if (error.code === error.PERMISSION_DENIED) {
-              msg = "GPS permission denied.";
-            } else if (error.code === error.POSITION_UNAVAILABLE) {
-              msg = "GPS position unavailable.";
-            } else if (error.code === error.TIMEOUT) {
-              msg = "GPS request timed out.";
-            }
-            reject(new Error(msg));
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      });
-    };
-
-    let targetLat = candidateLat;
-    let targetLng = candidateLng;
-
-    try {
-      const coords = await getGpsCoordinates();
-      targetLat = coords.lat;
-      targetLng = coords.lng;
-    } catch (err: any) {
-      console.warn("GPS lookup failed. Using selected map location.", err.message);
-      // We gracefully continue with the current candidate coordinates.
-    }
-
-    setGpsLoadingStage("Analyzing...");
-    try {
-      const data = await locationService.analyzeLocation(targetLat, targetLng, radius);
-      
-      setLatitude(targetLat);
-      setLongitude(targetLng);
-      setCandidateLat(targetLat);
-      setCandidateLng(targetLng);
-
-      queryClient.setQueryData(["analytics", targetLat, targetLng, radius], data);
-
-      triggerAiReport(data, targetLat, targetLng);
-    } catch (err: any) {
-      console.error(err);
-      const detail = err.response?.data?.detail || err.message || "Location intelligence analysis failed.";
-      setGpsError(detail);
-    } finally {
-      setIsGpsLoading(false);
-      setGpsLoadingStage("");
-    }
-  };
 
   // ── Skeleton loader ──
   if (isAnalyticsLoading) {
@@ -289,90 +219,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* Asset Summary (10/10) */}
-              <div className="col-span-10">
-                <div
-                  style={{ backgroundColor: "#0050fc" }}
-                  className="p-6 rounded-2xl border border-white/10 grid grid-cols-1 md:grid-cols-4 gap-6 text-foreground items-stretch"
-                >
-                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-white/70 block">Selected Asset</span>
-                    <h2 className="text-base font-extrabold text-white mt-1 truncate">
-                      {analytics?.area || "Custom Coordinates"}
-                    </h2>
-                    <span className="text-[9px] font-mono text-blue-200/50 mt-0.5">
-                      ID: CUSTOM
-                    </span>
-                  </div>
 
-                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center space-y-3">
-                    <div className="flex items-center gap-2.5 text-xs">
-                      <MapPin size={13} className="text-blue-300 shrink-0" />
-                      <div>
-                        <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Candidate Coords</span>
-                        <span className="font-mono text-white font-semibold text-[11px]">
-                          {candidateLat.toFixed(5)}N, {candidateLng.toFixed(5)}E
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 text-xs">
-                      <Layers size={13} className="text-blue-300 shrink-0" />
-                      <div>
-                        <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Analysis Radius</span>
-                        <span className="font-mono text-white font-semibold">{radius}m</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 flex flex-col justify-center">
-                    <div className="bg-white/5 border border-white/10 p-3 rounded-xl text-[10px] h-full flex flex-col justify-center">
-                      <span className="text-[8px] font-extrabold uppercase text-blue-200/60 block mb-1">Executive Notes</span>
-                      <p className="text-blue-100/80 leading-relaxed">
-                        Custom evaluation mode. Click any location on the map and press Analyze to compute spatial features for that point.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-center gap-3">
-                    <button
-                      onClick={handleAnalyzeCurrentLocation}
-                      disabled={isGpsLoading}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-blue-600 hover:bg-white/95 disabled:bg-white/50 active:scale-95 transition-all duration-150 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-md shadow-white/5 disabled:opacity-50"
-                    >
-                      {isGpsLoading ? (
-                        <>
-                          <RefreshCw size={12} className="animate-spin shrink-0" />
-                          <span>{gpsLoadingStage}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Navigation size={12} className="fill-current shrink-0" />
-                          <span>Analyze Current Location</span>
-                        </>
-                      )}
-                    </button>
-                    {gpsError && (
-                      <p className="text-[10px] text-rose-300 font-bold text-center mt-1 leading-snug animate-pulse">
-                        ⚠️ {gpsError}
-                      </p>
-                    )}
-
-                    <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl text-[10px] flex items-center justify-between">
-                      <div>
-                        <span className="text-[8px] font-bold text-blue-200/60 block">DATA SOURCE</span>
-                        <span className="text-[10px] text-emerald-400 font-extrabold">SPATIAL DB</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[8px] font-bold text-blue-200/60 block">STATUS</span>
-                        <span className={`text-[10px] font-extrabold ${isAnalyticsRefetching ? "text-amber-400 animate-pulse" : "text-emerald-400"}`}>
-                          {isAnalyticsRefetching ? "REFRESHING..." : "LIVE ANALYSIS"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* 3. Analytics Charts row */}
@@ -475,7 +322,12 @@ export default function Dashboard() {
 
           {/* ── Right AI Recommendation Sidebar (Fixed 320px width) ── */}
           <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] shrink-0">
-            <AIRecommendationSidebar analytics={analytics} />
+            <AIRecommendationSidebar
+              analytics={analytics}
+              candidateLat={candidateLat}
+              candidateLng={candidateLng}
+              radius={radius}
+            />
           </div>
         </div>
       </div>

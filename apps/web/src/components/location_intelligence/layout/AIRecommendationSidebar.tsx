@@ -2,12 +2,15 @@ import React from "react";
 import {
   Sparkles, Bot, BrainCircuit, Target,
   CheckCircle2, Compass, Users, TrendingUp,
-  Award
+  Award, MapPin, Layers
 } from "lucide-react";
 import { LocationAnalytics } from "../../../types/location";
 
 interface AIRecommendationSidebarProps {
   analytics: LocationAnalytics;
+  candidateLat: number;
+  candidateLng: number;
+  radius: number;
 }
 
 const SCORE_GRADIENTS = [
@@ -26,7 +29,12 @@ const CARD_BORDER_GLOWS = [
   "hover:border-amber-500/30 hover:shadow-amber-500/5"
 ];
 
-export default function AIRecommendationSidebar({ analytics }: AIRecommendationSidebarProps) {
+export default function AIRecommendationSidebar({
+  analytics,
+  candidateLat,
+  candidateLng,
+  radius,
+}: AIRecommendationSidebarProps) {
   const { kpis, top_recommendations, explanation, features } = analytics;
 
   // Extract LLM recommendations with a robust fallback mapping
@@ -51,8 +59,8 @@ export default function AIRecommendationSidebar({ analytics }: AIRecommendationS
   const hasDomains = llmRec.best_advertising_domains && llmRec.best_advertising_domains.length > 0;
 
   const score = analytics.real_estate_score ?? 0;
-  const radius = 36;
-  const circumference = 2 * Math.PI * radius;
+  const circleRadius = 36;
+  const circumference = 2 * Math.PI * circleRadius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   let tier = "Weak";
@@ -79,6 +87,42 @@ export default function AIRecommendationSidebar({ analytics }: AIRecommendationS
   return (
     <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-card/20 p-5 flex flex-col space-y-6 lg:h-screen lg:overflow-y-auto text-foreground shrink-0">
       
+      {/* ── Selected Asset Box (Moved from Selected Asset section) ── */}
+      <div
+        style={{ backgroundColor: "#0050fc" }}
+        className="p-5 rounded-2xl border border-white/10 flex flex-col gap-4 text-foreground shadow-lg shrink-0"
+      >
+        <div>
+          <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-white/70 block">Selected Asset</span>
+          <h2 className="text-sm font-extrabold text-white mt-1 truncate">
+            {analytics?.area || "Custom Coordinates"}
+          </h2>
+          <span className="text-[8px] font-mono text-blue-200/50 mt-0.5">
+            ID: CUSTOM
+          </span>
+        </div>
+
+        <div className="flex flex-col space-y-2.5 pt-2.5 border-t border-white/10">
+          <div className="flex items-center gap-2.5 text-xs">
+            <MapPin size={13} className="text-blue-300 shrink-0" />
+            <div>
+              <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Candidate Coords</span>
+              <span className="font-mono text-white font-semibold text-[10px]">
+                {candidateLat.toFixed(5)}N, {candidateLng.toFixed(5)}E
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 text-xs">
+            <Layers size={13} className="text-blue-300 shrink-0" />
+            <div>
+              <span className="text-[8px] font-bold text-blue-200/60 uppercase block">Analysis Radius</span>
+              <span className="font-mono text-white font-semibold text-[10px]">{radius}m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* HEADER */}
       <div className="flex items-center gap-3 border-b border-border/40 pb-4">
         <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">

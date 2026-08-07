@@ -34,7 +34,7 @@ const KPI_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 // Threshold-based color system per spec:
-// >90 Exceptional → Green  #22C55E
+// >80 Exceptional → Green  #22C55E
 // >60 Strong      → Blue   #3B82F6
 // >40 Developing  → Amber  #F59E0B
 // >20 Emerging    → Red    #EF4444
@@ -90,29 +90,29 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
         <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
           {activeEntries.map(([key, val]) => {
             const numVal = typeof val === "number" ? val : 0;
-            const tier = numVal >= 90 ? "Exceptional" : numVal >= 60 ? "Strong" : numVal >= 40 ? "Developing" : "Emerging";
+            const tier = numVal >= 80 ? "Exceptional" : numVal >= 60 ? "Strong" : numVal >= 40 ? "Developing" : "Emerging";
             const styles = TIER_STYLES[tier];
             const Icon = KPI_ICONS[key] || HelpCircle;
             return (
               <div
                 key={key}
-                className={`flex-1 min-w-[110px] max-w-[200px] flex flex-col gap-2 p-3.5 rounded-2xl border backdrop-blur-sm ${styles.bg} ${styles.border} ${styles.glow}`}
+                className={`flex-1 min-w-[135px] max-w-[220px] flex flex-col gap-2.5 p-4.5 rounded-2xl border backdrop-blur-sm ${styles.bg} ${styles.border} ${styles.glow}`}
               >
                 <div className="flex items-start justify-between gap-1.5">
-                  <span className="text-[8.5px] font-black uppercase tracking-widest text-white/50 leading-tight">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/50 leading-tight">
                     {KPI_DISPLAY_NAMES[key]}
                   </span>
-                  <div className={`p-1.5 rounded-lg shrink-0 ${styles.iconBg}`}>
-                    <Icon size={11} style={{ color: styles.hex }} />
+                  <div className={`p-2 rounded-lg shrink-0 ${styles.iconBg}`}>
+                    <Icon size={14} style={{ color: styles.hex }} />
                   </div>
                 </div>
                 <div className="flex-1 flex items-center">
-                  <span className="text-[11px] font-black leading-snug" style={{ color: styles.hex }}>
+                  <span className="text-[13px] font-black leading-snug" style={{ color: styles.hex }}>
                     {tier}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-white">{numVal.toFixed(0)}/100</span>
+                  <span className="text-[14px] font-black text-white">{numVal.toFixed(0)}/100</span>
                 </div>
               </div>
             );
@@ -141,7 +141,7 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
         value:     item.value,
         tier,
         label:     item.label ?? tier,
-        threshold: item.threshold ?? (tier === "Emerging" ? 20 : tier === "Developing" ? 40 : tier === "Strong" ? 60 : 90),
+        threshold: item.threshold ?? (tier === "Emerging" ? 20 : tier === "Developing" ? 40 : tier === "Strong" ? 60 : 80),
         Icon:      KPI_ICONS[key] || HelpCircle,
         styles,
       };
@@ -195,8 +195,8 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
             <div
               key={kpi.key}
               className={`
-                flex-1 min-w-[110px] max-w-[200px]
-                flex flex-col gap-2 p-3.5 rounded-2xl border
+                flex-1 min-w-[135px] max-w-[220px]
+                flex flex-col gap-2.5 p-4.5 rounded-2xl border
                 backdrop-blur-sm cursor-default select-none
                 transition-all duration-200
                 hover:-translate-y-0.5 hover:brightness-110
@@ -205,21 +205,21 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
             >
               {/* Row 1: KPI title + icon */}
               <div className="flex items-start justify-between gap-1.5">
-                <span className="text-[8.5px] font-black uppercase tracking-widest text-white/50 leading-tight">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/50 leading-tight">
                   {kpi.name}
                 </span>
                 <div
-                  className={`p-1.5 rounded-lg shrink-0 ${kpi.styles.iconBg}`}
+                  className={`p-2 rounded-lg shrink-0 ${kpi.styles.iconBg}`}
                   style={{ border: `1px solid ${kpi.styles.hex}33` }}
                 >
-                  <Icon size={11} style={{ color: kpi.styles.hex }} />
+                  <Icon size={14} style={{ color: kpi.styles.hex }} />
                 </div>
               </div>
 
               {/* Row 2: adaptive label */}
               <div className="flex-1 flex items-center">
                 <span
-                  className="text-[11px] font-black leading-snug"
+                  className="text-[13px] font-black leading-snug"
                   style={{ color: kpi.styles.hex }}
                 >
                   {kpi.label}
@@ -229,13 +229,13 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
               {/* Row 3: score + threshold badge */}
               <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-[11px] font-black text-white">
+                  <span className="text-[14px] font-black text-white">
                     {kpi.value.toFixed(0)}
                   </span>
-                  <span className="text-[7.5px] font-extrabold text-white/40">/100</span>
+                  <span className="text-[9px] font-extrabold text-white/40">/100</span>
                 </div>
                 <span
-                  className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
+                  className="text-[9.5px] font-black px-1.5 py-0.5 rounded-full"
                   style={{
                     color: kpi.styles.hex,
                     background: `${kpi.styles.hex}18`,

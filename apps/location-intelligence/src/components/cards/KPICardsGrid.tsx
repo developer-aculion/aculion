@@ -34,7 +34,7 @@ const KPI_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 // Threshold-based color system per spec:
-// >90 Exceptional → Green  #22C55E
+// >80 Exceptional → Green  #22C55E
 // >60 Strong      → Blue   #3B82F6
 // >40 Developing  → Amber  #F59E0B
 // >20 Emerging    → Red    #EF4444
@@ -100,7 +100,7 @@ export default function KPICardsGrid({ analytics }: KPICardsGridProps) {
         tier,
         // Use adaptive label from backend; fallback to tier name
         label:     item.label ?? tier,
-        threshold: item.threshold ?? (tier === "Emerging" ? 20 : tier === "Developing" ? 40 : tier === "Strong" ? 60 : 90),
+        threshold: item.threshold ?? (tier === "Emerging" ? 20 : tier === "Developing" ? 40 : tier === "Strong" ? 60 : 80),
         Icon:      KPI_ICONS[key] || HelpCircle,
         styles,
       };
