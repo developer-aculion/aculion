@@ -11,6 +11,9 @@ import DemoDashboardPage from './components/DemoDashboardPage';
 import LocationIntelligence from './pages/LocationIntelligence';
 import ContactSection from './components/ContactSection';
 import newLogo from './assets/aculion_logo_transparent.png';
+import { supabase } from './services/supabase';
+import SignInPage from './pages/SignInPage';
+
 
 const hashPassword = async (password) => {
   const msgBuffer = new TextEncoder().encode(password);
@@ -134,6 +137,70 @@ export default function App() {
     const stored = localStorage.getItem('aculion_current_user');
     return stored ? JSON.parse(stored) : null;
   });
+
+  // Supabase Auth listener
+  useEffect(() => {
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsLoggedIn(true);
+        const metadata = session.user.user_metadata || {};
+        const u = {
+          email: session.user.email,
+          name: metadata.fullName || metadata.name || session.user.email.split('@')[0],
+          company: metadata.company || 'Aculion Partner',
+          role: metadata.role || 'Media Owner (Billboard Operator)',
+        };
+        setUser(u);
+        localStorage.setItem('aculion_current_user', JSON.stringify(u));
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+        localStorage.removeItem('aculion_current_user');
+      }
+    });
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setIsLoggedIn(true);
+        const metadata = session.user.user_metadata || {};
+        const u = {
+          email: session.user.email,
+          name: metadata.fullName || metadata.name || session.user.email.split('@')[0],
+          company: metadata.company || 'Aculion Partner',
+          role: metadata.role || 'Media Owner (Billboard Operator)',
+        };
+        setUser(u);
+        localStorage.setItem('aculion_current_user', JSON.stringify(u));
+        
+        // Redirect if on /sign-in page
+        if (window.location.pathname === '/sign-in') {
+          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/dashboard';
+          window.history.pushState(null, '', targetPath);
+          setRoute(targetPath);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+        localStorage.removeItem('aculion_current_user');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Redirect if logged in and accessing /sign-in
+  useEffect(() => {
+    if (isLoggedIn && route === '/sign-in') {
+      const targetPath = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/dashboard';
+      window.history.pushState(null, '', targetPath);
+      setRoute(targetPath);
+    }
+  }, [isLoggedIn, route, user]);
+
 
 
 
@@ -736,12 +803,15 @@ export default function App() {
     localStorage.setItem('aculion_current_user', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setIsLoggedIn(false);
     setDropdownOpen(false);
     localStorage.removeItem('aculion_current_user');
+    navigateTo(null, '/');
   };
+
 
   // ── Profile Dropdown Logic ──
   const scheduleOpen = () => {
@@ -933,8 +1003,7 @@ export default function App() {
           <div className="auth-buttons">
             {!isLoggedIn ? (
               <>
-                <button className="btn btn-outline" onClick={() => setShowSignin(true)}>Sign In</button>
-                <button className="btn btn-primary" onClick={() => handleContactNavigation('Contact Sales')}>Contact Us</button>
+                <button className="btn btn-primary" onClick={(e) => navigateTo(e, '/sign-in')}>Sign In</button>
               </>
             ) : (
               <div
@@ -1018,7 +1087,7 @@ export default function App() {
           <div className="mobile-auth-buttons">
             {!isLoggedIn ? (
               <>
-                <button className="btn btn-outline w-full" onClick={() => { setShowSignin(true); setMobileMenuOpen(false); }}>Sign In</button>
+                <button className="btn btn-outline w-full" onClick={(e) => { navigateTo(e, '/sign-in'); setMobileMenuOpen(false); }}>Sign In</button>
                 <button className="btn btn-primary w-full" onClick={() => { handleContactNavigation('Contact Sales'); setMobileMenuOpen(false); }}>Contact Us</button>
               </>
             ) : (
@@ -1043,11 +1112,37 @@ export default function App() {
               navigateTo={navigateTo}
               isLoggedIn={isLoggedIn}
               setShowRegister={setShowRegister}
-              setShowSignin={setShowSignin}
+              setShowSignin={(val) => {
+                if (val) {
+                  navigateTo(null, '/sign-in');
+                }
+              }}
               handleLogout={handleLogout}
               user={user}
             />
+          ) : route === '/sign-in' ? (
+            <SignInPage
+              navigateTo={navigateTo}
+              isLoggedIn={isLoggedIn}
+              user={user}
+            />
+          ) : route === '/forgot-password' ? (
+            <div className="signin-page-wrapper">
+              <div className="signin-card glass-panel" style={{ textAlign: 'center' }}>
+                <div className="signin-logo-container">
+                  <img src={newLogo} alt="Aculion" className="signin-logo-img" />
+                </div>
+                <h2 className="signin-title" style={{ fontSize: '20px', marginBottom: '16px' }}>Forgot Password</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+                  Please contact system administration to reset your password.
+                </p>
+                <button className="btn btn-primary w-full" onClick={(e) => navigateTo(e, '/sign-in')}>
+                  Back to Sign In
+                </button>
+              </div>
+            </div>
           ) : (
+
             <>
               {/* Hero Section */}
               <section id="hero" className="hero-section">
@@ -2092,147 +2187,7 @@ export default function App() {
           </footer>
         </main>
       )}
-
-      {/* ------------------------------------------------
-                <div className="modal-footer-text">
-                  Need help or want to talk with us?{' '}
-                  <button type="button" className="btn-link" onClick={() => { setShowSignin(false); handleContactNavigation('Contact Sales'); }}>
-                    Contact Us
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------
-          FORGOT PASSWORD MODAL
-      --------------------------------------------------- */}
-      {showForgotPassword && (
-        <div className="modal-overlay open">
-          <div className="modal-card glass-panel modal-card-sm">
-            {/* ── Sticky Topbar: Back + Close ── */}
-            <div className="modal-topbar">
-              <button
-                className="auth-back-btn"
-                onClick={() => {
-                  setShowForgotPassword(false);
-                  setShowSignin(true);
-                }}
-                aria-label="Go back"
-              >
-                <i className="fa-solid fa-arrow-left"></i> Back
-              </button>
-              <button className="modal-close" onClick={closeAllModals}>&times;</button>
-            </div>
-
-            {/* ── Scrollable Body ── */}
-            <div className="modal-scroll-body">
-              <div className="modal-header">
-                <h2>Forgot Password</h2>
-                <p>Reset your access to Aculion Intelligence Console.</p>
-              </div>
-
-              {forgotSuccessMessage && (
-                <div className="success-banner" style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  color: '#10b981',
-                  fontSize: '13.5px',
-                  lineHeight: '1.45',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px'
-                }}>
-                  <i className="fa-solid fa-circle-check" style={{ marginTop: '3px', color: '#10b981' }}></i>
-                  <span>{forgotSuccessMessage}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleForgotPasswordSubmit}>
-                {forgotStep === 1 && (
-                  <>
-                    <div className="form-group">
-                      <label>Business Email or Register Number</label>
-                      <input
-                        type="text"
-                        placeholder="you@company.com or ACU-XXXX"
-                        value={forgotEmailOrRegNumber}
-                        onChange={(e) => { setForgotEmailOrRegNumber(e.target.value); setForgotEmailOrRegNumberError(''); }}
-                        required
-                      />
-                      {forgotEmailOrRegNumberError && <span className="error-text">{forgotEmailOrRegNumberError}</span>}
-                    </div>
-                    <button type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: '10px' }}>
-                      Send Reset OTP <i className="fa-solid fa-paper-plane"></i>
-                    </button>
-                  </>
-                )}
-
-                {forgotStep === 2 && (
-                  <>
-                    <div className="form-group">
-                      <label>Enter 6-Digit OTP</label>
-                      <input
-                        type="text"
-                        placeholder="123456"
-                        maxLength={6}
-                        value={forgotOtp}
-                        onChange={(e) => { setForgotOtp(e.target.value); setForgotOtpError(''); }}
-                        required
-                      />
-                      {forgotOtpError && <span className="error-text">{forgotOtpError}</span>}
-                    </div>
-                    <button type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: '10px' }}>
-                      Verify Code <i className="fa-solid fa-shield-halved"></i>
-                    </button>
-                    <div className="modal-footer-text" style={{ marginTop: '15px', textAlign: 'center' }}>
-                      Didn't get the code?{' '}
-                      <button type="button" className="btn-link" onClick={resendForgotOtp}>
-                        Resend OTP
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {forgotStep === 3 && (
-                  <>
-                    <div className="form-group">
-                      <label>New Password</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={forgotNewPassword}
-                        onChange={(e) => { setForgotNewPassword(e.target.value); setForgotNewPasswordError(''); }}
-                        required
-                      />
-                      {forgotNewPasswordError && <span className="error-text">{forgotNewPasswordError}</span>}
-                    </div>
-                    <div className="form-group">
-                      <label>Confirm New Password</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={forgotConfirmPassword}
-                        onChange={(e) => { setForgotConfirmPassword(e.target.value); setForgotConfirmPasswordError(''); }}
-                        required
-                      />
-                      {forgotConfirmPasswordError && <span className="error-text">{forgotConfirmPasswordError}</span>}
-                    </div>
-                    <button type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: '10px' }}>
-                      Reset Password <i className="fa-solid fa-lock-open"></i>
-                    </button>
-                  </>
-                )}
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
