@@ -9,6 +9,7 @@ import AdminDashboard from './components/AdminDashboard';
 import MediaOwnerPage from './components/MediaOwnerPage';
 import DemoDashboardPage from './components/DemoDashboardPage';
 import LocationIntelligence from './pages/LocationIntelligence';
+import ContactSection from './components/ContactSection';
 import newLogo from './assets/aculion_logo_transparent.png';
 
 const hashPassword = async (password) => {
@@ -62,6 +63,13 @@ export default function App() {
 
   const handleNavLinkClick = (e, path, sectionId) => {
     if (e) e.preventDefault();
+    if (sectionId) {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        scrollToSection(sectionId);
+        return;
+      }
+    }
     if (route !== path) {
       window.history.pushState(null, '', path);
       setRoute(path);
@@ -74,9 +82,15 @@ export default function App() {
 
   // ── Active nav section tracker (IntersectionObserver) ─────
   const [activeSection, setActiveSection] = useState('');
+  const [contactInquiryType, setContactInquiryType] = useState('Contact Sales');
+
+  const handleContactNavigation = (inquiryType = 'Contact Sales') => {
+    setContactInquiryType(inquiryType);
+    scrollToSection('contact-section');
+  };
 
   useEffect(() => {
-    const sectionIds = ['hero', 'features', 'solutions', 'services', 'about', 'footer'];
+    const sectionIds = ['hero', 'features', 'solutions', 'services', 'about', 'contact-section', 'footer'];
     const observers = [];
     const visibleMap = {};
 
@@ -912,7 +926,7 @@ export default function App() {
               <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')} className={`nav-item ${activeSection === 'solutions' ? 'active' : ''}`}>Insights</a>
               <a href="#services" onClick={(e) => handleNavLinkClick(e, '/', 'services')} className={`nav-item ${activeSection === 'services' ? 'active' : ''}`}>Services</a>
               <a href="#about" onClick={(e) => handleNavLinkClick(e, '/', 'about')} className={`nav-item ${activeSection === 'about' ? 'active' : ''}`}>About Us</a>
-              <a href="#footer" onClick={(e) => handleNavLinkClick(e, '/', 'footer')} className={`nav-item ${activeSection === 'footer' ? 'active' : ''}`}>Contact</a>
+              <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, '/', 'contact-section')} className={`nav-item ${activeSection === 'contact-section' ? 'active' : ''}`}>Contact</a>
             </nav>
           )}
 
@@ -920,7 +934,7 @@ export default function App() {
             {!isLoggedIn ? (
               <>
                 <button className="btn btn-outline" onClick={() => setShowSignin(true)}>Sign In</button>
-                <button className="btn btn-primary" onClick={() => setShowRegister(true)}>Register</button>
+                <button className="btn btn-primary" onClick={() => handleContactNavigation('Contact Sales')}>Contact Us</button>
               </>
             ) : (
               <div
@@ -1000,12 +1014,12 @@ export default function App() {
           <a href="#solutions" className={`mobile-nav-item ${activeSection === 'solutions' ? 'active' : ''}`} onClick={(e) => { setMobileMenuOpen(false); handleNavLinkClick(e, '/', 'solutions'); }}>Insights</a>
           <a href="#services" className={`mobile-nav-item ${activeSection === 'services' ? 'active' : ''}`} onClick={(e) => { setMobileMenuOpen(false); handleNavLinkClick(e, '/', 'services'); }}>Services</a>
           <a href="#about" className={`mobile-nav-item ${activeSection === 'about' ? 'active' : ''}`} onClick={(e) => { setMobileMenuOpen(false); handleNavLinkClick(e, '/', 'about'); }}>About Us</a>
-          <a href="#footer" className={`mobile-nav-item ${activeSection === 'footer' ? 'active' : ''}`} onClick={(e) => { setMobileMenuOpen(false); handleNavLinkClick(e, '/', 'footer'); }}>Contact</a>
+          <a href="#contact-section" className={`mobile-nav-item ${activeSection === 'contact-section' ? 'active' : ''}`} onClick={(e) => { setMobileMenuOpen(false); handleNavLinkClick(e, '/', 'contact-section'); }}>Contact</a>
           <div className="mobile-auth-buttons">
             {!isLoggedIn ? (
               <>
                 <button className="btn btn-outline w-full" onClick={() => { setShowSignin(true); setMobileMenuOpen(false); }}>Sign In</button>
-                <button className="btn btn-primary w-full" onClick={() => { setShowRegister(true); setMobileMenuOpen(false); }}>Register</button>
+                <button className="btn btn-primary w-full" onClick={() => { handleContactNavigation('Contact Sales'); setMobileMenuOpen(false); }}>Contact Us</button>
               </>
             ) : (
               <button className="btn btn-outline w-full" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Sign Out</button>
@@ -1094,7 +1108,6 @@ export default function App() {
                   <i className="fa-solid fa-shield-halved esomar-icon"></i>
                 </div>
                 <span className="esomar-badge">GLOBAL RESEARCH COMMITMENT</span>
-                <h3 className="esomar-heading">Committed to ESOMAR Standards</h3>
                 <p className="esomar-description">
                   Aculion follows internationally recognized research methodologies inspired by ESOMAR's ethical framework while our membership application is in progress.
                 </p>
@@ -1812,13 +1825,7 @@ export default function App() {
                       </div>
                       <button 
                         className="btn btn-outline w-full"
-                        onClick={() => {
-                          if (!isLoggedIn) {
-                            setShowRegister(true);
-                          } else {
-                            alert("Thank you for choosing Static Billboard Intelligence! Our onboarding team will contact you at your registered email shortly.");
-                          }
-                        }}
+                        onClick={() => handleContactNavigation('Contact Sales')}
                       >
                         Get Started
                       </button>
@@ -1852,13 +1859,7 @@ export default function App() {
                       </div>
                       <button 
                         className="btn btn-primary w-full"
-                        onClick={() => {
-                          if (!isLoggedIn) {
-                            setShowRegister(true);
-                          } else {
-                            alert("Thank you for choosing DOOH Intelligence! Our onboarding team will contact you at your registered email shortly.");
-                          }
-                        }}
+                        onClick={() => handleContactNavigation('Contact Sales')}
                       >
                         Get Started
                       </button>
@@ -1912,19 +1913,10 @@ export default function App() {
                   <div className="services-cta-actions">
                     <button 
                       className="btn btn-primary btn-lg"
-                      onClick={() => {
-                        if (!isLoggedIn) {
-                          setShowRegister(true);
-                        } else {
-                          alert("Welcome to Aculion! Please go to your dashboard to get started.");
-                        }
-                      }}
+                      onClick={() => handleContactNavigation('Book a Demo')}
                     >
-                      Get Started
+                      Book a Demo
                     </button>
-                    <a href="#contact" className="btn btn-secondary btn-lg" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      Contact Sales
-                    </a>
                   </div>
                 </div>
               </div>
@@ -2016,32 +2008,85 @@ export default function App() {
             </>
           )}
 
+          {/* Contact Section */}
+          <ContactSection initialInquiryType={contactInquiryType} />
+
           {/* Footer */}
           <footer id="footer" className="main-footer">
             <div className="section-container footer-container">
+              {/* Column 1: Brand */}
               <div className="footer-brand-column">
-                <a href="#" className="logo">
+                <a href="/" onClick={(e) => handleNavLinkClick(e, '/', 'hero')} className="logo">
                   <img src={newLogo} alt="Aculion Logo" className="logo-img footer-logo-img" />
                 </a>
                 <p className="footer-desc">Building the intelligence infrastructure for the next generation of Out-of-Home advertising.</p>
-              </div>
-              <div className="footer-links-grid">
-                <div className="footer-links-col">
-                  <h4>Product</h4>
-                  <a href="#features">Features</a>
-                  <a href="/dashboard" onClick={(e) => navigateTo(e, '/dashboard')}>Dashboard</a>
-                  <a href="#roadmap">Roadmap</a>
+                <div className="footer-social-links">
+                  <a href="mailto:Aculion.connect@gmail.com" aria-label="Email Us" className="footer-social-icon"><i className="fa-solid fa-envelope"></i></a>
+                  <a href="tel:+919176590590" aria-label="Call Us" className="footer-social-icon"><i className="fa-solid fa-phone"></i></a>
+                  <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')} aria-label="Contact Section" className="footer-social-icon"><i className="fa-solid fa-headset"></i></a>
                 </div>
-                <div className="footer-links-col">
-                  <h4>Company</h4>
-                  <a href="#about">About Us</a>
-                  <a href="#">Privacy Policy</a>
+              </div>
+
+              {/* Column 2: Product */}
+              <div className="footer-links-col">
+                <h4 className="footer-col-title">PRODUCT</h4>
+                <a href="#features" onClick={(e) => handleNavLinkClick(e, '/', 'features')}>Features</a>
+                <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')}>Insights</a>
+                <a href="#services" onClick={(e) => handleNavLinkClick(e, '/', 'services')}>Services</a>
+                <a href="/dashboard" onClick={(e) => navigateTo(e, '/dashboard')}>Dashboard</a>
+                <a href="#roadmap" onClick={(e) => handleNavLinkClick(e, '/', 'roadmap')}>Roadmap</a>
+              </div>
+
+              {/* Column 3: Company */}
+              <div className="footer-links-col">
+                <h4 className="footer-col-title">COMPANY</h4>
+                <a href="#about" onClick={(e) => handleNavLinkClick(e, '/', 'about')}>About Us</a>
+                <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')}>Contact</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+              </div>
+
+              {/* Column 4: Services */}
+              <div className="footer-links-col">
+                <h4 className="footer-col-title">SERVICES</h4>
+                <a href="#services" onClick={(e) => handleNavLinkClick(e, '/', 'services')}>Static Billboard Intelligence</a>
+                <a href="#services" onClick={(e) => handleNavLinkClick(e, '/', 'services')}>DOOH Intelligence</a>
+                <a href="/media-owner" onClick={(e) => navigateTo(e, '/media-owner')}>Media Owner Platform</a>
+                <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')}>Advertiser Solutions</a>
+              </div>
+
+              {/* Column 5: Contact */}
+              <div className="footer-links-col footer-contact-col">
+                <h4 className="footer-col-title">CONTACT</h4>
+                <div className="footer-contact-item">
+                  <i className="fa-solid fa-envelope footer-contact-icon"></i>
+                  <a href="mailto:Aculion.connect@gmail.com" className="footer-contact-link">Aculion.connect@gmail.com</a>
+                </div>
+                <div className="footer-contact-item">
+                  <i className="fa-solid fa-phone footer-contact-icon"></i>
+                  <a href="tel:+919176590590" className="footer-contact-link">+91 91765 90590</a>
+                </div>
+                <div className="footer-contact-item">
+                  <i className="fa-solid fa-clock footer-contact-icon"></i>
+                  <span className="footer-contact-text">Mon–Fri, 9 AM – 6 PM IST</span>
                 </div>
               </div>
             </div>
+
+            {/* Bottom Footer */}
             <div className="footer-bottom">
-              <div className="section-container">
-                <p>&copy; 2026 Aculion Inc. All rights reserved.</p>
+              <div className="section-container footer-bottom-container">
+                <p className="footer-copyright">&copy; 2026 Aculion Inc. All rights reserved.</p>
+                <div className="footer-bottom-center">
+                  <span className="footer-tagline-pill">AI-Powered Out-of-Home Intelligence</span>
+                </div>
+                <div className="footer-legal-links">
+                  <a href="#">Privacy Policy</a>
+                  <span className="footer-link-divider">•</span>
+                  <a href="#">Terms of Service</a>
+                  <span className="footer-link-divider">•</span>
+                  <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')}>Contact</a>
+                </div>
               </div>
             </div>
           </footer>
@@ -2049,420 +2094,10 @@ export default function App() {
       )}
 
       {/* ------------------------------------------------
-          REGISTER TIMELINE STEPIER MODAL
-      --------------------------------------------------- */}
-      {showRegister && (
-        <div className="modal-overlay open">
-          <div className="modal-card glass-panel">
-            {/* ── Sticky Topbar: Back + Close ── */}
-            <div className="modal-topbar">
-              {regStep < 3 && (
-                <button
-                  className="auth-back-btn"
-                  onClick={() => regStep === 1 ? closeAllModals() : handleRegBack(regStep)}
-                  aria-label="Go back"
-                >
-                  <i className="fa-solid fa-arrow-left"></i> Back
-                </button>
-              )}
-              <button className="modal-close" onClick={closeAllModals}>&times;</button>
-            </div>
-
-            {/* ── Scrollable Body ── */}
-            <div className="modal-scroll-body">
-              <div className="modal-header">
-                <h2>Create Aculion Account</h2>
-                <p>Register to view attention analytics of your displays.</p>
-              </div>
-
-              {/* Modern Wizard Progress Indicator */}
-              {regStep < 3 && (
-                <div className="wizard-progress-container">
-                  <div className="wizard-progress-header">
-                    <span className="wizard-progress-text">Step {regStep} of 2</span>
-                    <span className="wizard-progress-percent">{regStep === 1 ? '50%' : '100%'}</span>
-                  </div>
-                  <div className="wizard-progress-bar-bg">
-                    <div className="wizard-progress-bar-fill" style={{ width: regStep === 1 ? '50%' : '100%' }}></div>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={(e) => e.preventDefault()}>
-                <div className="wizard-overflow-container">
-                  <div
-                    className="wizard-slides-track"
-                    style={{
-                      transform: `translateX(${regStep === 1 ? '0%' : regStep === 2 ? '-33.333%' : '-66.666%'})`,
-                      width: '300%'
-                    }}
-                  >
-                    {/* Slide 1 – Basic Information */}
-                    <div className="wizard-slide-panel">
-                      <div className="form-group">
-                        <label>Full Name</label>
-                        <input
-                          type="text"
-                          placeholder="Sarah Connor"
-                          value={fullName}
-                          onChange={(e) => { setFullName(e.target.value); setFullNameError(''); }}
-                          required
-                        />
-                        {fullNameError && <span className="error-text">{fullNameError}</span>}
-                      </div>
-
-                      <div className="form-group">
-                        <label>Company Name</label>
-                        <input
-                          type="text"
-                          placeholder="Omni Consumer Products"
-                          value={company}
-                          onChange={(e) => { setCompany(e.target.value); setCompanyError(''); }}
-                          required
-                        />
-                        {companyError && <span className="error-text">{companyError}</span>}
-                      </div>
-
-                      <div className="form-group">
-                        <label>Email Address</label>
-                        <input
-                          type="email"
-                          placeholder="you@company.com"
-                          value={email}
-                          onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-                          required
-                        />
-                        {emailError && <span className="error-text">{emailError}</span>}
-                      </div>
-
-                      <div className="form-group phone-group-container">
-                        <label>Mobile Number</label>
-                        <div className="phone-input-wrapper">
-                          <div
-                            className="country-selector-trigger"
-                            onClick={() => {
-                              setShowCountryDropdown(!showCountryDropdown);
-                              setTimeout(() => {
-                                if (countrySearchRef.current) countrySearchRef.current.focus();
-                              }, 100);
-                            }}
-                          >
-                            <span className="selected-flag">{selectedCountry.flag}</span>
-                            <span className="selected-code">{selectedCountry.code}</span>
-                            <i className="fa-solid fa-chevron-down country-chevron"></i>
-                          </div>
-
-                          <input
-                            type="tel"
-                            placeholder={selectedCountry.placeholder}
-                            value={phone}
-                            onChange={handlePhoneChange}
-                            className={phoneError ? 'input-error' : phoneIsValid ? 'input-success' : ''}
-                            required
-                          />
-
-                          {phoneIsValid && (
-                            <span className="phone-valid-indicator">
-                              <i className="fa-solid fa-circle-check text-success"></i>
-                            </span>
-                          )}
-                        </div>
-
-                        {showCountryDropdown && (
-                          <div className="country-dropdown-list" ref={countryDropdownRef}>
-                            <div className="country-search-wrapper">
-                              <i className="fa-solid fa-magnifying-glass search-icon"></i>
-                              <input
-                                type="text"
-                                className="country-search-box"
-                                placeholder="Search country or code..."
-                                value={countrySearch}
-                                onChange={(e) => setCountrySearch(e.target.value)}
-                                ref={countrySearchRef}
-                              />
-                            </div>
-                            <div className="country-options-scroll">
-                              {countries
-                                .filter(c =>
-                                  c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                                  c.code.includes(countrySearch)
-                                )
-                                .map((c, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`country-option-item ${c.name === selectedCountry.name ? 'selected' : ''}`}
-                                    onClick={() => {
-                                      setSelectedCountry(c);
-                                      setShowCountryDropdown(false);
-                                      setCountrySearch('');
-                                      const clean = phone.replace(/\D/g, '');
-                                      const formatted = formatPhoneNumber(clean, c);
-                                      setPhone(formatted);
-                                      validatePhone(clean, c);
-                                    }}
-                                  >
-                                    <span className="option-flag">{c.flag}</span>
-                                    <span className="option-name">{c.name}</span>
-                                    <span className="option-code">{c.code}</span>
-                                  </div>
-                                ))}
-                              {countries.filter(c =>
-                                c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                                c.code.includes(countrySearch)
-                              ).length === 0 && (
-                                  <div className="country-no-results">No countries found</div>
-                                )}
-                            </div>
-                          </div>
-                        )}
-
-                        {phoneError && (
-                          <span className="error-text phone-validation-message">{phoneError}</span>
-                        )}
-                        {phoneIsValid && (
-                          <span className="success-text phone-validation-message">✓ Valid Phone Number</span>
-                        )}
-                      </div>
-
-                      <div className="step-actions" style={{ marginTop: '28px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-primary w-full"
-                          onClick={() => handleRegNext(1)}
-                          disabled={!isSlide1Valid}
-                        >
-                          Next <i className="fa-solid fa-chevron-right"></i>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Slide 2 – Account Setup */}
-                    <div className="wizard-slide-panel">
-                      <div className="form-group">
-                        <label>Register Number</label>
-                        <input
-                          type="text"
-                          placeholder="ACU-1234"
-                          value={regNumber}
-                          readOnly
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Password</label>
-                        <div className="password-input-wrapper">
-                          <input
-                            type={showRegPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                          />
-                          <button
-                            type="button"
-                            className="password-toggle-btn"
-                            onClick={() => setShowRegPassword(!showRegPassword)}
-                            tabIndex="-1"
-                          >
-                            <i className={`fa-solid ${showRegPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                          </button>
-                        </div>
-                        {password && !validatePasswordStrength(password) && (
-                          <span className="password-strength-helper">
-                            Must be at least 8 characters, include an uppercase letter, lowercase letter, and a number.
-                          </span>
-                        )}
-                        {passError && <span className="error-text">{passError}</span>}
-                      </div>
-
-                      <div className="form-group">
-                        <label>Confirm Password</label>
-                        <div className="password-input-wrapper">
-                          <input
-                            type={showRegConfirmPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                          />
-                          <button
-                            type="button"
-                            className="password-toggle-btn"
-                            onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                            tabIndex="-1"
-                          >
-                            <i className={`fa-solid ${showRegConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                          </button>
-                        </div>
-                        {confirmPassword && password !== confirmPassword && (
-                          <span className="error-text">Passwords do not match.</span>
-                        )}
-                        {confirmError && <span className="error-text">{confirmError}</span>}
-                      </div>
-
-                      <div className="form-group terms-checkbox-group">
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={agreeTerms}
-                            onChange={(e) => setAgreeTerms(e.target.checked)}
-                            required
-                          />
-                          <span className="checkbox-custom"></span>
-                          <span className="checkbox-text">
-                            I agree to the <a href="#" className="btn-link" onClick={e => e.preventDefault()}>Terms & Conditions</a>
-                          </span>
-                        </label>
-                      </div>
-
-                      <div className="step-actions split">
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          onClick={() => handleRegBack(2)}
-                        >
-                          <i className="fa-solid fa-chevron-left"></i> Back
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => handleRegNext(2)}
-                          disabled={!isSlide2Valid}
-                        >
-                          Create Account <i className="fa-solid fa-rocket"></i>
-                        </button>
-                      </div>
-
-                      <div className="modal-footer-text" style={{ marginTop: '24px', textAlign: 'center' }}>
-                        Already have an account?{' '}
-                        <button
-                          type="button"
-                          className="btn-link"
-                          onClick={() => {
-                            setShowRegister(false);
-                            setShowSignin(true);
-                          }}
-                        >
-                          Sign In
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Slide 3 – Launch Success Animation */}
-                    <div className="wizard-slide-panel">
-                      <div className="success-screen">
-                        <div className="success-icon-wrapper">
-                          <div className="success-ring"></div>
-                          <i className="fa-solid fa-check success-check"></i>
-                        </div>
-                        <h3>Account Created Successfully!</h3>
-                        <p>Welcome to Aculion. Connecting to live hardware node streams and setting up your analytics workspace...</p>
-                        <div className="success-loading-bar">
-                          <div className="success-loading-progress" style={{ width: `${successProgress}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------
-          SIGN IN MODAL
-      --------------------------------------------------- */}
-      {showSignin && (
-        <div className="modal-overlay open">
-          <div className="modal-card glass-panel modal-card-sm">
-            {/* ── Sticky Topbar: Back + Close ── */}
-            <div className="modal-topbar">
-              <button
-                className="auth-back-btn"
-                onClick={closeAllModals}
-                aria-label="Go back"
-              >
-                <i className="fa-solid fa-arrow-left"></i> Back
-              </button>
-              <button className="modal-close" onClick={closeAllModals}>&times;</button>
-            </div>
-
-            {/* ── Scrollable Body ── */}
-            <div className="modal-scroll-body">
-              <div className="modal-header">
-                <h2>Sign In</h2>
-                <p>Welcome back to Aculion Intelligence Console.</p>
-              </div>
-              {signinSuccessMessage && (
-                <div className="success-banner" style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  color: '#10b981',
-                  fontSize: '13.5px',
-                  lineHeight: '1.45',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px'
-                }}>
-                  <i className="fa-solid fa-circle-check" style={{ marginTop: '3px', color: '#10b981' }}></i>
-                  <span>{signinSuccessMessage}</span>
-                </div>
-              )}
-              {signinGeneralError && (
-                <div className="cs-form-error" style={{ marginBottom: '20px' }}>
-                  <i className="fa-solid fa-triangle-exclamation" style={{ marginTop: '3px', color: '#f87171' }}></i>
-                  <span>{signinGeneralError}</span>
-                </div>
-              )}
-              <form onSubmit={handleSigninSubmit}>
-                <div className="form-group">
-                  <label>Business Email</label>
-                  <input
-                    type="email"
-                    id="login-email"
-                    placeholder="Enter Business Email"
-                    value={signinEmail}
-                    onChange={(e) => { setSigninEmail(e.target.value); setSigninGeneralError(''); }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Register Number</label>
-                  <input
-                    type="text"
-                    id="login-reg-number"
-                    placeholder="Enter Register Number"
-                    value={signinRegNumber}
-                    onChange={(e) => { setSigninRegNumber(e.target.value); setSigninGeneralError(''); }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <div className="label-flex">
-                    <label>Password</label>
-                    <a href="#" className="btn-link text-sm" onClick={(e) => { e.preventDefault(); setShowSignin(false); setShowForgotPassword(true); }}>Forgot?</a>
-                  </div>
-                  <input
-                    type="password"
-                    id="login-password"
-                    placeholder="••••••••"
-                    value={signinPassword}
-                    onChange={(e) => { setSigninPassword(e.target.value); setSigninGeneralError(''); }}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary w-full btn-lg">
-                  Sign In <i className="fa-solid fa-arrow-right-to-bracket"></i>
-                </button>
                 <div className="modal-footer-text">
-                  Don't have an account yet?{' '}
-                  <button type="button" className="btn-link" onClick={() => { setShowSignin(false); setShowRegister(true); }}>
-                    Register here
+                  Need help or want to talk with us?{' '}
+                  <button type="button" className="btn-link" onClick={() => { setShowSignin(false); handleContactNavigation('Contact Sales'); }}>
+                    Contact Us
                   </button>
                 </div>
               </form>
