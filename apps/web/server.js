@@ -1,16 +1,14 @@
 /**
  * Aculion — Email Backend Server
  * Runs on port 3001 (proxied via Vite at /api/*)
- * 
- * Email providers (in priority order):
- *   1. Resend (if RESEND_API_KEY is set)
- *   2. Nodemailer + SMTP (if SMTP_USER/SMTP_PASS are set)
+ *
+ * Email provider: Resend (transactional email API)
+ *   Set RESEND_API_KEY in .env (server-side only, never exposed to frontend)
  *
  * No visitor authentication is required — the contact form is public.
  */
 
 import express from 'express';
-import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import cors from 'cors';
 import { config } from 'dotenv';
@@ -19,65 +17,25 @@ config(); // load .env
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const RECIPIENT = process.env.RECIPIENT_EMAIL || 'connect@aculion.com';
+const RECIPIENT = process.env.RECIPIENT_EMAIL || process.env.CONTACT_EMAIL || 'connect@aculion.com';
 
-// ── Email provider detection ────────────────────────────────
+// ── Resend setup ─────────────────────────────────────────────
 const resendKey = (process.env.RESEND_API_KEY || '').trim();
-const smtpUser = (process.env.SMTP_USER || '').trim();
-const smtpPass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '').trim();
 
-const useResend = !!resendKey;
-const useSMTP = !useResend && !!smtpUser && !!smtpPass;
+if (!resendKey) {
+  console.error('⚠  RESEND_API_KEY is not set in .env — emails will NOT be sent.');
+  console.error('   Add RESEND_API_KEY=re_xxx to apps/web/.env and restart the server.');
+} else {
+  console.log(`✅  Resend client ready (key length: ${resendKey.length})`);
+}
+
+const resend = resendKey ? new Resend(resendKey) : null;
 
 console.log('─── Email Server Startup ──────────────────────────────');
-console.log(`  Provider   : ${useResend ? 'Resend' : useSMTP ? 'SMTP (Nodemailer)' : '⚠  NONE CONFIGURED'}`);
-if (useResend) {
-  console.log(`  RESEND_KEY : [SET] (length: ${resendKey.length})`);
-} else if (useSMTP) {
-  console.log(`  SMTP_USER  : "${smtpUser}" (length: ${smtpUser.length})`);
-  console.log(`  SMTP_PASS  : [SET] (length: ${smtpPass.length})`);
-}
+console.log(`  Provider   : ${resend ? 'Resend API' : '⚠  NONE — RESEND_API_KEY not set'}`);
 console.log(`  RECIPIENT  : ${RECIPIENT}`);
 console.log(`  PORT       : ${PORT}`);
 console.log('───────────────────────────────────────────────────────');
-
-// ── Resend client ───────────────────────────────────────────
-let resend = null;
-if (useResend) {
-  resend = new Resend(resendKey);
-  console.log('✅  Resend client initialized');
-}
-
-// ── Nodemailer SMTP transporter (fallback) ──────────────────
-let transporter = null;
-if (useSMTP) {
-  const isCustomHost = !!process.env.SMTP_HOST;
-  const transporterConfig = isCustomHost
-    ? {
-      host: process.env.SMTP_HOST.trim(),
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_PORT === '465',
-      auth: { user: smtpUser, pass: smtpPass },
-    }
-    : {
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: smtpUser, pass: smtpPass },
-    };
-
-  transporter = nodemailer.createTransport(transporterConfig);
-
-  transporter.verify((err) => {
-    if (err) {
-      console.error('⚠  SMTP connection FAILED:', err.message);
-      console.error('   → Check SMTP_USER and SMTP_PASS in .env');
-    } else {
-      const host = isCustomHost ? `${process.env.SMTP_HOST}:${process.env.SMTP_PORT}` : 'smtp.gmail.com:465';
-      console.log(`✅  SMTP ready — sending via ${smtpUser} → ${host}`);
-    }
-  });
-}
 
 // ── Middleware ───────────────────────────────────────────────
 app.use(cors({
@@ -86,7 +44,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10kb' }));
 
-// ── Rate limiting (in-memory, no extra dependency) ──────────
+// ── Rate limiting (in-memory, no extra dependency) ───────────
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 5; // max 5 requests per minute per IP
@@ -121,7 +79,7 @@ setInterval(() => {
   }
 }, 60000);
 
-// ── Helpers ─────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 function getIST() {
   return new Date().toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -205,29 +163,22 @@ function buildEmailTemplate({ title, accentColor, badge, rows, submittedOn, brow
 </html>`;
 }
 
-// ── Validation helpers ──────────────────────────────────────
+// ── Validation helpers ───────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[\+\d\s\-\(\)]{7,20}$/;
 
-// ── SMTP Test Endpoint ──────────────────────────────────────
-app.get('/api/smtp-test', async (_req, res) => {
-  if (useResend) {
-    return res.json({ ok: true, message: 'Using Resend API', provider: 'resend' });
-  }
-  if (!transporter) {
-    return res.status(500).json({ ok: false, message: 'No email provider configured' });
-  }
-  try {
-    await transporter.verify();
-    return res.json({ ok: true, message: 'SMTP connection verified', provider: 'smtp' });
-  } catch (err) {
-    return res.status(500).json({ ok: false, message: err.message, code: err.code });
-  }
-});
+// ── Health check ─────────────────────────────────────────────
+app.get('/api/health', (_req, res) => res.json({
+  status: 'ok',
+  provider: resend ? 'resend' : 'none',
+  recipient: RECIPIENT,
+  timestamp: new Date().toISOString(),
+}));
 
 // ══════════════════════════════════════════════════════════════
 //  POST /api/contact — PUBLIC, no authentication required
 //  Accepts contact form submissions from unauthenticated visitors
+//  Sends email to connect@aculion.com via Resend API
 // ══════════════════════════════════════════════════════════════
 app.post('/api/contact', rateLimit, async (req, res) => {
   const {
@@ -237,19 +188,18 @@ app.post('/api/contact', rateLimit, async (req, res) => {
     _honeypot, // honeypot field — must be empty
   } = req.body;
 
-  // ── Honeypot spam check ─────────────────────────────────
+  // ── Honeypot spam check ──────────────────────────────────
   if (_honeypot) {
     // Silently accept to fool bots, but don't send email
-    return res.json({ success: true, message: 'Your inquiry has been submitted successfully.' });
+    return res.json({ success: true, message: 'Thank you! Your inquiry has been submitted successfully.' });
   }
 
-  // ── Backend validation ──────────────────────────────────
+  // ── Backend validation ────────────────────────────────────
   if (!name?.trim()) return res.status(400).json({ success: false, message: 'Full name is required.' });
   if (!company?.trim()) return res.status(400).json({ success: false, message: 'Company name is required.' });
   if (!email?.trim() || !EMAIL_RE.test(email)) return res.status(400).json({ success: false, message: 'A valid business email is required.' });
   if (phone?.trim() && !PHONE_RE.test(phone)) return res.status(400).json({ success: false, message: 'Phone number contains invalid characters.' });
 
-  // Max message length
   if (message && message.length > 5000) {
     return res.status(400).json({ success: false, message: 'Message is too long (max 5000 characters).' });
   }
@@ -260,7 +210,16 @@ app.post('/api/contact', rateLimit, async (req, res) => {
     if (!preferredMeetingMode) return res.status(400).json({ success: false, message: 'Preferred meeting mode is required for demo booking.' });
   }
 
-  // ── Build email content ─────────────────────────────────
+  // ── Guard: Resend must be configured ────────────────────
+  if (!resend) {
+    console.error('❌ No email provider — RESEND_API_KEY is not set in .env');
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to send your inquiry right now. Please try again later.',
+    });
+  }
+
+  // ── Build email content ───────────────────────────────────
   const clientIp = (ip && ip !== 'Unavailable') ? ip : (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unavailable');
   const submittedOn = getIST();
   const subject = 'New Contact Inquiry - Aculion Website';
@@ -291,86 +250,38 @@ app.post('/api/contact', rateLimit, async (req, res) => {
 
   const text = `New Contact Inquiry - Aculion Website\n\nInquiry Type: ${inquiryType || 'Contact Sales'}\nFull Name: ${name}\nCompany Name: ${company}\nBusiness Email: ${email}\nPhone Number: ${phone || '—'}\nNumber of Billboards: ${billboards || 'Not specified'}\n${inquiryType === 'Book a Demo' ? `Preferred Demo Date & Time: ${preferredDate} at ${preferredTime}\nPreferred Meeting Mode: ${preferredMeetingMode}\n` : ''}Message:\n${message || '—'}\n\nSubmitted On: ${submittedOn}\nBrowser: ${browser || 'Unknown'}\nDevice: ${device || 'Unknown'}\nIP Address: ${clientIp || 'Unknown'}`;
 
-  // ── Send email ──────────────────────────────────────────
+  // ── Send via Resend API ────────────────────────────────────
   try {
-    if (useResend) {
-      // ── Resend API ────────────────────────────────────
-      const fromAddress = process.env.RESEND_FROM || 'Aculion Website <onboarding@resend.dev>';
-      const { data, error } = await resend.emails.send({
-        from: fromAddress,
-        to: [RECIPIENT],
-        replyTo: email,
-        subject,
-        html,
-        text,
-      });
+    // Use Resend's onboarding domain as the sender until a custom domain is verified.
+    // The visitor's email is set as Reply-To so replies go to them directly.
+    // The visitor's email is NEVER used as the sender authentication.
+    const fromAddress = process.env.RESEND_FROM || 'Aculion Website <onboarding@resend.dev>';
 
-      if (error) {
-        console.error('❌ Resend email failed:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'Unable to send your inquiry right now. Please try again later.',
-        });
-      }
+    const { data, error } = await resend.emails.send({
+      from: fromAddress,
+      to: [RECIPIENT],
+      replyTo: email,           // visitor's business email — Reply-To only, NOT the sender
+      subject,
+      html,
+      text,
+    });
 
-      console.log(`✅ Email sent via Resend (id: ${data?.id})`);
-      return res.json({ success: true, message: 'Your inquiry has been submitted successfully.' });
-
-    } else if (transporter) {
-      // ── Nodemailer SMTP ───────────────────────────────
-      const maxRetries = 3;
-      const timeoutMs = 10000;
-      let attempts = 0;
-      let sentSuccessfully = false;
-      let lastError = null;
-
-      while (attempts < maxRetries && !sentSuccessfully) {
-        attempts++;
-        try {
-          await Promise.race([
-            transporter.sendMail({
-              from: `"Aculion Website" <${smtpUser}>`,
-              to: RECIPIENT,
-              replyTo: email,
-              subject,
-              text,
-              html,
-            }),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('SMTP timeout')), timeoutMs)
-            ),
-          ]);
-          sentSuccessfully = true;
-          console.log(`✅ Email sent via SMTP (attempt ${attempts})`);
-        } catch (err) {
-          lastError = err;
-          console.error(`❌ SMTP attempt ${attempts} failed:`, err.message);
-          if (attempts < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, attempts * 1000));
-          }
-        }
-      }
-
-      if (sentSuccessfully) {
-        return res.json({ success: true, message: 'Your inquiry has been submitted successfully.' });
-      } else {
-        console.error('All SMTP attempts failed. Last error:', lastError?.message);
-        return res.status(500).json({
-          success: false,
-          message: 'Unable to send your inquiry right now. Please try again later.',
-        });
-      }
-
-    } else {
-      // ── No email provider configured ──────────────────
-      console.error('❌ No email provider configured (set RESEND_API_KEY or SMTP_USER/SMTP_PASS in .env)');
+    if (error) {
+      console.error('❌ Resend error:', JSON.stringify(error));
       return res.status(500).json({
         success: false,
         message: 'Unable to send your inquiry right now. Please try again later.',
       });
     }
+
+    console.log(`✅ Email sent via Resend → ${RECIPIENT} (id: ${data?.id})`);
+    return res.json({
+      success: true,
+      message: 'Thank you! Your inquiry has been submitted successfully.',
+    });
+
   } catch (err) {
-    console.error('❌ Unexpected email error:', err);
+    console.error('❌ Unexpected error sending email:', err?.message || err);
     return res.status(500).json({
       success: false,
       message: 'Unable to send your inquiry right now. Please try again later.',
@@ -378,82 +289,37 @@ app.post('/api/contact', rateLimit, async (req, res) => {
   }
 });
 
-// ── Location Intelligence Spatial Endpoints ──────────────────
+// ── Location Intelligence Spatial Endpoints (fallback stubs) ─
 app.get('/api/v1/analyze', (req, res) => {
   const latitude = parseFloat(req.query.latitude) || 13.0827;
   const longitude = parseFloat(req.query.longitude) || 80.2707;
   const radius = parseInt(req.query.radius, 10) || 1000;
 
-  const areaName = "Anna Nagar - Shanthi Colony Junction";
   res.json({
-    latitude,
-    longitude,
-    radius,
-    area: areaName,
+    latitude, longitude, radius,
+    area: "Anna Nagar - Shanthi Colony Junction",
     features: {
-      poi_density: 142,
-      road_density: 18.4,
-      junction_density: 12.5,
-      transit_accessibility: 84,
-      commercial_density: 88,
-      residential_density: 38.5,
-      green_cover_ratio: 14.2,
-      competition_index: 44,
-      walkability: 82,
-      land_use_mix: 78,
-      population_proxy: 45000,
-      building_density: 64,
-      total_pois: 52,
-      bus_count: 8,
-      metro_count: 2,
-      rail_count: 1,
-      bank_count: 6,
-      restaurant_count: 14,
-      office_count: 9,
-      shopping_count: 11,
-      road_length_m: radius * 6.2,
-      area_km2: 3.14
+      poi_density: 142, road_density: 18.4, junction_density: 12.5,
+      transit_accessibility: 84, commercial_density: 88, residential_density: 38.5,
+      green_cover_ratio: 14.2, competition_index: 44, walkability: 82,
+      land_use_mix: 78, population_proxy: 45000, building_density: 64,
+      total_pois: 52, bus_count: 8, metro_count: 2, rail_count: 1,
+      bank_count: 6, restaurant_count: 14, office_count: 9, shopping_count: 11,
+      road_length_m: radius * 6.2, area_km2: 3.14
     },
     kpis: {
-      overall_score: 87,
-      accessibility: 85,
-      commercial_potential: 89,
-      residential_density: 68,
-      transit_connectivity: 84,
-      green_coverage: 45,
-      building_density: 74,
-      competition_level: 42,
-      footfall_potential: 89,
-      ai_confidence: 91
+      overall_score: 87, accessibility: 85, commercial_potential: 89,
+      residential_density: 68, transit_connectivity: 84, green_coverage: 45,
+      building_density: 74, competition_level: 42, footfall_potential: 89, ai_confidence: 91
     },
     top_recommendations: [
-      {
-        category: "Automotive & Electric Vehicles",
-        score: 92,
-        confidence: 94,
-        reason: "High vehicular traffic density along major commercial artery with elevated high-income commuter volume."
-      },
-      {
-        category: "E-Commerce & Quick Commerce",
-        score: 88,
-        confidence: 90,
-        reason: "Dense millennial residential presence with high Smartphone & digital payment adoption."
-      },
-      {
-        category: "Banking, Insurance & FinTech",
-        score: 84,
-        confidence: 86,
-        reason: "Multiple financial institutions within 400m radius creating ideal environment for financial product messaging."
-      }
+      { category: "Automotive & Electric Vehicles", score: 92, confidence: 94, reason: "High vehicular traffic density." },
+      { category: "E-Commerce & Quick Commerce", score: 88, confidence: 90, reason: "Dense millennial residential presence." },
+      { category: "Banking, Insurance & FinTech", score: 84, confidence: 86, reason: "Multiple financial institutions within 400m radius." }
     ],
     explanation: {
-      positive: [
-        "Major transit junction with high pedestrian and vehicular throughput",
-        "High concentration of retail and commercial establishments within viewing cone"
-      ],
-      negative: [
-        "Moderate visual clutter from adjacent retail signage"
-      ],
+      positive: ["Major transit junction", "High concentration of retail and commercial establishments"],
+      negative: ["Moderate visual clutter from adjacent retail signage"],
       summary: "High-yield commercial site with prime visibility across daily commuters and shoppers."
     },
     poi_distribution: [
@@ -463,20 +329,11 @@ app.get('/api/v1/analyze', (req, res) => {
       { category: "Banking & Financial", count: 6, density: 13, percentage: 11, weighted_score: 79 }
     ],
     land_use_distribution: [
-      { name: "Commercial", value: 42 },
-      { name: "Residential", value: 32 },
-      { name: "Transit & Infrastructure", value: 16 },
-      { name: "Green & Open Spaces", value: 10 }
+      { name: "Commercial", value: 42 }, { name: "Residential", value: 32 },
+      { name: "Transit & Infrastructure", value: 16 }, { name: "Green & Open Spaces", value: 10 }
     ],
-    road_analytics: {
-      connectivity: 88,
-      accessibility: 84,
-      walkability: 82,
-      trafficDensity: 91,
-      roadQuality: 86,
-      publicTransport: 85
-    },
-    heatmap_points: Array.from({ length: 30 }, (_, i) => ({
+    road_analytics: { connectivity: 88, accessibility: 84, walkability: 82, trafficDensity: 91, roadQuality: 86, publicTransport: 85 },
+    heatmap_points: Array.from({ length: 30 }, () => ({
       lat: latitude + (Math.random() - 0.5) * 0.01,
       lng: longitude + (Math.random() - 0.5) * 0.01,
       intensity: 0.3 + Math.random() * 0.7
@@ -501,20 +358,13 @@ app.get('/api/v1/area/metadata', (_req, res) => {
   });
 });
 
-app.get('/api/v1/area/detect', (req, res) => {
+app.get('/api/v1/area/detect', (_req, res) => {
   res.json({ area: "Anna Nagar - Shanthi Colony Junction" });
 });
 
-// ── Health check ────────────────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({
-  status: 'ok',
-  provider: useResend ? 'resend' : useSMTP ? 'smtp' : 'none',
-  timestamp: new Date().toISOString(),
-}));
-
-// ── Start ───────────────────────────────────────────────────
+// ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀  Aculion email server running at http://localhost:${PORT}`);
-  console.log(`📧  Emails will be sent to: ${RECIPIENT}`);
-  console.log(`🔧  Provider: ${useResend ? 'Resend API' : useSMTP ? 'SMTP (Nodemailer)' : '⚠  NO PROVIDER'}\n`);
+  console.log(`📧  Contact emails → ${RECIPIENT}`);
+  console.log(`🔧  Provider: ${resend ? 'Resend API ✅' : '⚠  NO PROVIDER (set RESEND_API_KEY in .env)'}\n`);
 });
