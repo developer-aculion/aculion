@@ -181,80 +181,82 @@ app.get('/api/health', (_req, res) => res.json({
 //  Sends email to connect@aculion.com via Resend API
 // ══════════════════════════════════════════════════════════════
 app.post('/api/contact', rateLimit, async (req, res) => {
-  const {
-    name, company, email, phone, billboards, message,
-    inquiryType, preferredDate, preferredTime, preferredMeetingMode,
-    browser, device, ip,
-    _honeypot, // honeypot field — must be empty
-  } = req.body;
-
-  // ── Honeypot spam check ──────────────────────────────────
-  if (_honeypot) {
-    // Silently accept to fool bots, but don't send email
-    return res.json({ success: true, message: 'Thank you! Your inquiry has been submitted successfully.' });
-  }
-
-  // ── Backend validation ────────────────────────────────────
-  if (!name?.trim()) return res.status(400).json({ success: false, message: 'Full name is required.' });
-  if (!company?.trim()) return res.status(400).json({ success: false, message: 'Company name is required.' });
-  if (!email?.trim() || !EMAIL_RE.test(email)) return res.status(400).json({ success: false, message: 'A valid business email is required.' });
-  if (phone?.trim() && !PHONE_RE.test(phone)) return res.status(400).json({ success: false, message: 'Phone number contains invalid characters.' });
-
-  if (message && message.length > 5000) {
-    return res.status(400).json({ success: false, message: 'Message is too long (max 5000 characters).' });
-  }
-
-  if (inquiryType === 'Book a Demo') {
-    if (!preferredDate) return res.status(400).json({ success: false, message: 'Preferred date is required for demo booking.' });
-    if (!preferredTime) return res.status(400).json({ success: false, message: 'Preferred time is required for demo booking.' });
-    if (!preferredMeetingMode) return res.status(400).json({ success: false, message: 'Preferred meeting mode is required for demo booking.' });
-  }
-
-  // ── Guard: Resend must be configured ────────────────────
-  if (!resend) {
-    console.error('❌ No email provider — RESEND_API_KEY is not set in .env');
-    return res.status(500).json({
-      success: false,
-      message: 'Unable to send your inquiry right now. Please try again later.',
-    });
-  }
-
-  // ── Build email content ───────────────────────────────────
-  const clientIp = (ip && ip !== 'Unavailable') ? ip : (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unavailable');
-  const submittedOn = getIST();
-  const subject = 'New Contact Inquiry - Aculion Website';
-
-  const rows = [
-    emailRow('Inquiry Type', sanitize(inquiryType) || 'Contact Sales'),
-    emailRow('Full Name', sanitize(name)),
-    emailRow('Company Name', sanitize(company)),
-    emailRow('Business Email', `<a href="mailto:${sanitize(email)}" style="color:#38bdf8;">${sanitize(email)}</a>`),
-    emailRow('Phone Number', sanitize(phone) || '—'),
-    emailRow('Number of Billboards', sanitize(billboards) || 'Not specified'),
-    inquiryType === 'Book a Demo' ? emailRow('Preferred Demo Date & Time', `${sanitize(preferredDate)} at ${sanitize(preferredTime)}`) : '',
-    inquiryType === 'Book a Demo' ? emailRow('Preferred Meeting Mode', sanitize(preferredMeetingMode)) : '',
-    emailRow('Message', `<span style="white-space:pre-wrap;">${sanitize(message) || '—'}</span>`),
-    emailRow('Submitted On (IST)', submittedOn),
-  ].filter(Boolean).join('');
-
-  const html = buildEmailTemplate({
-    title: 'New Contact Inquiry - Aculion Website',
-    accentColor: '#00f0ff',
-    badge: inquiryType || 'Inquiry',
-    rows,
-    submittedOn,
-    browser: sanitize(browser) || 'Unknown',
-    device: sanitize(device) || 'Unknown',
-    ip: sanitize(clientIp) || 'Unknown',
-  });
-
-  const text = `New Contact Inquiry - Aculion Website\n\nInquiry Type: ${inquiryType || 'Contact Sales'}\nFull Name: ${name}\nCompany Name: ${company}\nBusiness Email: ${email}\nPhone Number: ${phone || '—'}\nNumber of Billboards: ${billboards || 'Not specified'}\n${inquiryType === 'Book a Demo' ? `Preferred Demo Date & Time: ${preferredDate} at ${preferredTime}\nPreferred Meeting Mode: ${preferredMeetingMode}\n` : ''}Message:\n${message || '—'}\n\nSubmitted On: ${submittedOn}\nBrowser: ${browser || 'Unknown'}\nDevice: ${device || 'Unknown'}\nIP Address: ${clientIp || 'Unknown'}`;
-
-  // ── Send via Resend API ────────────────────────────────────
   try {
-    // Use Resend's onboarding domain as the sender until a custom domain is verified.
-    // The visitor's email is set as Reply-To so replies go to them directly.
-    // The visitor's email is NEVER used as the sender authentication.
+    // Guard: body must exist (express.json could leave it undefined on malformed input)
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ success: false, message: 'Invalid request body.' });
+    }
+
+    const {
+      name, company, email, phone, billboards, message,
+      inquiryType, preferredDate, preferredTime, preferredMeetingMode,
+      browser, device, ip,
+      _honeypot, // honeypot field — must be empty
+    } = req.body;
+
+    // ── Honeypot spam check ──────────────────────────────────
+    if (_honeypot) {
+      // Silently accept to fool bots, but don't send email
+      return res.json({ success: true, message: 'Thank you! Your inquiry has been submitted successfully.' });
+    }
+
+    // ── Backend validation ────────────────────────────────────
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'Full name is required.' });
+    if (!company?.trim()) return res.status(400).json({ success: false, message: 'Company name is required.' });
+    if (!email?.trim() || !EMAIL_RE.test(email)) return res.status(400).json({ success: false, message: 'A valid business email is required.' });
+    if (phone?.trim() && !PHONE_RE.test(phone)) return res.status(400).json({ success: false, message: 'Phone number contains invalid characters.' });
+
+    if (message && message.length > 5000) {
+      return res.status(400).json({ success: false, message: 'Message is too long (max 5000 characters).' });
+    }
+
+    if (inquiryType === 'Book a Demo') {
+      if (!preferredDate) return res.status(400).json({ success: false, message: 'Preferred date is required for demo booking.' });
+      if (!preferredTime) return res.status(400).json({ success: false, message: 'Preferred time is required for demo booking.' });
+      if (!preferredMeetingMode) return res.status(400).json({ success: false, message: 'Preferred meeting mode is required for demo booking.' });
+    }
+
+    // ── Guard: Resend must be configured ────────────────────
+    if (!resend) {
+      console.error('❌ No email provider — RESEND_API_KEY is not set in .env');
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to send your inquiry right now. Please try again later.',
+      });
+    }
+
+    // ── Build email content ───────────────────────────────────
+    const clientIp = (ip && ip !== 'Unavailable') ? ip : (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unavailable');
+    const submittedOn = getIST();
+    const subject = 'New Contact Inquiry - Aculion Website';
+
+    const rows = [
+      emailRow('Inquiry Type', sanitize(inquiryType) || 'Contact Sales'),
+      emailRow('Full Name', sanitize(name)),
+      emailRow('Company Name', sanitize(company)),
+      emailRow('Business Email', `<a href="mailto:${sanitize(email)}" style="color:#38bdf8;">${sanitize(email)}</a>`),
+      emailRow('Phone Number', sanitize(phone) || '—'),
+      emailRow('Number of Billboards', sanitize(billboards) || 'Not specified'),
+      inquiryType === 'Book a Demo' ? emailRow('Preferred Demo Date & Time', `${sanitize(preferredDate)} at ${sanitize(preferredTime)}`) : '',
+      inquiryType === 'Book a Demo' ? emailRow('Preferred Meeting Mode', sanitize(preferredMeetingMode)) : '',
+      emailRow('Message', `<span style="white-space:pre-wrap;">${sanitize(message) || '—'}</span>`),
+      emailRow('Submitted On (IST)', submittedOn),
+    ].filter(Boolean).join('');
+
+    const html = buildEmailTemplate({
+      title: 'New Contact Inquiry - Aculion Website',
+      accentColor: '#00f0ff',
+      badge: inquiryType || 'Inquiry',
+      rows,
+      submittedOn,
+      browser: sanitize(browser) || 'Unknown',
+      device: sanitize(device) || 'Unknown',
+      ip: sanitize(clientIp) || 'Unknown',
+    });
+
+    const text = `New Contact Inquiry - Aculion Website\n\nInquiry Type: ${inquiryType || 'Contact Sales'}\nFull Name: ${name}\nCompany Name: ${company}\nBusiness Email: ${email}\nPhone Number: ${phone || '—'}\nNumber of Billboards: ${billboards || 'Not specified'}\n${inquiryType === 'Book a Demo' ? `Preferred Demo Date & Time: ${preferredDate} at ${preferredTime}\nPreferred Meeting Mode: ${preferredMeetingMode}\n` : ''}Message:\n${message || '—'}\n\nSubmitted On: ${submittedOn}\nBrowser: ${browser || 'Unknown'}\nDevice: ${device || 'Unknown'}\nIP Address: ${clientIp || 'Unknown'}`;
+
+    // ── Send via Resend API ────────────────────────────────────
     const fromAddress = process.env.RESEND_FROM || 'Aculion Website <onboarding@resend.dev>';
 
     const { data, error } = await resend.emails.send({
@@ -281,13 +283,15 @@ app.post('/api/contact', rateLimit, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Unexpected error sending email:', err?.message || err);
+    // Top-level safety net: always return valid JSON, never crash, never leak internals
+    console.error('❌ Unexpected error in POST /api/contact:', err?.message || err);
     return res.status(500).json({
       success: false,
       message: 'Unable to send your inquiry right now. Please try again later.',
     });
   }
 });
+
 
 // ── Location Intelligence Spatial Endpoints (fallback stubs) ─
 app.get('/api/v1/analyze', (req, res) => {

@@ -63,13 +63,43 @@ export default function ContactSection({ initialInquiryType = 'Contact Sales' })
 
     try {
       const meta = await getClientMeta();
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...contactForm, ...meta, _honeypot: '' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.details || data.error || 'Server error');
+
+      let res;
+      try {
+        res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...contactForm, ...meta, _honeypot: '' }),
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to reach the server. Please check your connection and try again.');
+      }
+
+      // Safely parse the response — never blindly call .json()
+      const contentType = res.headers.get('content-type') || '';
+      let data = null;
+
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+      } else {
+        const text = await res.text();
+        data = text ? { message: text } : null;
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message || 'Unable to send your inquiry right now. Please try again later.'
+        );
+      }
+
+      if (!data) {
+        throw new Error('The server did not return a valid response. Please try again.');
+      }
+
       setContactState({ loading: false, success: true, error: '' });
       setContactForm({
         name: '',
