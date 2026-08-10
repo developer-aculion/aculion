@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LocationIntelligence from '../pages/LocationIntelligence';
 import lionLogo from '../assets/aculion_lion_logo.png';
+import transparentLogo from '../assets/aculion_logo_transparent.png';
 import { 
   AreaChart, 
   Area, 
@@ -394,11 +395,13 @@ export default function LiveDashboard({
           {/* Logo brand section */}
           <div className="p-6 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
             <div className="flex items-center gap-[12px]">
-              <img 
-                src={lionLogo} 
-                alt="Aculion Logo" 
-                className="h-[96px] w-auto object-contain"
-              />
+              <div style={{ width: '50px', height: '56px', overflow: 'hidden', flexShrink: 0 }}>
+                <img 
+                  src={transparentLogo} 
+                  alt="Aculion Symbol" 
+                  style={{ height: '56px', width: 'auto', maxWidth: 'none', display: 'block' }}
+                />
+              </div>
               <div className="flex flex-col">
                 <span className="text-[20px] font-black tracking-[0.05em] text-white uppercase leading-none font-heading">
                   ACULION
