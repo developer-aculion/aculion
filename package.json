@@ -4,9 +4,11 @@
   "private": true,
   "description": "Aculion Platform Monorepo",
   "scripts": {
-    "dev": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:frontend": "cd apps/web && npm run dev",
-    "dev:backend": "cd services/location-service && .venv\\Scripts\\activate && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev": "concurrently --names \"WEB,LOCATION,TRAFFIC,TRAFFIC-UI\" --prefix-colors \"cyan,magenta,blue,yellow\" --kill-others-on-fail \"npm run dev:web\" \"npm run dev:location\" \"npm run dev:traffic\" \"npm run dev:traffic-ui\"",
+    "dev:web": "cd apps/web && npm run dev:full",
+    "dev:location": "cd services/location-service && python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev:traffic": "cd services/traffic-service && python -m uvicorn main:app --port 8090 --reload",
+    "dev:traffic-ui": "cd apps/traffic-intelligence/traffic_ui && npm run dev -- --port 5176",
     "install:frontend": "cd apps/web && npm install",
     "install:backend": "cd services/location-service && pip install -r requirements.txt",
     "setup": "npm run install:frontend && npm run install:backend"

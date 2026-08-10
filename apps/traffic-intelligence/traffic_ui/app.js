@@ -182,70 +182,21 @@ document.addEventListener('DOMContentLoaded', () => {
             window.syncHeaderDropdown(locationVal);
         }
         
-        // Adjust camera label and baseline based on location selected
-        let name = "Broadway & 42nd St";
-        let camCode = "AC-CAM-801";
-        if (locationVal === 'times-square') {
-            name = "Times Square Hub";
-            camCode = "AC-CAM-802";
-        } else if (locationVal === '5th-ave-57') {
-            name = "5th Ave & 57th St";
-            camCode = "AC-CAM-803";
-        } else if (locationVal === 'fdr-drive-34') {
-            name = "FDR Drive North";
-            camCode = "AC-CAM-804";
-        }
-        
+        // Update CCTV camera ID display
         if (elements.cctvCamId) {
-            elements.cctvCamId.textContent = `Camera ID: ${camCode} • ${name}`;
+            const dropdown = document.getElementById('locationDropdown');
+            const activeItem = dropdown?.querySelector(`.custom-dropdown-item[data-value="${locationVal}"]`);
+            const labelText = activeItem ? activeItem.querySelector('.item-text').textContent : locationVal;
+            elements.cctvCamId.textContent = `Camera ID: ${labelText}`;
         }
         
-        // Simulate a minor stats shakeup based on location change
-        shakeStatsForLocation(locationVal);
+        // Trigger live fetch and realtime subscribe
+        fetchLatestData(locationVal);
+        connectToSSE(locationVal);
     }
 
     function shakeStatsForLocation(loc) {
-        let mult = 1.0;
-        if (loc === 'times-square') mult = 1.25;
-        if (loc === '5th-ave-57') mult = 0.9;
-        if (loc === 'fdr-drive-34') mult = 1.4;
-
-        // Fluctuations
-        state.stats.totalVehicles = Math.round(18350 * mult);
-        state.stats.estimatedReach = Math.round(42500 * mult);
-        state.stats.flowRate = +(84.5 * mult).toFixed(1);
-        state.stats.avgDwellTime = +(14.8 * (2.0 - mult)).toFixed(1); // higher dwell in Times Square, lower on FDR highway
-
-        state.stats.dwellStats.avg = state.stats.avgDwellTime;
-        state.stats.dwellStats.max = +(58.2 * (2.0 - mult)).toFixed(1);
-        state.stats.dwellStats.median = +(12.4 * (2.0 - mult)).toFixed(1);
-        
-        state.stats.dwellStats.periods.morning = +(15.2 * (2.0 - mult)).toFixed(1);
-        state.stats.dwellStats.periods.afternoon = +(11.6 * (2.0 - mult)).toFixed(1);
-        state.stats.dwellStats.periods.evening = +(17.4 * (2.0 - mult)).toFixed(1);
-        state.stats.dwellStats.periods.night = +(9.8 * (2.0 - mult)).toFixed(1);
-
-        // Adjust counts
-        const baseCounts = { economy: 8420, premium: 2130, luxury: 850, ultra: 210, bikes: 4760, commercial: 1980 };
-        let sum = 0;
-        Object.keys(baseCounts).forEach(key => {
-            let locMult = 1.0;
-            // FDR has more commercial, 5th Ave has more luxury
-            if (loc === 'fdr-drive-34' && key === 'commercial') locMult = 1.8;
-            if (loc === '5th-ave-57' && (key === 'luxury' || key === 'ultra')) locMult = 1.7;
-            if (loc === 'fdr-drive-34' && key === 'bikes') locMult = 0.3; // no bikes on highway
-
-            state.stats.classes[key].count = Math.round(baseCounts[key] * mult * locMult);
-            sum += state.stats.classes[key].count;
-        });
-
-        // Recompute percentages
-        Object.keys(state.stats.classes).forEach(key => {
-            state.stats.classes[key].pct = Math.round((state.stats.classes[key].count / sum) * 100);
-        });
-
-        updateUIElements();
-        refreshCharts();
+        // Disabled: Relying on live Supabase Realtime SSE data instead
     }
 
     // --- Filters Submission ---
@@ -289,14 +240,18 @@ document.addEventListener('DOMContentLoaded', () => {
             state.spawnChance = 0.01;
         }
 
-        shakeStatsForLocation(state.filters.location);
+        fetchLatestData(state.filters.location);
         showNotification("Filters Applied Successfully");
     });
 
     elements.resetFiltersBtn.addEventListener('click', () => {
         // Reset inputs to default values
-        elements.filterLocation.value = 'broadway-42';
-        elements.headerLocationSelect.value = 'broadway-42';
+        const hiddenSelect = document.getElementById('headerLocationSelect');
+        const defaultCam = hiddenSelect && hiddenSelect.options.length > 0 ? hiddenSelect.options[0].value : '';
+        if (defaultCam) {
+            elements.filterLocation.value = defaultCam;
+            elements.headerLocationSelect.value = defaultCam;
+        }
         elements.filterRoadType.value = 'all';
         elements.filterDateRange.value = 'today';
         elements.filterTimeInterval.value = '1h';
@@ -312,7 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.catCommercial.checked = true;
 
         state.spawnChance = 0.035;
-        shakeStatsForLocation('broadway-42');
+        if (defaultCam) {
+            updateLocationConfig(defaultCam);
+        }
         showNotification("Filters Reset to Defaults");
     });
 
@@ -321,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.refreshBtn.querySelector('i').classList.add('fa-spin');
         setTimeout(() => {
             elements.refreshBtn.querySelector('i').classList.remove('fa-spin');
-            shakeStatsForLocation(state.filters.location);
+            fetchLatestData(state.filters.location);
             showNotification("Live data refreshed");
         }, 800);
     });
@@ -1000,8 +957,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     detectionTriggered = true;
                     detectionTriggerTimer = 10; // flash frame count
                     
-                    // Trigger global stat increments!
-                    incrementVehicleCounters(vehicle.type);
+                    // Trigger global stat increments (disabled locally, driven by SSE realtime)
+                    // incrementVehicleCounters(vehicle.type);
                 }
 
                 // Remove vehicles when they go out of screen bounds
@@ -1132,6 +1089,319 @@ document.addEventListener('DOMContentLoaded', () => {
     initCctvSimulation();
     initClassifCamera();
     
+    // --- Live Supabase Realtime Integration ---
+    let sseSource = null;
+
+    function connectToSSE(cameraCode) {
+        if (sseSource) {
+            sseSource.close();
+        }
+        
+        const indicator = document.getElementById('connectionStatusIndicator');
+        const statusText = document.getElementById('connectionStatusText');
+        
+        function setStatus(stateName) {
+            if (!indicator || !statusText) return;
+            indicator.className = 'status-indicator ' + stateName;
+            if (stateName === 'connected') {
+                statusText.textContent = 'Connected';
+            } else if (stateName === 'reconnecting') {
+                statusText.textContent = 'Reconnecting';
+            } else {
+                statusText.textContent = 'Disconnected';
+            }
+        }
+        
+        setStatus('reconnecting');
+        
+        sseSource = new EventSource(`http://localhost:8090/traffic/stream?camera_code=${cameraCode}`);
+        
+        sseSource.onopen = () => {
+            setStatus('connected');
+        };
+        
+        sseSource.onerror = () => {
+            setStatus('disconnected');
+        };
+        
+        sseSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                updateDashboardWithLiveData(data);
+            } catch (err) {
+                console.error("Error parsing SSE data:", err);
+            }
+        };
+    }
+
+    async function fetchLatestData(cameraCode) {
+        try {
+            const response = await fetch(`http://localhost:8090/traffic/latest?camera_code=${cameraCode}`);
+            if (!response.ok) throw new Error("Failed to fetch latest traffic record");
+            const data = await response.json();
+            updateDashboardWithLiveData(data);
+        } catch (e) {
+            console.error("Error fetching latest traffic data:", e);
+        }
+    }
+
+    function updateDashboardWithLiveData(data) {
+        if (!data) return;
+        
+        // Map fields
+        state.stats.totalVehicles = data.total_vehicles || 0;
+        state.stats.avgDwellTime = data.avg_exposure_time || 0.0;
+        state.stats.peakHour = data.peak_traffic_hour || 'N/A';
+        state.stats.estimatedReach = data.estimated_reach || 0;
+        state.stats.flowRate = data.flow_rate || 0.0;
+        
+        // Vehicle breakdown
+        state.stats.classes.economy.count = data.economy || 0;
+        state.stats.classes.premium.count = data.premium || 0;
+        state.stats.classes.luxury.count = data.luxury || 0;
+        state.stats.classes.ultra.count = data.ultra_luxury || 0;
+        state.stats.classes.bikes.count = data.bikes || 0;
+        state.stats.classes.commercial.count = data.commercial || 0;
+        
+        // Calculate percentages dynamically from total_vehicles
+        const total = data.total_vehicles || 1;
+        Object.keys(state.stats.classes).forEach(key => {
+            const count = state.stats.classes[key].count;
+            state.stats.classes[key].pct = Math.round((count / total) * 100);
+        });
+        
+        if (state.stats.dwellStats) {
+            state.stats.dwellStats.avg = data.avg_exposure_time || 0.0;
+            state.stats.dwellStats.max = data.max_exposure_time || 0.0;
+        }
+        
+        // Indian Comma Format Helper
+        function formatIndianNumber(num) {
+            if (num === undefined || num === null) return "0";
+            let str = num.toString();
+            let lastThree = str.substring(str.length - 3);
+            let otherNumbers = str.substring(0, str.length - 3);
+            if (otherNumbers !== '') {
+                lastThree = ',' + lastThree;
+            }
+            return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+        }
+        
+        elements.kpiVehicles.textContent = formatIndianNumber(state.stats.totalVehicles);
+        elements.kpiDwell.textContent = `${state.stats.avgDwellTime.toFixed(1)} sec`;
+        elements.kpiReach.textContent = formatIndianNumber(state.stats.estimatedReach);
+        elements.kpiFlow.textContent = `${state.stats.flowRate.toFixed(1)} / min`;
+        elements.kpiPeak.textContent = state.stats.peakHour;
+        
+        // Update list values and progress bars
+        Object.keys(state.stats.classes).forEach(key => {
+            const cData = state.stats.classes[key];
+            if (elements.counts[key]) {
+                elements.counts[key].textContent = formatIndianNumber(cData.count);
+            }
+            if (elements.pcts[key]) {
+                elements.pcts[key].textContent = `${cData.pct}%`;
+            }
+            if (elements.bars[key]) {
+                elements.bars[key].style.width = `${cData.pct}%`;
+            }
+        });
+        
+        // Update timestamp
+        if (elements.lastUpdatedTime) {
+            const updatedDate = data.last_updated ? new Date(data.last_updated) : new Date();
+            elements.lastUpdatedTime.textContent = `Last updated: ${updatedDate.toLocaleTimeString()}`;
+        }
+        
+        if (elements.hudTime) {
+            const updatedDate = data.last_updated ? new Date(data.last_updated) : new Date();
+            elements.hudTime.textContent = updatedDate.toISOString().replace('T', ' ').substring(0, 19);
+        }
+        
+        // Refresh charts
+        if (state.charts.donut) {
+            state.charts.donut.updateSeries([
+                state.stats.classes.economy.count,
+                state.stats.classes.premium.count,
+                state.stats.classes.luxury.count,
+                state.stats.classes.ultra.count,
+                state.stats.classes.bikes.count,
+                state.stats.classes.commercial.count
+            ]);
+        }
+        
+        if (state.charts.trendLine) {
+            const seriesData = state.charts.trendLine.w.config.series;
+            const newCats = [...state.charts.trendLine.w.config.xaxis.categories];
+            
+            const now = data.last_updated ? new Date(data.last_updated) : new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            newCats.push(timeStr);
+            if (newCats.length > 10) newCats.shift();
+            
+            const classMapping = {
+                'Economy': state.stats.classes.economy.count,
+                'Premium': state.stats.classes.premium.count,
+                'Luxury': state.stats.classes.luxury.count,
+                'Ultra Luxury': state.stats.classes.ultra.count,
+                'Bikes': state.stats.classes.bikes.count,
+                'Commercial': state.stats.classes.commercial.count
+            };
+            
+            const updatedSeries = seriesData.map(series => {
+                const seriesDataPoints = [...series.data];
+                seriesDataPoints.push(classMapping[series.name] || 0);
+                if (seriesDataPoints.length > 10) seriesDataPoints.shift();
+                return {
+                    name: series.name,
+                    data: seriesDataPoints
+                };
+            });
+            
+            state.charts.trendLine.updateOptions({
+                xaxis: { categories: newCats },
+                series: updatedSeries
+            });
+        }
+    }
+
+    function clearDashboardMetrics() {
+        const selectedText = document.getElementById('selectedLocationText');
+        if (selectedText) selectedText.textContent = "No active cameras";
+        
+        if (elements.cctvCamId) {
+            elements.cctvCamId.textContent = "Camera ID: None";
+        }
+        
+        if (elements.kpiVehicles) elements.kpiVehicles.textContent = "0";
+        if (elements.kpiDwell) elements.kpiDwell.textContent = "0.0 sec";
+        if (elements.kpiReach) elements.kpiReach.textContent = "0";
+        if (elements.kpiFlow) elements.kpiFlow.textContent = "0.0 / min";
+        if (elements.kpiPeak) elements.kpiPeak.textContent = "N/A";
+        
+        Object.keys(state.stats.classes).forEach(key => {
+            if (elements.counts && elements.counts[key]) elements.counts[key].textContent = "0";
+            if (elements.pcts && elements.pcts[key]) elements.pcts[key].textContent = "0%";
+            if (elements.bars && elements.bars[key]) elements.bars[key].style.width = "0%";
+        });
+        
+        if (state.charts && state.charts.donut) {
+            state.charts.donut.updateSeries([0, 0, 0, 0, 0, 0]);
+        }
+        
+        if (state.charts && state.charts.trendLine) {
+            const seriesData = state.charts.trendLine.w.config.series;
+            const updatedSeries = seriesData.map(series => ({
+                name: series.name,
+                data: []
+            }));
+            state.charts.trendLine.updateOptions({
+                xaxis: { categories: [] },
+                series: updatedSeries
+            });
+        }
+    }
+
+    async function populateCameraDropdown() {
+        try {
+            const response = await fetch('http://localhost:8090/traffic/cameras');
+            if (!response.ok) throw new Error("Failed to fetch cameras");
+            const cameras = await response.json();
+            
+            const dropdownMenu = document.getElementById('locationDropdownMenu');
+            const hiddenSelect = document.getElementById('headerLocationSelect');
+            const filterLocation = document.getElementById('filterLocation');
+            
+            if (dropdownMenu) {
+                dropdownMenu.innerHTML = '';
+                cameras.forEach((cam, index) => {
+                    const item = document.createElement('div');
+                    item.className = `custom-dropdown-item${index === 0 ? ' active' : ''}`;
+                    item.setAttribute('data-value', cam.camera_code);
+                    item.setAttribute('role', 'option');
+                    item.innerHTML = `
+                        <span class="item-text">${cam.location_name} (${cam.camera_code})</span>
+                        <i data-lucide="check" class="item-check" style="${index === 0 ? '' : 'display: none;'}"></i>
+                    `;
+                    dropdownMenu.appendChild(item);
+                });
+            }
+            
+            if (hiddenSelect) {
+                hiddenSelect.innerHTML = '';
+                cameras.forEach(cam => {
+                    const opt = document.createElement('option');
+                    opt.value = cam.camera_code;
+                    opt.textContent = `${cam.location_name} (${cam.camera_code})`;
+                    hiddenSelect.appendChild(opt);
+                });
+            }
+            
+            if (filterLocation) {
+                filterLocation.innerHTML = '';
+                cameras.forEach(cam => {
+                    const opt = document.createElement('option');
+                    opt.value = cam.camera_code;
+                    opt.textContent = `${cam.location_name} (${cam.camera_code})`;
+                    filterLocation.appendChild(opt);
+                });
+            }
+            
+            lucide.createIcons();
+            setupDropdownItemListeners();
+            
+            if (cameras.length > 0) {
+                const firstCam = cameras[0].camera_code;
+                const firstText = `${cameras[0].location_name} (${cameras[0].camera_code})`;
+                document.getElementById('selectedLocationText').textContent = firstText;
+                state.filters.location = firstCam;
+                fetchLatestData(firstCam);
+                connectToSSE(firstCam);
+            } else {
+                clearDashboardMetrics();
+            }
+        } catch (e) {
+            console.error("Error populating cameras:", e);
+        }
+    }
+
+    function setupDropdownItemListeners() {
+        const dropdown = document.getElementById('locationDropdown');
+        const items = dropdown.querySelectorAll('.custom-dropdown-item');
+        const selectedText = document.getElementById('selectedLocationText');
+        const hiddenSelect = document.getElementById('headerLocationSelect');
+        
+        items.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const val = item.getAttribute('data-value');
+                const text = item.querySelector('.item-text').textContent;
+                
+                items.forEach(i => {
+                    i.classList.remove('active');
+                    const check = i.querySelector('.item-check');
+                    if (check) check.style.display = 'none';
+                });
+                item.classList.add('active');
+                const itemCheck = item.querySelector('.item-check');
+                if (itemCheck) itemCheck.style.display = '';
+                
+                selectedText.textContent = text;
+                
+                if (hiddenSelect) {
+                    hiddenSelect.value = val;
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                
+                dropdown.classList.remove('open');
+                document.getElementById('locationDropdownToggle').setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    populateCameraDropdown();
+
     // Lucide Icons initialization
     lucide.createIcons();
 });

@@ -373,19 +373,17 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
     padding: 4px 10px;
     border-radius: 20px;
+    transition: var(--transition-smooth);
 }
 
 .status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: var(--color-green);
-    box-shadow: 0 0 8px var(--color-green);
     animation: blinker 2s linear infinite;
+    transition: var(--transition-smooth);
 }
 
 .status-text {
@@ -393,7 +391,44 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    transition: var(--transition-smooth);
+}
+
+.status-indicator.connected {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.status-indicator.connected .status-dot {
+    background-color: var(--color-green);
+    box-shadow: 0 0 8px var(--color-green);
+}
+.status-indicator.connected .status-text {
     color: var(--color-green);
+}
+
+.status-indicator.reconnecting {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.status-indicator.reconnecting .status-dot {
+    background-color: var(--color-orange);
+    box-shadow: 0 0 8px var(--color-orange);
+}
+.status-indicator.reconnecting .status-text {
+    color: var(--color-orange);
+}
+
+.status-indicator.disconnected {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.status-indicator.disconnected .status-dot {
+    background-color: var(--color-red);
+    box-shadow: 0 0 8px var(--color-red);
+    animation: none;
+}
+.status-indicator.disconnected .status-text {
+    color: var(--color-red);
 }
 
 .subtitle {
