@@ -13,7 +13,86 @@ import ContactSection from './components/ContactSection';
 import newLogo from './assets/aculion_logo_transparent.png';
 import { supabase } from './services/supabase';
 import SignInPage from './pages/SignInPage';
+import MediaProfilePage from './pages/MediaProfilePage';
 
+const INITIAL_BILLBOARDS = [
+  {
+    id: 'ACU-AN-001',
+    name: 'Anna Nagar – Shanthi Colony Junction',
+    location: 'Shanthi Colony Junction, Anna Nagar',
+    address: 'Shanthi Colony Junction, Anna Nagar',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    country: 'India',
+    width: '40 ft',
+    height: '20 ft',
+    size: '40 ft × 20 ft',
+    type: 'Static Billboard',
+    screenType: 'High-Brightness Outdoor LED',
+    status: 'Active',
+    latitude: 13.0827,
+    longitude: 80.2707,
+    image: '/anna_nagar_location.png',
+    feedImage: '/anna_nagar_feed.png'
+  },
+  {
+    id: 'ACU-TN-002',
+    name: 'T Nagar – Pondy Bazaar Commercial Hub',
+    location: 'Pondy Bazaar Main Road, T. Nagar',
+    address: 'Pondy Bazaar Main Road, T. Nagar',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    country: 'India',
+    width: '50 ft',
+    height: '25 ft',
+    size: '50 ft × 25 ft',
+    type: 'Static Billboard',
+    screenType: 'High-Brightness Outdoor LED',
+    status: 'Active',
+    latitude: 13.0418,
+    longitude: 80.2341,
+    image: '/blog_attention_metrics.png',
+    feedImage: '/anna_nagar_feed.png'
+  },
+  {
+    id: 'ACU-VL-003',
+    name: 'Velachery Main Road – Vijaya Nagar',
+    location: 'Vijaya Nagar Bus Stand, Velachery',
+    address: 'Vijaya Nagar Bus Stand, Velachery',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    country: 'India',
+    width: '30 ft',
+    height: '15 ft',
+    size: '30 ft × 15 ft',
+    type: 'Static Billboard',
+    screenType: 'LED Outdoor Display',
+    status: 'Active',
+    latitude: 12.9780,
+    longitude: 80.2210,
+    image: '/blog_billboard_roi.png',
+    feedImage: '/anna_nagar_feed.png'
+  },
+  {
+    id: 'ACU-OMR-004',
+    name: 'OMR Expressway – Tidel Park Flyover',
+    location: 'Tidel Park Junction, OMR',
+    address: 'Tidel Park Junction, OMR',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    country: 'India',
+    width: '60 ft',
+    height: '30 ft',
+    size: '60 ft × 30 ft',
+    type: 'Static Billboard',
+    screenType: 'P4 Outdoor LED',
+    status: 'Active',
+    latitude: 12.9892,
+    longitude: 80.2483,
+    image: '/blog_smart_city.png',
+    feedImage: '/anna_nagar_feed.png'
+  }
+];
 
 const hashPassword = async (password) => {
   const msgBuffer = new TextEncoder().encode(password);
@@ -153,6 +232,12 @@ export default function App() {
         };
         setUser(u);
         localStorage.setItem('aculion_current_user', JSON.stringify(u));
+        // Redirect if on /sign-in page
+        if (window.location.pathname === '/sign-in') {
+          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
+          window.history.pushState(null, '', targetPath);
+          setRoute(targetPath);
+        }
       } else {
         setIsLoggedIn(false);
         setUser(null);
@@ -176,7 +261,7 @@ export default function App() {
         
         // Redirect if on /sign-in page
         if (window.location.pathname === '/sign-in') {
-          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/dashboard';
+          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
           window.history.pushState(null, '', targetPath);
           setRoute(targetPath);
         }
@@ -192,17 +277,48 @@ export default function App() {
     };
   }, []);
 
-  // Redirect if logged in and accessing /sign-in
+  // ── Billboards & Asset Management State ──
+  const [billboards, setBillboards] = useState(() => {
+    const saved = localStorage.getItem('aculion_billboards');
+    return saved ? JSON.parse(saved) : INITIAL_BILLBOARDS;
+  });
+
+  const [selectedBillboard, setSelectedBillboard] = useState(() => {
+    const saved = localStorage.getItem('aculion_selected_billboard');
+    return saved ? JSON.parse(saved) : INITIAL_BILLBOARDS[0];
+  });
+
+  const handleSelectBillboard = (billboard) => {
+    setSelectedBillboard(billboard);
+    localStorage.setItem('aculion_selected_billboard', JSON.stringify(billboard));
+    window.history.pushState(null, '', '/dashboard');
+    setRoute('/dashboard');
+  };
+
+  const handleAddBillboard = (newAsset) => {
+    const updated = [...billboards, newAsset];
+    setBillboards(updated);
+    localStorage.setItem('aculion_billboards', JSON.stringify(updated));
+  };
+
+  // Auth protection and route redirection effect
   useEffect(() => {
-    if (isLoggedIn && route === '/sign-in') {
-      const targetPath = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/dashboard';
-      window.history.pushState(null, '', targetPath);
-      setRoute(targetPath);
+    if (!isLoggedIn) {
+      if (route === '/media-profile' || route === '/dashboard' || route === '/location-intelligence') {
+        window.history.pushState(null, '', '/sign-in');
+        setRoute('/sign-in');
+      }
+    } else {
+      if (route === '/sign-in') {
+        const targetPath = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
+        window.history.pushState(null, '', targetPath);
+        setRoute(targetPath);
+      }
+      if ((route === '/dashboard' || route === '/location-intelligence') && !selectedBillboard) {
+        setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
+      }
     }
-  }, [isLoggedIn, route, user]);
-
-
-
+  }, [isLoggedIn, route, user, selectedBillboard, billboards]);
 
   // Modals state
   const [showRegister, setShowRegister] = useState(false);
@@ -960,16 +1076,35 @@ export default function App() {
     password === confirmPassword &&
     agreeTerms;
 
-  if (route === '/dashboard') {
-    return <LiveDashboard companyName={user?.company || 'Aculion Partner'} />;
+  if (route === '/media-profile') {
+    return (
+      <MediaProfilePage
+        user={user}
+        billboards={billboards}
+        onSelectBillboard={handleSelectBillboard}
+        onAddBillboard={handleAddBillboard}
+        onLogout={handleLogout}
+        navigateTo={navigateTo}
+      />
+    );
+  }
+
+  if (route === '/dashboard' || route === '/location-intelligence') {
+    return (
+      <LiveDashboard
+        navigateTo={navigateTo}
+        selectedBillboard={selectedBillboard}
+        billboards={billboards}
+        user={user}
+        onSelectBillboard={handleSelectBillboard}
+        onAddNewMedia={handleAddBillboard}
+        onBackToProfile={() => navigateTo(null, '/media-profile')}
+      />
+    );
   }
 
   if (route === '/demo-dashboard') {
     return <DemoDashboardPage navigateTo={navigateTo} />;
-  }
-
-  if (route === '/location-intelligence') {
-    return <LocationIntelligence />;
   }
 
   return (
@@ -1125,6 +1260,7 @@ export default function App() {
               navigateTo={navigateTo}
               isLoggedIn={isLoggedIn}
               user={user}
+              onLoginSuccess={loginAction}
             />
           ) : route === '/forgot-password' ? (
             <div className="signin-page-wrapper">

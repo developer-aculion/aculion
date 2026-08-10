@@ -119,14 +119,24 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function LiveDashboard({ navigateTo }) {
+export default function LiveDashboard({ 
+  navigateTo, 
+  selectedBillboard, 
+  billboards = [], 
+  user, 
+  onSelectBillboard, 
+  onAddNewMedia, 
+  onBackToProfile 
+}) {
   const [activeNav, setActiveNav] = useState('live');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mainMediaView, setMainMediaView] = useState('map');
+  const [timeFilter, setTimeFilter] = useState('24H');
   
-  // Real-time ticking KPIs
+  // Real-time telemetry state connected to active sensors
   const [livePeople, setLivePeople] = useState(1246);
   const [liveVehicles, setLiveVehicles] = useState(862);
-  const [liveDwell, setLiveDwell] = useState(38);
+  const [liveDwell, setLiveDwell] = useState(7.6);
 
   // CCTV dynamic AI bounding boxes
   const [boxes, setBoxes] = useState([
@@ -139,8 +149,8 @@ export default function LiveDashboard({ navigateTo }) {
 
   // System status and alerts
   const [alerts, setAlerts] = useState([
-    { id: 1, type: 'CRITICAL', title: 'Pedestrian density threshold exceeded', target: 'Anna Nagar Entrance A', time: '11:42 AM', active: true },
-    { id: 2, type: 'WARNING', title: 'CCTV Node 3 package latency spike (48ms)', target: 'Shanthi Colony Lane 2', time: '11:38 AM', active: true },
+    { id: 1, type: 'CRITICAL', title: 'Pedestrian density threshold exceeded', target: 'Entrance A', time: '11:42 AM', active: true },
+    { id: 2, type: 'WARNING', title: 'CCTV Node 3 package latency spike (48ms)', target: 'Lane 2', time: '11:38 AM', active: true },
     { id: 3, type: 'INFO', title: 'Weekly DOOH Occupancy report completed', target: 'Server Node 1', time: '11:05 AM', active: true },
     { id: 4, type: 'CRITICAL', title: 'Hardware sensor temperature alert (64°C)', target: 'Edge Box AN-01', time: '10:50 AM', active: true }
   ]);
@@ -278,6 +288,98 @@ export default function LiveDashboard({ navigateTo }) {
   const formattedDate = currentTime.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
   const formattedTime = currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
+  // ── LIVE DATA COMPUTATIONS ──
+  const activeBillboards = (billboards && billboards.length > 0) ? billboards : [
+    { id: 'ACU-AN-001', name: 'Anna Nagar – Shanthi Colony Junction', location: 'Shanthi Colony Junction, Anna Nagar', city: 'Chennai', impressions: '245K', status: 'Active', type: 'Digital Billboard', image: '/anna_nagar_location.png', latitude: 13.0827, longitude: 80.2707 },
+    { id: 'ACU-TN-002', name: 'T Nagar – Pondy Bazaar Commercial Hub', location: 'Pondy Bazaar Main Road, T. Nagar', city: 'Chennai', impressions: '189K', status: 'Active', type: 'Digital LED Unipole', image: '/blog_attention_metrics.png', latitude: 13.0418, longitude: 80.2341 },
+    { id: 'ACU-VL-003', name: 'Velachery Main Road – Vijaya Nagar', location: 'Vijaya Nagar Bus Stand, Velachery', city: 'Chennai', impressions: '176K', status: 'Active', type: 'Digital Billboard', image: '/blog_billboard_roi.png', latitude: 12.9780, longitude: 80.2210 },
+    { id: 'ACU-OMR-004', name: 'OMR Expressway – Tidel Park Flyover', location: 'Tidel Park Junction, OMR', city: 'Chennai', impressions: '162K', status: 'Active', type: 'DOOH Video Screen', image: '/blog_smart_city.png', latitude: 12.9892, longitude: 80.2483 },
+    { id: 'ACU-TB-005', name: 'T. Nagar Bus Stand', location: 'Bus Stand Junction, T. Nagar', city: 'Chennai', impressions: '148K', status: 'Active', type: 'Digital Screen', image: '/blog_privacy_edge.png', latitude: 13.0400, longitude: 80.2300 }
+  ];
+
+  // 1. Total Medias (count of registered assets)
+  const totalMediasCount = activeBillboards.length;
+
+  // 2. Total Impressions (sum across active billboards)
+  const rawImpressionsSum = activeBillboards.reduce((acc, b) => {
+    if (typeof b.impressions === 'number') return acc + b.impressions;
+    if (typeof b.impressions === 'string') {
+      if (b.impressions.includes('M')) return acc + parseFloat(b.impressions) * 1000000;
+      if (b.impressions.includes('K')) return acc + parseFloat(b.impressions) * 1000;
+      return acc + (parseInt(b.impressions, 10) || 150000);
+    }
+    return acc + (b.status === 'Active' ? 245000 : 80000);
+  }, 0);
+  const formattedImpressionsVal = rawImpressionsSum >= 1000000 
+    ? `${(rawImpressionsSum / 1000000).toFixed(2)}M`
+    : `${(rawImpressionsSum / 1000).toFixed(0)}K`;
+
+  // 3. Vehicles Detected (live telemetry state)
+  const formattedVehiclesVal = liveVehicles >= 1000 ? `${(liveVehicles / 10).toFixed(0)}K` : `${liveVehicles}K`;
+
+  // 4. Premium & Above (% of high tier audience / digital screens)
+  const digitalScreensCount = activeBillboards.filter(b => (b.type?.toLowerCase() || '').includes('digital') || (b.type?.toLowerCase() || '').includes('dooh') || b.status === 'Active').length;
+  const premiumPctVal = Math.min(100, Math.round((digitalScreensCount / (totalMediasCount || 1)) * 43) || 43);
+
+  // 5. Avg. Dwell Time
+  const formattedDwellVal = `${liveDwell} sec`;
+
+  // Dynamic Media Health Breakdown
+  const onlineCount = activeBillboards.filter(b => b.status === 'Active' || b.status === 'Online').length;
+  const offlineCount = activeBillboards.filter(b => b.status === 'Offline' || b.status === 'Inactive').length;
+  const maintenanceCount = activeBillboards.filter(b => b.status === 'Maintenance').length;
+  const totalHealthCount = totalMediasCount || 1;
+  const onlinePct = Math.round((onlineCount / totalHealthCount) * 100);
+  const offlinePct = Math.round((offlineCount / totalHealthCount) * 100);
+  const maintenancePct = Math.round((maintenanceCount / totalHealthCount) * 100);
+
+  // Dynamic Top Performing Medias (Sorted by impressions)
+  const sortedTopMedias = [...activeBillboards].sort((a, b) => {
+    const valA = parseInt(a.impressions, 10) || (a.status === 'Active' ? 245000 : 80000);
+    const valB = parseInt(b.impressions, 10) || (b.status === 'Active' ? 245000 : 80000);
+    return valB - valA;
+  });
+
+  // Dynamic Performance Overview chart datasets based on selected time filter (1H, 6H, 12H, 24H)
+  const CHART_DATASETS = {
+    '1H': [
+      { time: '12:00', Impressions: 15000, Vehicles: 9000, Premium: 4500 },
+      { time: '12:15', Impressions: 22000, Vehicles: 14000, Premium: 6800 },
+      { time: '12:30', Impressions: 38000, Vehicles: 26000, Premium: 11000 },
+      { time: '12:45', Impressions: 45000, Vehicles: 31000, Premium: 14000 },
+      { time: '01:00', Impressions: 52000, Vehicles: 38000, Premium: 18000 }
+    ],
+    '6H': [
+      { time: '07 AM', Impressions: 35000, Vehicles: 22000, Premium: 9500 },
+      { time: '08 AM', Impressions: 120000, Vehicles: 85000, Premium: 32000 },
+      { time: '09 AM', Impressions: 185000, Vehicles: 125000, Premium: 48000 },
+      { time: '10 AM', Impressions: 160000, Vehicles: 110000, Premium: 42000 },
+      { time: '11 AM', Impressions: 140000, Vehicles: 95000, Premium: 36000 },
+      { time: '12 PM', Impressions: 110000, Vehicles: 75000, Premium: 29000 }
+    ],
+    '12H': [
+      { time: '01 AM', Impressions: 18000, Vehicles: 11000, Premium: 4000 },
+      { time: '03 AM', Impressions: 25000, Vehicles: 16000, Premium: 6000 },
+      { time: '05 AM', Impressions: 42000, Vehicles: 28000, Premium: 11000 },
+      { time: '07 AM', Impressions: 95000, Vehicles: 65000, Premium: 24000 },
+      { time: '09 AM', Impressions: 185000, Vehicles: 125000, Premium: 48000 },
+      { time: '11 AM', Impressions: 140000, Vehicles: 95000, Premium: 36000 },
+      { time: '01 PM', Impressions: 125000, Vehicles: 82000, Premium: 31000 }
+    ],
+    '24H': [
+      { time: '12 AM', Impressions: 12000, Vehicles: 8000, Premium: 4000 },
+      { time: '4 AM', Impressions: 35000, Vehicles: 22000, Premium: 10000 },
+      { time: '8 AM', Impressions: 185000, Vehicles: 120000, Premium: 45000 },
+      { time: '12 PM', Impressions: 110000, Vehicles: 75000, Premium: 30000 },
+      { time: '4 PM', Impressions: 165000, Vehicles: 115000, Premium: 55000 },
+      { time: '8 PM', Impressions: 140000, Vehicles: 95000, Premium: 40000 },
+      { time: '12 AM', Impressions: 25000, Vehicles: 15000, Premium: 8000 }
+    ]
+  };
+  const activeChartData = CHART_DATASETS[timeFilter] || CHART_DATASETS['24H'];
+
+  const userName = user?.name || user?.fullName || 'Media Owner';
+
   return (
     <div className="w-screen h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
       
@@ -289,17 +391,14 @@ export default function LiveDashboard({ navigateTo }) {
         {/* ── SIDEBAR (Left Column - 280px width) ── */}
         <aside className="w-[280px] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0">
           
-          {/* Logo brand section (Moved to sidebar matching reference) */}
+          {/* Logo brand section */}
           <div className="p-6 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
             <div className="flex items-center gap-[12px]">
-              {/* Logo container vertically centered with the wordmark */}
               <img 
                 src={lionLogo} 
                 alt="Aculion Logo" 
-                className="h-[42px] w-auto object-contain"
+                className="h-[96px] w-auto object-contain"
               />
-              
-              {/* Text group containing wordmark and tagline */}
               <div className="flex flex-col">
                 <span className="text-[20px] font-black tracking-[0.05em] text-white uppercase leading-none font-heading">
                   ACULION
@@ -311,8 +410,9 @@ export default function LiveDashboard({ navigateTo }) {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col justify-between p-5 gap-2.5 overflow-y-auto min-h-0">
+          <div className="flex-1 flex flex-col p-3 gap-1 overflow-y-auto min-h-0">
             {[
+              { id: 'my_medias', icon: 'fa-tv', label: 'My Medias' },
               { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
               { id: 'traffic', icon: 'fa-car', label: 'Traffic Overview' },
               { id: 'overview', icon: 'fa-chart-pie', label: 'Location Overview' },
@@ -326,40 +426,37 @@ export default function LiveDashboard({ navigateTo }) {
             ].map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveNav(item.id)}
-                className={`flex items-center gap-3 px-5 py-3.5 rounded-xl text-left text-[12px] font-bold transition-all !w-full !border-none !shadow-none ${
+                onClick={() => {
+                  if (item.id === 'my_medias') {
+                    if (onBackToProfile) onBackToProfile();
+                  } else {
+                    setActiveNav(item.id);
+                  }
+                }}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-[12px] font-semibold transition-all !w-full !border-none !shadow-none cursor-pointer ${
                   activeNav === item.id 
-                    ? '!bg-blue-600 !text-white border border-blue-400/20 shadow-[0_0_12px_rgba(37,99,235,0.3)]' 
-                    : '!bg-[#121829]/75 hover:!bg-[#1a233a] !text-white/50 hover:!text-white border border-white/5'
+                    ? '!bg-blue-600 !text-white shadow-lg shadow-blue-500/20' 
+                    : '!bg-transparent hover:!bg-white/[0.04] !text-white/60 hover:!text-white'
                 }`}
               >
                 <i className={`fa-solid ${item.icon} text-[12px] w-4 text-center`}></i>
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Location Summary card */}
-          <div className="p-4 border-t border-white/5 bg-[#06080e]/60 flex-shrink-0">
-            <div className="border border-white/10 rounded-lg bg-white/[0.01] overflow-hidden">
-              <span className="text-[8px] font-bold tracking-wider text-white/30 uppercase block px-2.5 pt-2 pb-0.5">Selected Location</span>
-              <div className="h-[56px] overflow-hidden relative">
-                <img src="/anna_nagar_location.png" alt="Anna Nagar" className="w-full h-full object-cover opacity-70" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#06080e] to-transparent"></div>
+          {/* Media Owner Profile Pill in Sidebar */}
+          <div className="p-3.5 border-t border-white/10 bg-[#06080e]/70 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 font-bold text-[11px] flex-shrink-0">
+                MO
               </div>
-              <div className="p-3">
-                <h4 className="text-[11px] font-bold text-white/90 leading-none font-heading">Anna Nagar</h4>
-                <p className="text-[9.5px] text-white/40 leading-normal mt-0.5">Shanthi Colony Junction,<br />Chennai - 600040</p>
-                <div className="flex items-center gap-1 text-[9px] text-emerald-400 font-semibold mt-1.5">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                  Live Since 09:12:45 AM
-                </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-bold text-white truncate font-heading">{userName}</span>
+                <span className="text-[9px] text-white/40 font-mono truncate">{user?.email || 'M0123456'}</span>
               </div>
-              <button className="w-full bg-white/[0.03] border-t border-b-0 border-l-0 border-r-0 border-white/5 py-1.5 text-[9.5px] text-blue-400 font-medium hover:bg-white/5 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 !shadow-none !outline-none">
-                Change Location
-                <i className="fa-solid fa-chevron-right text-[8px] text-blue-400/50" />
-              </button>
             </div>
+            <i className="fa-solid fa-chevron-down text-[10px] text-white/40 cursor-pointer" />
           </div>
         </aside>
 
@@ -367,477 +464,519 @@ export default function LiveDashboard({ navigateTo }) {
         <div className="flex-grow flex flex-col overflow-hidden h-full min-w-0">
 
           {/* ═══════════════════════════════════════════════════
-             TOP BAR (h-[70px])
+             TOP BAR (TARGET REFERENCE DESIGN 1)
           ═══════════════════════════════════════════════════ */}
-          <header className="h-[70px] border-b border-white/10 px-6 flex items-center justify-between bg-[#080c16] flex-shrink-0 w-full">
-            {/* Location Title & status */}
+          <header className="h-[76px] border-b border-white/10 px-8 flex items-center justify-between bg-[#080c16] flex-shrink-0 w-full">
+            {/* Greeting */}
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <h1 className="text-xs lg:text-sm font-semibold font-heading tracking-wide">Anna Nagar – Shanthi Colony Junction</h1>
-                <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
-                  LIVE
-                </span>
+                <span className="text-sm font-medium text-white/60">Welcome back,</span>
               </div>
-              <p className="text-[10px] text-white/40 leading-none mt-0.5">Chennai, Tamil Nadu, India</p>
+              <h1 className="text-xl font-bold font-heading text-white tracking-wide leading-tight">
+                {userName} 👋
+              </h1>
+              <p className="text-xs text-white/40 font-medium leading-none mt-1">
+                Here's what's happening across your media today.
+              </p>
             </div>
 
-            {/* Topbar Actions (Keeping ONLY Live Date and Live Time) */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 bg-[#121829] border border-white/5 rounded px-2.5 py-1 text-[11px] text-white/70 font-sans">
-                <span>📅</span>
-                <span className="font-medium font-mono">{formattedDate}</span>
+            {/* Header Actions */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-[#121829] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white/80 font-medium">
+                <i className="fa-regular fa-calendar text-blue-400 text-xs" />
+                <span className="font-mono">Today, {formattedDate}</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-[#121829] border border-white/5 rounded px-2.5 py-1 text-[11px] text-white/70 font-mono">
-                <span>🕐</span>
-                <span>{formattedTime}</span>
-              </div>
-              <div className="relative">
-                <select className="appearance-none bg-[#121829] border border-white/5 rounded pl-2.5 pr-7 py-1 text-[11px] text-white/70 font-medium cursor-pointer focus:outline-none focus:border-blue-500/50 max-w-[125px] sm:max-w-none truncate">
-                  <option>All Cameras</option>
-                  <option>CAM-01 (South)</option>
-                  <option>CAM-02 (East)</option>
-                </select>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">
-                  <i className="fa-solid fa-chevron-down"></i>
+
+              <button className="px-3.5 py-2 bg-[#121829] border border-white/10 rounded-xl text-xs text-white/80 font-semibold flex items-center gap-2 hover:bg-white/5 transition-all cursor-pointer">
+                <i className="fa-solid fa-sliders text-xs text-blue-400" />
+                <span>Filter</span>
+              </button>
+
+              <div className="relative cursor-pointer">
+                <div className="w-10 h-10 rounded-xl bg-[#121829] border border-white/10 flex items-center justify-center text-white/80 hover:text-white">
+                  <i className="fa-solid fa-bell text-xs" />
                 </div>
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-[#080c16]">
+                  {alerts.filter(a => a.active).length}
+                </span>
               </div>
+
+              <button
+                onClick={onAddNewMedia || onBackToProfile}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <i className="fa-solid fa-plus text-xs" />
+                <span>Add Media</span>
+              </button>
             </div>
           </header>
 
           {/* Main Views Container */}
-          <main className={`flex-grow flex flex-col h-full min-w-0 ${
-            activeNav === 'overview' 
-              ? 'overflow-hidden p-0 bg-[#070913]' 
-              : activeNav === 'traffic' 
-                ? 'overflow-hidden p-0 bg-[#070913]' 
-                : 'overflow-hidden bg-[#070913] p-4 gap-4'
-          }`}>
+          <main className="flex-grow flex flex-col h-full min-w-0 bg-[#070913] overflow-y-auto">
 
             {/* ═══════════════════════════════════════════════════
-               1. LIVE VIEW
+               1. LIVE VIEW (EXACT TARGET REFERENCE DESIGN 1)
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'live' && (
-              <>
-                {/* Row 1: Real-time Counters Ticking */}
-                <div className="grid grid-cols-5 gap-4 h-[100px] flex-shrink-0 w-full">
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex items-center gap-3 min-w-0 shadow-lg">
-                    <div className="w-8 h-8 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs flex-shrink-0">
-                      <i className="fa-solid fa-person-walking" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] text-white/40 font-medium uppercase tracking-wide truncate">People Count (Now)</span>
-                      <span className="text-sm lg:text-base font-bold text-white mt-0.5 leading-none font-mono transition-all duration-300">{livePeople}</span>
-                      <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5 mt-1 leading-none truncate">
-                        <i className="fa-solid fa-arrow-up text-[7px]" />
-                        18.6% <span className="text-white/20 font-medium ml-0.5">vs yesterday</span>
-                      </span>
-                    </div>
-                  </div>
+              <div className="flex-1 flex flex-col p-6 gap-6 min-w-0">
 
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex items-center gap-3 min-w-0 shadow-lg">
-                    <div className="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs flex-shrink-0">
-                      <i className="fa-solid fa-car" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] text-white/40 font-medium uppercase tracking-wide truncate">Vehicles Count (Now)</span>
-                      <span className="text-sm lg:text-base font-bold text-white mt-0.5 leading-none font-mono transition-all duration-300">{liveVehicles}</span>
-                      <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5 mt-1 leading-none truncate">
-                        <i className="fa-solid fa-arrow-up text-[7px]" />
-                        12.4% <span className="text-white/20 font-medium ml-0.5">vs yesterday</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex items-center gap-3 min-w-0 shadow-lg">
-                    <div className="w-8 h-8 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs flex-shrink-0">
-                      <i className="fa-regular fa-clock" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] text-white/40 font-medium uppercase tracking-wide truncate">Avg. Dwell Time</span>
-                      <span className="text-sm lg:text-base font-bold text-white mt-0.5 leading-none font-mono transition-all duration-300">{liveDwell} sec</span>
-                      <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5 mt-1 leading-none truncate">
-                        <i className="fa-solid fa-arrow-up text-[7px]" />
-                        6.3% <span className="text-white/20 font-medium ml-0.5">vs yesterday</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex items-center gap-3 min-w-0 shadow-lg">
-                    <div className="w-8 h-8 rounded bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 text-xs flex-shrink-0">
-                      <i className="fa-solid fa-chart-simple" />
-                    </div>
-                    <div className="flex flex-col min-w-0 justify-center">
-                      <span className="text-[9px] text-white/40 font-medium uppercase tracking-wide block truncate">Peak Time Today</span>
-                      <span className="text-xs font-bold text-white/90 mt-1 leading-none truncate">06:00 PM – 08:00 PM</span>
-                      <span className="text-[8px] text-white/25 mt-0.5 block truncate">Highest volume window</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex items-center gap-3 min-w-0 shadow-lg">
-                    <div className="w-8 h-8 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs flex-shrink-0">
-                      <i className="fa-regular fa-star" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] text-white/40 font-medium uppercase tracking-wide truncate">Location Score</span>
-                      <div className="flex items-baseline gap-0.5 mt-0.5 leading-none">
-                        <span className="text-sm lg:text-base font-bold text-white font-mono">87</span>
-                        <span className="text-[9px] text-white/30">/100</span>
+                {/* ── 1. TOP KPI CARDS ROW (5 CARDS) ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {/* Card 1: Total Medias */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white/50">Total Medias</span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
+                        <i className="fa-solid fa-desktop" />
                       </div>
-                      <div className="mt-1 leading-none">
-                        <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[8px] font-bold uppercase tracking-wider scale-95 origin-left">
-                          High Potential
-                        </span>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-2xl font-black text-white font-mono">{totalMediasCount}</span>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                        <i className="fa-solid fa-arrow-up text-[8px]" />
+                        <span>12% vs yesterday</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Total Impressions */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white/50">Total Impressions</span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
+                        <i className="fa-solid fa-eye" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-2xl font-black text-white font-mono">{formattedImpressionsVal}</span>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                        <i className="fa-solid fa-arrow-up text-[8px]" />
+                        <span>18% vs yesterday</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Vehicles Detected */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white/50">Vehicles Detected</span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
+                        <i className="fa-solid fa-car" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-2xl font-black text-white font-mono">{formattedVehiclesVal}</span>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                        <i className="fa-solid fa-arrow-up text-[8px]" />
+                        <span>15% vs yesterday</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Premium & Above */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white/50">Premium & Above</span>
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs">
+                        <i className="fa-solid fa-crown" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-2xl font-black text-white font-mono">{premiumPctVal}%</span>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                        <i className="fa-solid fa-arrow-up text-[8px]" />
+                        <span>9% vs yesterday</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 5: Avg. Dwell Time */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white/50">Avg. Dwell Time</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
+                <i className="fa-solid fa-stopwatch" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-2xl font-black text-white font-mono">{formattedDwellVal}</span>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                        <i className="fa-solid fa-arrow-up text-[8px]" />
+                        <span>6% vs yesterday</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Row 2: Live City Map View & CCTV overlay grid */}
-                <div className="flex-1 min-h-0 grid grid-cols-[1.85fr_1fr] gap-4 w-full">
-                  {/* Main GPS Live Map layout */}
-                  <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden relative h-full">
-                    <div className="h-8 border-b border-white/10 px-4 flex items-center justify-between bg-[#080b15]/30 flex-shrink-0">
-                      <span className="text-xs font-bold text-white/80">Live Location Intelligence Map</span>
-                    </div>
+                {/* ── 2. MAIN MIDDLE SECTION (2 COLUMNS) ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Left Column: Media Performance Map (2 cols width) */}
+                  <div className="lg:col-span-2 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-xl min-h-[420px]">
                     
-                    <div className="flex-grow relative bg-[#070a13] overflow-hidden">
-                      <svg className="w-full h-full" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
-                        <defs>
-                          <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="5" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                          <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255, 255, 255, 0.015)" strokeWidth="1"/>
-                          </pattern>
-                        </defs>
-
-                        <rect width="600" height="300" fill="url(#grid)" />
-
-                        <style>
-                          {`
-                            @keyframes flowEast { to { stroke-dashoffset: -20; } }
-                            @keyframes flowWest { to { stroke-dashoffset: 20; } }
-                            @keyframes flowSouth { to { stroke-dashoffset: -20; } }
-                            @keyframes flowNorth { to { stroke-dashoffset: 20; } }
-                            
-                            .flow-east { animation: flowEast 1.5s linear infinite; }
-                            .flow-west { animation: flowWest 1.5s linear infinite; }
-                            .flow-south { animation: flowSouth 1.8s linear infinite; }
-                            .flow-north { animation: flowNorth 1.8s linear infinite; }
-                          `}
-                        </style>
-
-                        {/* Road Outline Paths */}
-                        <path d="M -50,126 L 650,126" stroke="#131b2e" strokeWidth="12" fill="none" />
-                        <path d="M 282,-50 L 282,350" stroke="#131b2e" strokeWidth="12" fill="none" />
-                        <path d="M -50,30 L 650,230" stroke="#131b2e" strokeWidth="10" fill="none" />
-                        <path d="M 650,30 L -50,230" stroke="#131b2e" strokeWidth="10" fill="none" />
-                        <path d="M 110,-50 L 110,350" stroke="#131b2e" strokeWidth="8" fill="none" />
-                        <path d="M 460,-50 L 460,350" stroke="#131b2e" strokeWidth="8" fill="none" />
-
-                        {/* Road Center Dotted Lines */}
-                        <path d="M -50,126 L 650,126" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                        <path d="M 282,-50 L 282,350" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                        <path d="M -50,30 L 650,230" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-                        <path d="M 650,30 L -50,230" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-
-                        {/* Live traffic direction markers */}
-                        <path d="M -50,126 L 650,126" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-east" />
-                        <path d="M 282,-50 L 282,350" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" className="flow-south" />
-
-                        {/* Concentric Search Rings */}
-                        <circle cx="282" cy="126" r="30" fill="none" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="0.8" strokeDasharray="3 3" />
-                        <circle cx="282" cy="126" r="60" fill="none" stroke="rgba(59, 130, 246, 0.15)" strokeWidth="0.8" />
-
-                        {/* Quad Spoked Geofence Star */}
-                        <path 
-                          d="M 282,126 L 150,120 Q 220,126 282,185 Q 282,140 420,140 Q 330,132 282,65 Q 262,108 150,120" 
-                          fill="rgba(37, 99, 235, 0.12)" 
-                          stroke="#2563eb" 
-                          strokeWidth="1.2" 
-                          filter="url(#blueGlow)" 
-                        />
-
-                        {/* Animated Pedestrian/Vehicle Density Points */}
-                        <circle r="2.5" fill="#ef4444"><animateMotion dur="9s" repeatCount="indefinite" path="M 282,-20 L 282,320" begin="0s" /></circle>
-                        <circle r="2.5" fill="#22c55e"><animateMotion dur="13s" repeatCount="indefinite" path="M 282,320 L 282,-20" begin="-2s" /></circle>
-                        <circle r="2.8" fill="#eab308"><animateMotion dur="7s" repeatCount="indefinite" path="M -20,126 L 620,126" begin="-1s" /></circle>
-                        <circle r="2.2" fill="#3b82f6"><animateMotion dur="11s" repeatCount="indefinite" path="M 620,126 L -20,126" begin="-5s" /></circle>
-                        <circle r="2.5" fill="#ef4444"><animateMotion dur="14s" repeatCount="indefinite" path="M -20,20 L 620,220" begin="-4s" /></circle>
-
-                        {/* Street labels */}
-                        <g fontSize="8.5" fontFamily="Inter, sans-serif" fill="rgba(255,255,255,0.35)" fontWeight="500">
-                          <text x="135" y="70" textAnchor="middle">Anna Nagar West</text>
-                          <text x="140" y="200" textAnchor="middle">Shanthi Colony</text>
-                          <text x="315" y="250" textAnchor="middle">Anna Nagar East</text>
-                          <text x="360" y="110" textAnchor="middle">PVR VR Mall</text>
-                          <text x="445" y="145" textAnchor="middle">Anna Nagar Tower</text>
-                          <text x="465" y="90" textAnchor="middle">Blue Star</text>
-                          <text x="300" y="52" textAnchor="middle">Roundtana</text>
-                          <text x="420" y="222" fill="rgba(255,255,255,0.18)" fontSize="7" transform="rotate(15, 420, 222)" textAnchor="middle">Arya Gowda Road</text>
-                        </g>
-
-                        {/* Location Pin */}
-                        <g transform="translate(282, 126)">
-                          <circle cx="0" cy="0" r="14" fill="rgba(59,130,246,0.2)" stroke="rgba(59,130,246,0.5)" strokeWidth="1" />
-                          <circle cx="0" cy="0" r="5" fill="#2563eb" stroke="white" strokeWidth="1.5" />
-                          <circle cx="0" cy="0" r="1.5" fill="white" />
-                        </g>
-                      </svg>
-
-                      <div className="absolute bottom-2.5 left-2.5 bg-[#0a0f1d]/95 border border-white/10 px-2 py-0.5 rounded text-[9.5px] font-semibold text-white/75 flex items-center gap-1 backdrop-blur-sm shadow-md">
-                        <span>Camera 1</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        <span className="text-emerald-400 font-bold uppercase tracking-wider text-[8px]">LIVE</span>
+                    {/* Map Header & View Switcher */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-sm font-bold text-white font-heading">Media Performance Map</h3>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Live
+                        </span>
                       </div>
 
-                      <div className="absolute bottom-2.5 right-2.5 flex flex-col gap-1">
-                        <button className="!w-6 !h-6 !bg-[#0a0f1d]/90 hover:!bg-white/5 !border-white/10 rounded flex items-center justify-center text-[10px] text-white/70 shadow-lg cursor-pointer backdrop-blur-sm">+</button>
-                        <button className="!w-6 !h-6 !bg-[#0a0f1d]/90 hover:!bg-white/5 !border-white/10 rounded flex items-center justify-center text-[10px] text-white/70 shadow-lg cursor-pointer backdrop-blur-sm">−</button>
-                        <button className="!w-6 !h-6 !bg-[#0a0f1d]/90 hover:!bg-white/5 !border-white/10 rounded flex items-center justify-center text-[10px] text-white/70 shadow-lg cursor-pointer backdrop-blur-sm mt-1">
-                          <i className="fa-solid fa-crosshairs" />
+                      {/* View Toggle: Map vs CCTV Feed */}
+                      <div className="flex items-center bg-white/[0.04] p-1 rounded-xl border border-white/10 gap-1">
+                        <button
+                          onClick={() => setMainMediaView('map')}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            mainMediaView === 'map' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
+                          }`}
+                        >
+                          <i className="fa-solid fa-map-location-dot mr-1.5" />
+                          Map View
+                        </button>
+                        <button
+                          onClick={() => setMainMediaView('cctv')}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            mainMediaView === 'cctv' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
+                          }`}
+                        >
+                          <i className="fa-solid fa-video mr-1.5" />
+                          Live CCTV Feed
                         </button>
                       </div>
-
-                      <div className="absolute top-2.5 right-2.5 bg-[#0a0f1d]/90 border border-white/10 rounded p-2 shadow-lg backdrop-blur-sm flex flex-col gap-0.5">
-                        <span className="text-[8px] font-semibold text-white/55 tracking-wide">Live Density (People/min)</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[8px] text-white/40">Low</span>
-                          <div className="w-[80px] h-[5px] rounded-full bg-gradient-to-r from-blue-500 via-emerald-500 via-yellow-500 to-red-500" />
-                          <span className="text-[8px] text-white/40">High</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right stack column: Live CCTV feed & location analytics */}
-                  <div className="flex flex-col gap-4 h-full min-h-0">
-                    {/* Live CCTV Video with moving bounding boxes */}
-                    <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden h-[160px] flex-shrink-0 relative shadow-lg">
-                      <div className="h-8 border-b border-white/10 px-3 flex items-center justify-between bg-[#080b15]/30">
-                        <span className="text-[11px] font-bold text-white/80">Live Camera Feed</span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[8px] font-bold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                          LIVE
-                        </span>
-                      </div>
-                      <div className="flex-1 relative bg-black overflow-hidden">
-                        <img src="/anna_nagar_feed.png" alt="Live Surveillance feed" className="w-full h-full object-cover opacity-80" />
-                        
-                        {/* Interactive Bounding box overlays */}
-                        {settings.overlayBoxes && boxes.map(box => (
-                          <div
-                            key={box.id}
-                            className="absolute border border-blue-400 bg-blue-500/15 pointer-events-none flex flex-col justify-between"
-                            style={{
-                              left: `${box.x}%`,
-                              top: `${box.y}%`,
-                              width: `${box.w}%`,
-                              height: `${box.h}%`,
-                              transition: 'left 180ms linear, top 180ms linear'
-                            }}
-                          >
-                            <span className="bg-blue-500 text-[6.5px] px-0.5 text-white leading-none font-bold uppercase self-start rounded-br">
-                              {box.type} {box.conf}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
                     </div>
 
-                    {/* Location Summary card */}
-                    <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden flex-grow min-h-0 shadow-lg">
-                      <div className="h-8 border-b border-white/10 px-3 flex items-center justify-between bg-[#080b15]/30 flex-shrink-0">
-                        <span className="text-[11px] font-bold text-white/80">Location Summary <span className="text-white/30 font-medium">(Today)</span></span>
-                      </div>
-                      <div className="flex-grow p-3 flex flex-col justify-around gap-1.5 text-[11px] min-h-0 overflow-y-auto">
-                        <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 rounded px-2.5 py-1.5 hover:bg-white/[0.03] transition-colors">
-                          <div className="flex items-center gap-2 text-white/60">
-                            <i className="fa-solid fa-person-walking text-blue-400 w-3.5 text-center text-[11px]" />
-                            <span>Total People</span>
-                          </div>
-                          <div className="flex items-center gap-2 font-mono">
-                            <span className="font-bold text-white">45,782</span>
-                            <span className="text-[9.5px] text-emerald-400 font-bold">↑ 16.8%</span>
-                          </div>
-                        </div>
+                    {/* Map Workspace Container */}
+                    <div className="flex-1 min-h-[320px] bg-[#050711] rounded-xl border border-white/10 relative overflow-hidden flex flex-col">
+                      {mainMediaView === 'map' ? (
+                        <div className="w-full h-full relative">
+                          <svg className="w-full h-full" viewBox="0 0 600 310" preserveAspectRatio="xMidYMid slice">
+                            <defs>
+                              <pattern id="gridMapTarget" width="25" height="25" patternUnits="userSpaceOnUse">
+                                <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1"/>
+                              </pattern>
+                              <filter id="shadowPin" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.6"/>
+                              </filter>
+                            </defs>
 
-                        <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 rounded px-2.5 py-1.5 hover:bg-white/[0.03] transition-colors">
-                          <div className="flex items-center gap-2 text-white/60">
-                            <i className="fa-solid fa-car text-cyan-400 w-3.5 text-center text-[11px]" />
-                            <span>Total Vehicles</span>
-                          </div>
-                          <div className="flex items-center gap-2 font-mono">
-                            <span className="font-bold text-white">32,605</span>
-                            <span className="text-[9.5px] text-emerald-400 font-bold">↑ 11.3%</span>
-                          </div>
-                        </div>
+                            <rect width="600" height="310" fill="url(#gridMapTarget)" />
 
-                        <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 rounded px-2.5 py-1.5 hover:bg-white/[0.03] transition-colors">
-                          <div className="flex items-center gap-2 text-white/60">
-                            <i className="fa-regular fa-clock text-indigo-400 w-3.5 text-center text-[11px]" />
-                            <span>Avg. Dwell Time</span>
-                          </div>
-                          <div className="flex items-center gap-2 font-mono">
-                            <span className="font-bold text-white">38 sec</span>
-                            <span className="text-[9.5px] text-emerald-400 font-bold">↑ 6.3%</span>
-                          </div>
-                        </div>
+                            {/* Bay of Bengal Ocean Coastline (Right Side) */}
+                            <path d="M 530,-10 Q 515,100 540,200 Q 560,260 575,320 L 610,320 L 610,-10 Z" fill="#040b19" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="1" />
 
-                        <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 rounded px-2.5 py-1.5 hover:bg-white/[0.03] transition-colors">
-                          <div className="flex items-center gap-2 text-white/60">
-                            <i className="fa-solid fa-chart-line text-violet-400 w-3.5 text-center text-[11px]" />
-                            <span>Peak Hour</span>
-                          </div>
-                          <span className="font-bold text-white/80 text-right truncate pl-2">06:00 PM – 08:00 PM</span>
-                        </div>
+                            {/* Road lines grid simulating Chennai arterial roads */}
+                            <path d="M -20,110 L 530,115" stroke="#121b2d" strokeWidth="9" fill="none" />
+                            <path d="M -20,110 L 530,115" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
 
-                        <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 rounded px-2.5 py-1.5 hover:bg-white/[0.03] transition-colors">
-                          <div className="flex items-center gap-2 text-white/60">
-                            <i className="fa-regular fa-calendar-days text-amber-400 w-3.5 text-center text-[11px]" />
-                            <span>Busiest Day</span>
-                          </div>
-                          <span className="font-bold text-white/80 text-right pl-2">Friday</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                            <path d="M 470,40 L 220,320" stroke="#121b2d" strokeWidth="9" fill="none" />
+                            <path d="M 470,40 L 220,320" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
 
-                {/* Row 3: Charts & Heatmap row */}
-                <div className="grid grid-cols-3 gap-4 h-[280px] flex-shrink-0 w-full font-sans">
-                  {/* People Count Trend AreaChart */}
-                  <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden p-4 relative h-full shadow-lg">
-                    <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                      <span className="text-[11px] font-bold text-white/80">People Count Trend</span>
-                      <span className="text-[9px] text-white/30 font-mono">Today</span>
-                    </div>
-                    <div className="flex-grow w-full relative min-h-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={LINE_DATA} margin={{ top: 8, right: 10, left: -24, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="areaGlow" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis 
-                            dataKey="time" 
-                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 7.5 }} 
-                            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-                            tickLine={false}
-                            ticks={['12 AM', '04 AM', '08 AM', '12 PM', '04 PM', '08 PM', '12 AM']}
-                          />
-                          <YAxis 
-                            domain={[0, 2000]}
-                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 7.5 }} 
-                            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-                            tickLine={false}
-                            ticks={[0, 500, 1000, 1500, 2000]}
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#areaGlow)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                      <div className="absolute left-[38%] top-[12%] flex flex-col items-center pointer-events-none">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_8px_#3b82f6]"></div>
-                        <div className="bg-[#0f172a] border border-white/10 px-1.5 py-0.5 rounded text-[8.5px] shadow-2xl mt-0.5 flex flex-col items-center whitespace-nowrap">
-                          <span className="text-white/40">10:00 AM</span>
-                          <span className="text-white font-bold font-mono">1,246 People</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                            <path d="M 260,-20 L 260,330" stroke="#0e1628" strokeWidth="7" fill="none" />
+                            <path d="M 440,160 L 500,330" stroke="#0e1628" strokeWidth="7" fill="none" />
+                            <path d="M 330,185 L 180,330" stroke="#0e1628" strokeWidth="7" fill="none" />
 
-                  {/* Hourly Heatmap matrix */}
-                  <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden p-4 h-full shadow-lg">
-                    <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                      <span className="text-[11px] font-bold text-white/80">Hourly Heatmap (People)</span>
-                      <span className="text-[9px] text-white/30 font-mono">Today</span>
-                    </div>
-                    <div className="flex-grow flex flex-col justify-between min-h-0 mt-0.5">
-                      <div className="flex flex-col gap-[2px] flex-grow justify-around min-h-0">
-                        {DAYS.map((day, dIdx) => (
-                          <div key={day} className="flex items-center gap-[3px] flex-grow min-h-0">
-                            <span className="w-6 text-[8px] text-white/40 font-medium text-left leading-none">{day}</span>
-                            <div className="flex-1 grid grid-cols-12 gap-[2.5px] h-full items-center">
-                              {HEATMAP_DATA[dIdx].map((val, hIdx) => (
-                                <div 
-                                  key={hIdx} 
-                                  style={{ backgroundColor: getHeatmapColor(val) }}
-                                  className="h-full max-h-[11px] rounded-[1px] hover:scale-110 hover:border hover:border-white/20 transition-all cursor-pointer"
-                                  title={`${day} Hourly Segment — Value: ${val}`}
+                            <path d="M 120,-20 L 120,330" stroke="#0a101f" strokeWidth="4" fill="none" />
+                            <path d="M 370,-20 L 370,330" stroke="#0a101f" strokeWidth="4" fill="none" />
+                            <path d="M -20,180 L 550,180" stroke="#0a101f" strokeWidth="4" fill="none" />
+                            <path d="M -20,240 L 550,240" stroke="#0a101f" strokeWidth="4" fill="none" />
+
+                            <text x="340" y="105" fill="rgba(255,255,255,0.4)" fontSize="9" fontWeight="bold">ANNA NAGAR</text>
+                            <text x="180" y="145" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">PORUR</text>
+                            <text x="325" y="175" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">GUINDY</text>
+                            <text x="240" y="225" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">VELACHERY</text>
+                            <text x="375" y="155" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">T. NAGAR</text>
+                            <text x="465" y="170" fill="rgba(255,255,255,0.3)" fontSize="7">VELACHERY</text>
+                            <text x="465" y="195" fill="rgba(255,255,255,0.3)" fontSize="7">THIRUVANMIYUR</text>
+                            <text x="465" y="225" fill="rgba(255,255,255,0.3)" fontSize="7">ADYAR</text>
+                            <text x="530" y="130" fill="rgba(255,255,255,0.35)" fontSize="13" fontWeight="bold">Chennai</text>
+
+                            {[
+                              { id: 'ACU-AN-001', x: 340, y: 110, status: 'High' },
+                              { id: 'ACU-TN-002', x: 375, y: 160, status: 'High' },
+                              { id: 'ACU-VL-003', x: 310, y: 220, status: 'Medium' },
+                              { id: 'ACU-OMR-004', x: 460, y: 190, status: 'High' },
+                              { id: 'ACU-PR-005', x: 190, y: 155, status: 'Low' },
+                              { id: 'ACU-GD-006', x: 330, y: 185, status: 'High' },
+                              { id: 'ACU-AS-007', x: 420, y: 100, status: 'High' },
+                              { id: 'ACU-TM-008', x: 480, y: 225, status: 'Medium' },
+                              { id: 'ACU-AD-009', x: 460, y: 245, status: 'High' },
+                              { id: 'ACU-SH-010', x: 490, y: 275, status: 'Medium' },
+                              { id: 'ACU-KB-011', x: 250, y: 120, status: 'High' },
+                              { id: 'ACU-ANP-012', x: 290, y: 160, status: 'Low' },
+                              { id: 'ACU-EG-013', x: 400, y: 75, status: 'High' },
+                              { id: 'ACU-CR-014', x: 440, y: 65, status: 'High' },
+                              { id: 'ACU-PG-015', x: 470, y: 210, status: 'Medium' }
+                            ].map((pin) => (
+                              <g key={pin.id} transform={`translate(${pin.x}, ${pin.y})`} className="cursor-pointer group">
+                                {pin.status === 'High' && (
+                                  <circle cx="0" cy="-14" r="8" fill="rgba(34, 197, 94, 0.25)" className="animate-ping" />
+                                )}
+                                <ellipse cx="0" cy="1" rx="4.5" ry="1.8" fill="rgba(0,0,0,0.6)" />
+                                <path
+                                  d="M 0 0 C -5 -7 -8 -13 0 -19 C 8 -13 5 -7 0 0 Z"
+                                  fill={pin.status === 'High' ? '#22c55e' : pin.status === 'Medium' ? '#f59e0b' : '#ef4444'}
+                                  stroke="#ffffff"
+                                  strokeWidth="1.3"
+                                  filter="url(#shadowPin)"
+                                  className="transition-transform duration-200 group-hover:-translate-y-1"
                                 />
-                              ))}
+                                <circle cx="0" cy="-12" r="3" fill="#ffffff" />
+                                <circle cx="0" cy="-12" r="1.5" fill={pin.status === 'High' ? '#15803d' : pin.status === 'Medium' ? '#b45309' : '#b91c1c'} />
+                              </g>
+                            ))}
+                          </svg>
+
+                          <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm">+</button>
+                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm">−</button>
+                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm mt-1">
+                              <i className="fa-solid fa-expand text-[10px]" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Live CCTV Surveillance Feed with AI Object Boxes */
+                        <div className="w-full h-full relative bg-black flex flex-col justify-center items-center">
+                          <img src={selectedBillboard?.feedImage || "/anna_nagar_feed.png"} alt="CCTV Feed" className="w-full h-full object-cover opacity-80" />
+                          {settings.overlayBoxes && boxes.map(box => (
+                            <div
+                              key={box.id}
+                              className="absolute border border-blue-400 bg-blue-500/15 pointer-events-none flex flex-col justify-between"
+                              style={{
+                                left: `${box.x}%`,
+                                top: `${box.y}%`,
+                                width: `${box.w}%`,
+                                height: `${box.h}%`,
+                                transition: 'left 180ms linear, top 180ms linear'
+                              }}
+                            >
+                              <span className="bg-blue-600 text-[8px] px-1 text-white leading-none font-bold uppercase self-start rounded-br">
+                                {box.type} {box.conf}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Legend & Action Bar */}
+                      <div className="p-3 border-t border-white/10 bg-[#080c16]/90 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-4 text-[11px] text-white/60">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> High Performance
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Medium Performance
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Low Performance
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={onBackToProfile}
+                          className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <span>View All Medias</span>
+                          <i className="fa-solid fa-chevron-right text-[10px]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Top Performing Medias (1 col width) */}
+                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl min-h-[420px]">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-white font-heading">Top Performing Medias</h3>
+                      <button onClick={onBackToProfile} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
+                        View All
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
+                      {sortedTopMedias.slice(0, 5).map((media, idx) => (
+                        <div 
+                          key={media.id || idx} 
+                          onClick={() => onSelectBillboard && onSelectBillboard(media)}
+                          className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl p-2.5 flex items-center justify-between transition-all cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={media.image || '/anna_nagar_location.png'} alt={media.name} className="w-10 h-10 rounded-lg object-cover border border-white/10" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-bold text-white font-heading truncate max-w-[140px]">{media.name}</span>
+                              <span className="text-[10px] text-white/40 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                {media.city || media.location || 'Chennai'}
+                              </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      <div className="flex items-center pl-6 gap-[3px] text-[7.5px] text-white/30 font-mono mt-0.5 flex-shrink-0">
-                        <div className="flex-1 grid grid-cols-6 text-center">
-                          {HOURS_LABELS.slice(0, -1).map(h => <span key={h}>{h}</span>)}
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-white/40 font-medium">Impressions</span>
+                            <span className="text-xs font-bold text-white font-mono">{media.impressions || '245K'}</span>
+                            <span className="text-[9px] text-emerald-400 font-bold">↑ {22 - idx * 3}%</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between text-[7.5px] text-white/40 px-1 border-t border-white/5 pt-1.5 flex-shrink-0 mt-0.5 font-mono">
-                        <span>Low</span>
-                        <div className="w-[140px] h-[4px] rounded-full bg-gradient-to-r from-[#101626] via-[#1e3a8a] via-[#2563eb] via-[#22c55e] via-[#d97706] via-[#ea580c] to-[#dc2626]" />
-                        <span>High</span>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Dwell Time PieChart */}
-                  <div className="bg-slate-900/60 border border-white/10 rounded-xl flex flex-col overflow-hidden p-4 h-full shadow-lg">
-                    <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-                      <span className="text-[11px] font-bold text-white/80">Dwell Time Distribution</span>
-                      <span className="text-[9px] text-white/30 font-mono">Today</span>
+                </div>
+
+                {/* ── 3. BOTTOM SECTION (3 COLUMNS) ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+                  
+                  {/* Panel 1: Performance Overview Chart (5 cols) */}
+                  <div className="lg:col-span-5 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-white font-heading">Performance Overview</h3>
+                      <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/10 text-[10px]">
+                        {['1H', '6H', '12H', '24H'].map((tf) => (
+                          <button 
+                            key={tf} 
+                            onClick={() => setTimeFilter(tf)}
+                            className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${timeFilter === tf ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}
+                          >
+                            {tf}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex-grow grid grid-cols-[84px_1fr] items-center gap-3 min-h-0">
-                      <div className="w-[84px] h-[84px] relative mx-auto flex-shrink-0">
+
+                    <div className="flex items-center gap-4 text-[10px] mb-2 font-medium">
+                      <span className="flex items-center gap-1.5 text-blue-400">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" /> Impressions
+                      </span>
+                      <span className="flex items-center gap-1.5 text-cyan-400">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400" /> Vehicles
+                      </span>
+                      <span className="flex items-center gap-1.5 text-purple-400">
+                        <span className="w-2 h-2 rounded-full bg-purple-500" /> Premium & Above
+                      </span>
+                    </div>
+
+                    <div className="h-[180px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart 
+                          data={activeChartData} 
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorVeh" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorPrem" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="time" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000}K`} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Area type="monotone" dataKey="Impressions" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" />
+                          <Area type="monotone" dataKey="Vehicles" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#colorVeh)" />
+                          <Area type="monotone" dataKey="Premium" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#colorPrem)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Panel 2: Media Health Donut Chart (3 cols) */}
+                  <div className="lg:col-span-3 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+                    <h3 className="text-sm font-bold text-white font-heading mb-2">Media Health</h3>
+                    
+                    <div className="flex items-center justify-center gap-4 flex-1">
+                      <div className="relative w-28 h-28 flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
-                              data={DONUT_DATA}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={24}
-                              outerRadius={32}
+                              data={[
+                                { name: 'Online', value: onlineCount || 1, color: '#22c55e' },
+                                { name: 'Offline', value: offlineCount, color: '#ef4444' },
+                                { name: 'Maintenance', value: maintenanceCount, color: '#f59e0b' }
+                              ]}
+                              innerRadius={32}
+                              outerRadius={44}
                               paddingAngle={3}
                               dataKey="value"
                             >
-                              {DONUT_DATA.map((entry, idx) => (
-                                <Cell key={`cell-${idx}`} fill={entry.color} stroke="rgba(0,0,0,0.2)" strokeWidth={1} />
-                              ))}
+                              <Cell key="0" fill="#22c55e" />
+                              <Cell key="1" fill="#ef4444" />
+                              <Cell key="2" fill="#f59e0b" />
                             </Pie>
                           </PieChart>
                         </ResponsiveContainer>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-                          <span className="text-sm font-extrabold text-white">38</span>
-                          <span className="text-[7.5px] text-white/40 uppercase tracking-widest mt-0.5 font-mono">sec</span>
-                          <span className="text-[6.5px] text-white/30 uppercase tracking-wider mt-0.5">Average</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <span className="text-lg font-black text-white font-mono">{totalMediasCount}</span>
+                          <span className="text-[8px] text-white/40 uppercase">Total Medias</span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col justify-center gap-1.5 min-w-0 font-sans">
-                        {DONUT_DATA.map(item => (
-                          <div key={item.name} className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-1.5 text-white/50 min-w-0">
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                              <span className="truncate">{item.name}</span>
-                            </div>
-                            <span className="font-bold text-white/85 font-mono flex-shrink-0 ml-1">{item.value}%</span>
+                      <div className="flex flex-col gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-white/50">Online</span>
+                            <span className="font-bold text-white text-xs font-mono">{onlineCount} ({onlinePct}%)</span>
                           </div>
-                        ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-white/50">Offline</span>
+                            <span className="font-bold text-white text-xs font-mono">{offlineCount} ({offlinePct}%)</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-white/50">Maintenance</span>
+                            <span className="font-bold text-white text-xs font-mono">{maintenanceCount} ({maintenancePct}%)</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Panel 3: Alerts List (4 cols) */}
+                  <div className="lg:col-span-4 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-white font-heading">Alerts</h3>
+                      <button onClick={() => setActiveNav('alerts')} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
+                        View All
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 flex-1">
+                      {[
+                        { type: 'CRITICAL', title: 'Camera Offline', target: 'Guindy Flyover Billboard #2', time: '10 min ago', icon: 'fa-triangle-exclamation', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
+                        { type: 'WARNING', title: 'Low Storage', target: 'OMR – Sholinganallur', time: '25 min ago', icon: 'fa-triangle-exclamation', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                        { type: 'INFO', title: 'Maintenance Due', target: 'Anna Salai Junction', time: '1 hr ago', icon: 'fa-wrench', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
+                      ].map((a, idx) => (
+                        <div key={idx} className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl p-2.5 flex items-center justify-between transition-all">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs flex-shrink-0 border ${a.color}`}>
+                              <i className={`fa-solid ${a.icon}`} />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-bold text-white truncate">{a.title}</span>
+                              <span className="text-[10px] text-white/40 truncate">{a.target}</span>
+                            </div>
+                          </div>
+                          <span className="text-[9px] text-white/30 whitespace-nowrap ml-2 font-mono">{a.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
-              </>
+
+              </div>
             )}
 
             {/* ═══════════════════════════════════════════════════

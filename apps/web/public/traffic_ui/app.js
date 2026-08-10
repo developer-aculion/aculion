@@ -14,12 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Vehicle breakdown
             classes: {
-                economy: { name: 'Economy', count: 8420, pct: 52, color: '#1E88FF' },
-                premium: { name: 'Premium', count: 2130, pct: 13, color: '#00C4FF' },
-                luxury: { name: 'Luxury', count: 850, pct: 5, color: '#8B5CF6' },
-                ultra: { name: 'Ultra Luxury', count: 210, pct: 1, color: '#F59E0B' },
-                bikes: { name: 'Bikes', count: 4760, pct: 29, color: '#10B981' },
-                commercial: { name: 'Commercial', count: 1980, pct: 12, color: '#F97316' }
+                economy: { name: 'Bike', count: 4760, pct: 29, color: '#1E88FF' },
+                premium: { name: 'Commercial', count: 1980, pct: 12, color: '#00C4FF' },
+                luxury: { name: 'Economy', count: 8420, pct: 52, color: '#8B5CF6' },
+                ultra: { name: 'Premium', count: 2130, pct: 13, color: '#F59E0B' },
+                bikes: { name: 'Luxury', count: 850, pct: 5, color: '#10B981' },
+                commercial: { name: 'Ultra Luxury', count: 210, pct: 1, color: '#F97316' }
             },
             
             // Dwell time breakdown
@@ -364,11 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        recTraffic.innerHTML = `Peak traffic detected between <strong>${peak}</strong>. Recommend prioritizing premium advertising campaigns during this period.`;
-        recVehicleMix.textContent = `${topClass} vehicles account for the highest traffic volume. Commercial vehicle traffic increases during morning hours. Premium and Luxury traffic peaks during evening hours.`;
+        recTraffic.innerHTML = `Peak traffic detected between <strong>${peak}</strong>. Recommend prioritizing advertising campaigns during this high-traffic window.`;
+        recVehicleMix.textContent = `${topClass} account for the highest traffic volume. Truck and Bus traffic increases during morning hours. Cars and SUVs peak during evening hours.`;
         recDwell.textContent = `Average dwell time (${dwellAvg}s) is above the expected benchmark. Current billboard visibility is performing well with strong advertisement engagement.`;
-        recAudience.textContent = `High-value vehicle segments (Premium + Luxury + Ultra Luxury) represent an ideal audience for luxury brands. Recommend targeting premium consumer campaigns during evening traffic.`;
-        recSmartAction.textContent = `Increase premium brand campaigns from 6 PM to 8 PM to maximize visibility and audience engagement based on current traffic patterns and dwell time analytics (${dwellAvg}s).`;
+        recAudience.textContent = `High-value vehicle segments (Cars + SUVs) represent an ideal audience for premium brands. Recommend targeting consumer campaigns during peak evening traffic.`;
+        recSmartAction.textContent = `Increase brand campaigns from 6 PM to 8 PM to maximize visibility and audience engagement based on current traffic patterns and dwell time analytics (${dwellAvg}s).`;
     }
 
     // --- Heat Timeline Generation ---
@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 classes.bikes.count,
                 classes.commercial.count
             ],
-            labels: ['Economy', 'Premium', 'Luxury', 'Ultra Luxury', 'Bikes', 'Commercial'],
+            labels: ['Bike', 'Commercial', 'Economy', 'Premium', 'Luxury', 'Ultra Luxury'],
             chart: {
                 type: 'donut',
                 background: 'transparent',
@@ -651,12 +651,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const options = {
             series: [
+                { name: 'Bike', data: [45, 62, 58, 72, 88, 74, 98, 112, 105, 108] },
+                { name: 'Commercial', data: [28, 35, 42, 39, 31, 28, 34, 45, 41, 40] },
                 { name: 'Economy', data: [110, 134, 120, 145, 168, 142, 185, 204, 190, 195] },
                 { name: 'Premium', data: [32, 28, 42, 38, 51, 48, 56, 68, 58, 62] },
                 { name: 'Luxury', data: [12, 10, 14, 18, 15, 12, 22, 28, 20, 24] },
-                { name: 'Ultra Luxury', data: [3, 2, 4, 3, 5, 2, 8, 9, 6, 8] },
-                { name: 'Bikes', data: [45, 62, 58, 72, 88, 74, 98, 112, 105, 108] },
-                { name: 'Commercial', data: [28, 35, 42, 39, 31, 28, 34, 45, 41, 40] }
+                { name: 'Ultra Luxury', data: [3, 2, 4, 3, 5, 2, 8, 9, 6, 8] }
             ],
             chart: {
                 type: 'line',
@@ -827,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = `bold ${Math.max(8, Math.round(11 * this.scale))}px monospace`;
             
             // Emoji map
-            const emojis = { economy: '🚗', premium: '🚙', luxury: '🏎', ultra: '👑', bikes: '🏍', commercial: '🚚' };
+            const emojis = { economy: '🏍', premium: '🚚', luxury: '🚗', ultra: '🚙', bikes: '🏎', commercial: '👑' };
             const tagText = `${emojis[this.type]} ID:${this.id} [${this.confidence}%]`;
             ctx.fillText(tagText, this.x - width/2, this.y - height/2 - 4);
 
@@ -929,15 +929,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- Manage Spawning ---
             if (Math.random() < state.spawnChance) {
-                // Determine class based on weights (Economy 52%, Bikes 29%, etc.)
+                // Determine class based on weights (Bike 29%, Economy 52%, Commercial 12%, Premium 13%, Luxury 5%, Ultra Luxury 1%)
                 const rand = Math.random() * 100;
-                let vehicleClass = 'economy';
-                if (rand < 52) vehicleClass = 'economy';
-                else if (rand < 81) vehicleClass = 'bikes'; // 52 + 29
-                else if (rand < 94) vehicleClass = 'premium'; // 81 + 13
-                else if (rand < 99) vehicleClass = 'commercial'; // 94 + 5
-                else if (rand < 99.8) vehicleClass = 'luxury'; // 99 + 0.8
-                else vehicleClass = 'ultra';
+                let vehicleClass = 'luxury';
+                if (rand < 52) vehicleClass = 'luxury';       // Economy: 52%
+                else if (rand < 81) vehicleClass = 'economy'; // Bike: 52+29=81%
+                else if (rand < 94) vehicleClass = 'ultra';   // Premium: 81+13=94%
+                else if (rand < 99) vehicleClass = 'premium'; // Commercial: 94+5≈99%
+                else if (rand < 99.8) vehicleClass = 'bikes'; // Luxury: 99+0.8
+                else vehicleClass = 'commercial';             // Ultra Luxury
 
                 // Check if category is enabled in filters
                 if (state.filters.categories[vehicleClass]) {
@@ -1241,12 +1241,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newCats.length > 10) newCats.shift();
             
             const classMapping = {
-                'Economy': state.stats.classes.economy.count,
-                'Premium': state.stats.classes.premium.count,
-                'Luxury': state.stats.classes.luxury.count,
-                'Ultra Luxury': state.stats.classes.ultra.count,
-                'Bikes': state.stats.classes.bikes.count,
-                'Commercial': state.stats.classes.commercial.count
+                'Bike': state.stats.classes.economy.count,
+                'Commercial': state.stats.classes.premium.count,
+                'Economy': state.stats.classes.luxury.count,
+                'Premium': state.stats.classes.ultra.count,
+                'Luxury': state.stats.classes.bikes.count,
+                'Ultra Luxury': state.stats.classes.commercial.count
             };
             
             const updatedSeries = seriesData.map(series => {
@@ -1510,19 +1510,19 @@ function initClassifCamera() {
     };
 
     const classLabels = {
-        economy: 'Economy', premium: 'Premium', luxury: 'Luxury',
-        ultra: 'Ultra Luxury', bikes: 'Bike', commercial: 'Commercial'
+        economy: 'Bike', premium: 'Commercial', luxury: 'Economy',
+        ultra: 'Premium', bikes: 'Luxury', commercial: 'Ultra Luxury'
     };
 
     // Weighted spawn probabilities (mirror main simulation)
     function randomClass() {
         const r = Math.random() * 100;
-        if (r < 52)  return 'economy';
-        if (r < 81)  return 'bikes';
-        if (r < 94)  return 'premium';
-        if (r < 99)  return 'commercial';
-        if (r < 99.8) return 'luxury';
-        return 'ultra';
+        if (r < 52)  return 'luxury';      // Economy
+        if (r < 81)  return 'economy';     // Bike
+        if (r < 94)  return 'ultra';       // Premium
+        if (r < 99)  return 'premium';     // Commercial
+        if (r < 99.8) return 'bikes';      // Luxury
+        return 'commercial';               // Ultra Luxury
     }
 
     // Vehicle object on the second canvas (top-down road view)
