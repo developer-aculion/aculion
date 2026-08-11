@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import newLogo from '../assets/aculion_logo_transparent.png';
+import { billboardService } from '../services/billboard.service';
 
 export default function MediaProfilePage({
   user,
@@ -17,6 +18,7 @@ export default function MediaProfilePage({
   const [formData, setFormData] = useState({
     name: '',
     id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
+    cameraCode: '',
     location: '',
     address: '',
     city: 'Chennai',
@@ -39,42 +41,52 @@ export default function MediaProfilePage({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.location.trim() || !formData.address.trim()) {
-      setFormError('Please fill in all required fields (Name, Location, and Address).');
+    setFormError('');
+    if (!formData.name.trim() || !formData.location.trim() || !formData.address.trim() || !formData.cameraCode.trim()) {
+      setFormError('Please fill in all required fields (Name, Camera Code, Location Landmark, and Street Address).');
       return;
     }
 
-    const newAsset = {
-      ...formData,
-      size: `${formData.width} × ${formData.height}`,
-      latitude: parseFloat(formData.latitude) || 13.0827,
-      longitude: parseFloat(formData.longitude) || 80.2707,
-      id: formData.id || `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`
-    };
+    try {
+      const lat = parseFloat(formData.latitude) || 13.0827;
+      const lng = parseFloat(formData.longitude) || 80.2707;
 
-    onAddBillboard(newAsset);
-    setShowAddModal(false);
-    setFormError('');
-    // Reset form for next entry
-    setFormData({
-      name: '',
-      id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
-      location: '',
-      address: '',
-      city: 'Chennai',
-      state: 'Tamil Nadu',
-      country: 'India',
-      latitude: '13.0827',
-      longitude: '80.2707',
-      width: '40 ft',
-      height: '20 ft',
-      type: 'Digital Billboard',
-      screenType: 'High-Brightness Outdoor LED',
-      status: 'Active',
-      image: '/blog_smart_city.png'
-    });
+      const newAsset = await billboardService.createBillboard({
+        name: formData.name,
+        id: formData.id,
+        location: formData.location || formData.address,
+        latitude: lat,
+        longitude: lng,
+        cameraCode: formData.cameraCode,
+      });
+
+      onAddBillboard(newAsset);
+      setShowAddModal(false);
+      // Reset form for next entry
+      setFormData({
+        name: '',
+        id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
+        cameraCode: '',
+        location: '',
+        address: '',
+        city: 'Chennai',
+        state: 'Tamil Nadu',
+        country: 'India',
+        latitude: '13.0827',
+        longitude: '80.2707',
+        width: '40 ft',
+        height: '20 ft',
+        type: 'Digital Billboard',
+        screenType: 'High-Brightness Outdoor LED',
+        status: 'Active',
+        image: '/blog_smart_city.png'
+      });
+    } catch (err) {
+      console.error('[handleAddSubmit] createBillboard error:', err);
+      setFormError(err.message || 'Failed to save billboard.');
+    }
   };
 
   const filteredBillboards = billboards.filter(b => {
@@ -181,7 +193,7 @@ export default function MediaProfilePage({
               <div className="flex flex-col min-w-0">
                 <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Company Name</span>
                 <span className="text-sm font-bold text-white truncate mt-0.5 font-heading">
-                  Aculion
+                  {user?.company || 'Aculion Partner'}
                 </span>
               </div>
             </div>
@@ -426,6 +438,20 @@ export default function MediaProfilePage({
                     name="id"
                     placeholder="e.g. ACU-AN-001"
                     value={formData.id}
+                    onChange={handleInputChange}
+                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                {/* Camera Code */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-white/70">Camera Code *</label>
+                  <input
+                    type="text"
+                    name="cameraCode"
+                    placeholder="e.g. CAM-0001"
+                    value={formData.cameraCode || ''}
                     onChange={handleInputChange}
                     className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                     required

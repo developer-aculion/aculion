@@ -17,8 +17,6 @@ const KPI_DISPLAY_NAMES: Record<string, string> = {
   commercial_potential: "Commercial Potential",
   residential_density:  "Residential Density",
   transit_connectivity: "Transit Connectivity",
-  green_coverage:       "Green Coverage",
-  building_density:     "Building Density",
   footfall_potential:   "Footfall Potential",
 };
 
@@ -28,8 +26,6 @@ const KPI_ICONS: Record<string, React.ComponentType<any>> = {
   commercial_potential: MapPin,
   residential_density:  Home,
   transit_connectivity: ShieldCheck,
-  green_coverage:       Leaf,
-  building_density:     Building2,
   footfall_potential:   Flame,
 };
 

@@ -167,13 +167,22 @@ export default function Header({
           <div className="relative flex-1 sm:flex-initial">
             <select
               value={radVal}
-              onChange={(e) => setRadVal(Number(e.target.value))}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setRadVal(val);
+                const currentLat = parseFloat(latVal);
+                const currentLng = parseFloat(lngVal);
+                if (!isNaN(currentLat) && !isNaN(currentLng)) {
+                  onAnalyze(currentLat, currentLng, val);
+                } else {
+                  onAnalyze(latitude, longitude, val);
+                }
+              }}
               className="appearance-none bg-background/80 border border-border rounded-lg pl-2.5 pr-7 py-1 text-xs font-semibold focus:outline-none hover:border-primary cursor-pointer w-full text-white"
             >
               <option value="500">500 m</option>
               <option value="1000">1.0 km</option>
-              <option value="2000">2.0 km</option>
-              <option value="5000">5.0 km</option>
+              <option value="1500">1.5 km</option>
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           </div>

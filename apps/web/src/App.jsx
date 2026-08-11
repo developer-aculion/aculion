@@ -14,6 +14,7 @@ import newLogo from './assets/aculion_logo_transparent.png';
 import { supabase } from './services/supabase';
 import SignInPage from './pages/SignInPage';
 import MediaProfilePage from './pages/MediaProfilePage';
+import { billboardService } from './services/billboard.service';
 
 const INITIAL_BILLBOARDS = [
   {
@@ -219,15 +220,37 @@ export default function App() {
 
   // Supabase Auth listener
   useEffect(() => {
+    const fetchUserProfile = async (email) => {
+      try {
+        const { data: profile } = await supabase
+          .from('user_profile_master')
+          .select('client_name, company_name')
+          .eq('mail_id', email)
+          .single();
+
+        return {
+          name: profile?.client_name || email.split('@')[0],
+          company: profile?.company_name || 'Aculion Partner'
+        };
+      } catch (err) {
+        console.error('[fetchUserProfile] error:', err);
+        return {
+          name: email.split('@')[0],
+          company: 'Aculion Partner'
+        };
+      }
+    };
+
     // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true);
         const metadata = session.user.user_metadata || {};
+        const profileInfo = await fetchUserProfile(session.user.email);
         const u = {
           email: session.user.email,
-          name: metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: metadata.company || 'Aculion Partner',
+          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
+          company: profileInfo.company || metadata.company || 'Aculion Partner',
           role: metadata.role || 'Media Owner (Billboard Operator)',
         };
         setUser(u);
@@ -246,14 +269,15 @@ export default function App() {
     });
 
     // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         setIsLoggedIn(true);
         const metadata = session.user.user_metadata || {};
+        const profileInfo = await fetchUserProfile(session.user.email);
         const u = {
           email: session.user.email,
-          name: metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: metadata.company || 'Aculion Partner',
+          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
+          company: profileInfo.company || metadata.company || 'Aculion Partner',
           role: metadata.role || 'Media Owner (Billboard Operator)',
         };
         setUser(u);
@@ -278,15 +302,32 @@ export default function App() {
   }, []);
 
   // ── Billboards & Asset Management State ──
-  const [billboards, setBillboards] = useState(() => {
-    const saved = localStorage.getItem('aculion_billboards');
-    return saved ? JSON.parse(saved) : INITIAL_BILLBOARDS;
-  });
+  const [billboards, setBillboards] = useState([]);
+  const [selectedBillboard, setSelectedBillboard] = useState(null);
 
-  const [selectedBillboard, setSelectedBillboard] = useState(() => {
-    const saved = localStorage.getItem('aculion_selected_billboard');
-    return saved ? JSON.parse(saved) : INITIAL_BILLBOARDS[0];
-  });
+  // Fetch real billboards from Supabase billboard_master when user logs in or mounts
+  useEffect(() => {
+    if (isLoggedIn) {
+      billboardService.getBillboards().then((rows) => {
+        if (rows) {
+          setBillboards(rows);
+          if (rows.length > 0) {
+            setSelectedBillboard((prev) => {
+              const stillExists = prev && rows.find(b => b.id === prev.id);
+              return stillExists ? prev : rows[0];
+            });
+          } else {
+            setSelectedBillboard(null);
+          }
+        }
+      }).catch((err) => {
+        console.error('[App] Billboard fetch error:', err);
+      });
+    } else {
+      setBillboards([]);
+      setSelectedBillboard(null);
+    }
+  }, [isLoggedIn, user?.email]);
 
   const handleSelectBillboard = (billboard) => {
     setSelectedBillboard(billboard);
@@ -296,9 +337,7 @@ export default function App() {
   };
 
   const handleAddBillboard = (newAsset) => {
-    const updated = [...billboards, newAsset];
-    setBillboards(updated);
-    localStorage.setItem('aculion_billboards', JSON.stringify(updated));
+    setBillboards(prev => [...prev, newAsset]);
   };
 
   // Auth protection and route redirection effect

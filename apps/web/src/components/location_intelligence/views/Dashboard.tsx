@@ -12,6 +12,19 @@ import LocationMap from "../maps/LocationMap";
 import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
 import { Layers, HelpCircle } from "lucide-react";
 
+// Distance helper using Haversine formula
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 export default function Dashboard() {
   const queryClient = useQueryClient();
 
@@ -26,6 +39,20 @@ export default function Dashboard() {
   const [latitude, setLatitude] = useState(13.0827);
   const [longitude, setLongitude] = useState(80.2707);
   const [radius, setRadius] = useState(1000);
+
+  // ── Re-validate candidate coordinates when radius changes ──
+  useEffect(() => {
+    if (candidateLat !== latitude || candidateLng !== longitude) {
+      const distance = getDistanceMeters(latitude, longitude, candidateLat, candidateLng);
+      if (distance > radius) {
+        // Clear/reset pick back to the billboard center
+        setCandidateLat(latitude);
+        setCandidateLng(longitude);
+        setLatitude(latitude);
+        setLongitude(longitude);
+      }
+    }
+  }, [radius, latitude, longitude, candidateLat, candidateLng]);
 
   // ── Analytics query — refetches whenever latitude/longitude/radius changes ──
   const {
@@ -221,7 +248,6 @@ export default function Dashboard() {
                     { label: "Walkability", value: `${analytics.features?.walkability || 0}%`, color: "text-emerald-400" },
                     { label: "Commercial Mix", value: `${analytics.features?.commercial_density || 0}%`, color: "text-amber-400" },
                     { label: "Land Use Mix", value: `${analytics.features?.land_use_mix || 0}%`, color: "text-orange-400" },
-                    { label: "Building Density", value: `${analytics.features?.building_density || 0}%`, color: "text-sky-400" },
                     { label: "Bus Stops", value: `${analytics.features?.bus_count || 0}`, color: "text-indigo-400" },
                     { label: "Rail Stations", value: `${analytics.features?.rail_count || 0}`, color: "text-purple-400" },
                   ].map((item) => (

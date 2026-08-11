@@ -118,16 +118,37 @@ export default function LocationMap({
     layersRef.current.markerGroup  = L.layerGroup().addTo(map);
     layersRef.current.billboardGroup = L.layerGroup().addTo(map);
 
-    // Click handler for candidate picking
-    map.on("click", (e: any) => {
-      onLocationPicked(e.latlng.lat, e.latlng.lng);
-    });
-
     return () => {
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady]);
+
+  // ── Click handler for candidate picking ──
+  useEffect(() => {
+    if (!leafletReady || !mapRef.current || !L) return;
+    const map = mapRef.current;
+
+    const onClick = (e: any) => {
+      if (!isMapPickingActive) return;
+
+      const center = L.latLng(latitude, longitude);
+      const clicked = e.latlng;
+      const distance = center.distanceTo(clicked);
+
+      if (distance <= radius) {
+        onLocationPicked(e.latlng.lat, e.latlng.lng);
+      } else {
+        const radiusText = radius >= 1000 ? `${radius / 1000} km` : `${radius} m`;
+        alert(`Selection must be within ${radiusText} of the billboard`);
+      }
+    };
+
+    map.on("click", onClick);
+    return () => {
+      map.off("click", onClick);
+    };
+  }, [leafletReady, L, isMapPickingActive, latitude, longitude, radius, onLocationPicked]);
 
   // ── Force Invalidate Size after leaflet initialization finishes ──
   useEffect(() => {
@@ -220,14 +241,14 @@ export default function LocationMap({
     // ── Static Billboards ──
     layersRef.current.billboardGroup?.clearLayers();
 
-    // Red billboard marker icon
+    // Billboard marker icon using the custom image
     const redBillboardIcon = L.divIcon({
       className: "",
       html: `
         <div style="
           position: relative;
-          width: 28px;
-          height: 28px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -235,14 +256,12 @@ export default function LocationMap({
           cursor: pointer;
           transition: transform 0.2s ease;
         " onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
-          <svg viewBox="0 0 24 24" width="28" height="28" style="display: block;">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444" />
-          </svg>
+          <img src="/billboard_marker.png" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
         </div>
       `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 26],
-      popupAnchor: [0, -26],
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -36],
     });
 
     (billboards || []).forEach((bb) => {

@@ -992,8 +992,6 @@ def compute_kpis(features: dict, poi_counts: dict, road_len_m: float) -> dict:
         "commercial_potential": commercial_potential,
         "residential_density": residential_density_score,
         "transit_connectivity": transit_connectivity,
-        "green_coverage": green_coverage,
-        "building_density": building_density_score,
         "footfall_potential": footfall_potential,
         "ai_confidence": ai_confidence,
     }

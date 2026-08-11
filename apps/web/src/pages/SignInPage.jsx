@@ -52,69 +52,24 @@ export default function SignInPage({ navigateTo, isLoggedIn, user, onLoginSucces
     setIsSubmitting(true);
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Try Supabase Auth first
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: password,
       });
 
-      if (!error && data?.session) {
-        // Successful Supabase auth; onAuthStateChange in App.jsx handles state and redirect
+      if (error) {
+        setGeneralError(error.message || 'Invalid email or password.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data?.session) {
         setIsSubmitting(false);
         return;
       }
     } catch (err) {
-      console.log('Supabase auth unavailable, proceeding to local auth:', err);
-    }
-
-    // 2. Local Storage Auth Fallback
-    try {
-      const usersStr = localStorage.getItem('aculion_users');
-      let users = usersStr ? JSON.parse(usersStr) : [];
-      const inputHashedPass = await hashPassword(password);
-
-      let matchedUser = users.find(u =>
-        (u.email && u.email.trim().toLowerCase() === cleanEmail) ||
-        (u.regNumber && u.regNumber.trim().toUpperCase() === cleanEmail.toUpperCase())
-      );
-
-      if (!matchedUser) {
-        // Create user in local storage if missing so credentials function properly
-        matchedUser = {
-          email: cleanEmail,
-          password: inputHashedPass,
-          company: 'Aculion Partner',
-          fullName: cleanEmail.split('@')[0],
-          role: 'Media Owner (Billboard Operator)',
-          regNumber: `ACU-${Math.floor(1000 + Math.random() * 9000)}`
-        };
-        users.push(matchedUser);
-        localStorage.setItem('aculion_users', JSON.stringify(users));
-      } else {
-        // User exists: update stored password to match current entry if changed
-        if (matchedUser.password !== inputHashedPass && matchedUser.password !== password) {
-          matchedUser.password = inputHashedPass;
-          localStorage.setItem('aculion_users', JSON.stringify(users));
-        }
-      }
-
-      const userRole = matchedUser.role || 'Media Owner (Billboard Operator)';
-      const userName = matchedUser.fullName || matchedUser.name || matchedUser.username || cleanEmail.split('@')[0];
-      const userCompany = matchedUser.company || 'Aculion Partner';
-
-      if (onLoginSuccess) {
-        onLoginSuccess(cleanEmail, userCompany, userRole, userName);
-      } else {
-        const userData = { email: cleanEmail, name: userName, company: userCompany, role: userRole };
-        localStorage.setItem('aculion_current_user', JSON.stringify(userData));
-      }
-
-      const targetPath = userRole === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-      navigateTo(null, targetPath);
-      setIsSubmitting(false);
-    } catch (localErr) {
-      console.error('Sign in error:', localErr);
+      console.error('Sign in error:', err);
       setGeneralError('Invalid email or password.');
       setIsSubmitting(false);
     }
