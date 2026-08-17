@@ -51,15 +51,6 @@ function Start-LocationService {
         -WindowStyle Normal
 }
 
-# ─── TRAFFIC SERVICE ─────────────────────────────────────────────────────────
-function Start-TrafficService {
-    $trafficDir = Join-Path $root "services\traffic-service"
-    
-    Write-Host "[TRAFFIC SERVICE] Starting FastAPI backend on http://localhost:8090 ..." -ForegroundColor Blue
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-        "cd '$trafficDir'; python -m uvicorn main:app --reload --port 8090" `
-        -WindowStyle Normal
-}
 
 # ─── TRAFFIC DASHBOARD UI ────────────────────────────────────────────────────
 function Start-TrafficUI {
@@ -82,11 +73,9 @@ if ($FrontendOnly) {
     Start-TrafficUI
 } elseif ($BackendOnly) {
     Start-LocationService
-    Start-TrafficService
 } else {
     Start-Frontend
     Start-LocationService
-    Start-TrafficService
     Start-TrafficUI
 }
 
@@ -96,6 +85,5 @@ Write-Host "  All Platform services launching in separate windows:" -ForegroundC
 Write-Host "  - React Web App:        http://localhost:5173" -ForegroundColor Green
 Write-Host "  - Express Email Server: http://localhost:3001" -ForegroundColor Green
 Write-Host "  - Location API Docs:    http://localhost:8000/docs" -ForegroundColor Magenta
-Write-Host "  - Traffic API Docs:     http://localhost:8090/docs" -ForegroundColor Blue
 Write-Host "  - Traffic Dashboard UI: http://localhost:5176" -ForegroundColor Yellow
 Write-Host "==================================================" -ForegroundColor Cyan

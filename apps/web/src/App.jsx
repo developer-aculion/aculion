@@ -220,37 +220,23 @@ export default function App() {
 
   // Supabase Auth listener
   useEffect(() => {
-    const fetchUserProfile = async (email) => {
-      try {
-        const { data: profile } = await supabase
-          .from('user_profile_master')
-          .select('client_name, company_name')
-          .eq('mail_id', email)
-          .single();
-
-        return {
-          name: profile?.client_name || email.split('@')[0],
-          company: profile?.company_name || 'Aculion Partner'
-        };
-      } catch (err) {
-        console.error('[fetchUserProfile] error:', err);
-        return {
-          name: email.split('@')[0],
-          company: 'Aculion Partner'
-        };
-      }
-    };
+    // Derive user profile info from Supabase auth metadata only
+    // (user_profile_master table has been dropped)
+    const getUserProfileFromMetadata = (email, metadata) => ({
+      name: metadata?.fullName || metadata?.name || email.split('@')[0],
+      company: metadata?.company || 'Aculion Partner'
+    });
 
     // 1. Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true);
         const metadata = session.user.user_metadata || {};
-        const profileInfo = await fetchUserProfile(session.user.email);
+        const profileInfo = getUserProfileFromMetadata(session.user.email, metadata);
         const u = {
           email: session.user.email,
-          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: profileInfo.company || metadata.company || 'Aculion Partner',
+          name: profileInfo.name,
+          company: profileInfo.company,
           role: metadata.role || 'Media Owner (Billboard Operator)',
         };
         setUser(u);
@@ -273,11 +259,11 @@ export default function App() {
       if (session) {
         setIsLoggedIn(true);
         const metadata = session.user.user_metadata || {};
-        const profileInfo = await fetchUserProfile(session.user.email);
+        const profileInfo = getUserProfileFromMetadata(session.user.email, metadata);
         const u = {
           email: session.user.email,
-          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: profileInfo.company || metadata.company || 'Aculion Partner',
+          name: profileInfo.name,
+          company: profileInfo.company,
           role: metadata.role || 'Media Owner (Billboard Operator)',
         };
         setUser(u);
@@ -305,7 +291,7 @@ export default function App() {
   const [billboards, setBillboards] = useState([]);
   const [selectedBillboard, setSelectedBillboard] = useState(null);
 
-  // Fetch real billboards from Supabase billboard_master when user logs in or mounts
+  // Fetch billboards via billboard service when user logs in or mounts
   useEffect(() => {
     if (isLoggedIn) {
       billboardService.getBillboards().then((rows) => {
