@@ -11,9 +11,10 @@ import DemoDashboardPage from './components/DemoDashboardPage';
 import LocationIntelligence from './pages/LocationIntelligence';
 import ContactSection from './components/ContactSection';
 import newLogo from './assets/aculion_logo_transparent.png';
-import { supabase } from './services/supabase';
+import { supabase, resolveUserRoleFromSupabase } from './services/supabase';
 import SignInPage from './pages/SignInPage';
 import MediaProfilePage from './pages/MediaProfilePage';
+import BookDemoModal from './components/BookDemoModal';
 import { billboardService } from './services/billboard.service';
 
 const INITIAL_BILLBOARDS = [
@@ -166,11 +167,23 @@ export default function App() {
   // ── Active nav section tracker (IntersectionObserver) ─────
   const [activeSection, setActiveSection] = useState('');
   const [contactInquiryType, setContactInquiryType] = useState('Contact Sales');
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
   const handleContactNavigation = (inquiryType = 'Contact Sales') => {
     setContactInquiryType(inquiryType);
     scrollToSection('contact-section');
   };
+
+  const handleDemoNavigation = (e) => {
+    if (e) e.preventDefault();
+    setIsDemoModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (route === '/book-demo') {
+      setIsDemoModalOpen(true);
+    }
+  }, [route]);
 
   useEffect(() => {
     const sectionIds = ['hero', 'features', 'solutions', 'services', 'about', 'contact-section', 'footer'];
@@ -218,7 +231,9 @@ export default function App() {
     return stored ? JSON.parse(stored) : null;
   });
 
-  // Supabase Auth listener
+  const [authErrorMessage, setAuthErrorMessage] = useState('');
+
+  // Supabase Auth listener with 3-table master role mapping
   useEffect(() => {
     const fetchUserProfile = async (email) => {
       try {
@@ -233,7 +248,6 @@ export default function App() {
           company: profile?.company_name || 'Aculion Partner'
         };
       } catch (err) {
-        console.error('[fetchUserProfile] error:', err);
         return {
           name: email.split('@')[0],
           company: 'Aculion Partner'
@@ -241,59 +255,60 @@ export default function App() {
       }
     };
 
-    // 1. Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        setIsLoggedIn(true);
-        const metadata = session.user.user_metadata || {};
-        const profileInfo = await fetchUserProfile(session.user.email);
-        const u = {
-          email: session.user.email,
-          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: profileInfo.company || metadata.company || 'Aculion Partner',
-          role: metadata.role || 'Media Owner (Billboard Operator)',
-        };
-        setUser(u);
-        localStorage.setItem('aculion_current_user', JSON.stringify(u));
-        // Redirect if on /sign-in page
-        if (window.location.pathname === '/sign-in') {
-          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-          window.history.pushState(null, '', targetPath);
-          setRoute(targetPath);
-        }
-      } else {
+    const handleSessionChange = async (session) => {
+      if (!session) {
         setIsLoggedIn(false);
         setUser(null);
         localStorage.removeItem('aculion_current_user');
+        return;
       }
+
+      // Check 3 master tables: admin_master -> billboard_owner_master -> brand_owner_master
+      const roleResult = await resolveUserRoleFromSupabase(session.user);
+
+      if (roleResult.accessDenied) {
+        console.warn('[Auth] Access denied:', roleResult.error);
+        setAuthErrorMessage(roleResult.error || 'Access Denied: Account not registered in master role tables.');
+        await supabase.auth.signOut();
+        setIsLoggedIn(false);
+        setUser(null);
+        localStorage.removeItem('aculion_current_user');
+        if (window.location.pathname !== '/sign-in') {
+          window.history.pushState(null, '', '/sign-in');
+          setRoute('/sign-in');
+        }
+        return;
+      }
+
+      setAuthErrorMessage('');
+      setIsLoggedIn(true);
+      const metadata = session.user.user_metadata || {};
+      const profileInfo = await fetchUserProfile(session.user.email);
+      const u = {
+        email: session.user.email,
+        name: roleResult.username || profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
+        company: profileInfo.company || metadata.company || 'Aculion Partner',
+        role: roleResult.role,
+      };
+      setUser(u);
+      localStorage.setItem('aculion_current_user', JSON.stringify(u));
+
+      // Redirect based on role after sign-in
+      if (window.location.pathname === '/sign-in') {
+        const targetPath = roleResult.targetPath || '/media-profile';
+        window.history.pushState(null, '', targetPath);
+        setRoute(targetPath);
+      }
+    };
+
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSessionChange(session);
     });
 
     // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setIsLoggedIn(true);
-        const metadata = session.user.user_metadata || {};
-        const profileInfo = await fetchUserProfile(session.user.email);
-        const u = {
-          email: session.user.email,
-          name: profileInfo.name || metadata.fullName || metadata.name || session.user.email.split('@')[0],
-          company: profileInfo.company || metadata.company || 'Aculion Partner',
-          role: metadata.role || 'Media Owner (Billboard Operator)',
-        };
-        setUser(u);
-        localStorage.setItem('aculion_current_user', JSON.stringify(u));
-        
-        // Redirect if on /sign-in page
-        if (window.location.pathname === '/sign-in') {
-          const targetPath = u.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-          window.history.pushState(null, '', targetPath);
-          setRoute(targetPath);
-        }
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
-        localStorage.removeItem('aculion_current_user');
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      handleSessionChange(session);
     });
 
     return () => {
@@ -343,13 +358,17 @@ export default function App() {
   // Auth protection and route redirection effect
   useEffect(() => {
     if (!isLoggedIn) {
-      if (route === '/media-profile' || route === '/dashboard' || route === '/location-intelligence') {
+      if (route === '/media-profile' || route === '/dashboard' || route === '/location-intelligence' || route === '/admin-dashboard' || route === '/demo-dashboard') {
         window.history.pushState(null, '', '/sign-in');
         setRoute('/sign-in');
       }
     } else {
-      if (route === '/sign-in') {
+      if (route === '/admin-dashboard' && user?.role !== 'Administrator') {
         const targetPath = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
+        window.history.pushState(null, '', targetPath);
+        setRoute(targetPath);
+      } else if (route === '/sign-in') {
+        const targetPath = user?.role === 'Administrator' ? '/admin-dashboard' : user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
         window.history.pushState(null, '', targetPath);
         setRoute(targetPath);
       }
@@ -357,7 +376,7 @@ export default function App() {
         setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
       }
     }
-  }, [isLoggedIn, route, user, selectedBillboard, billboards]);
+  }, [isLoggedIn, route, user?.role, selectedBillboard, billboards]);
 
   // Modals state
   const [showRegister, setShowRegister] = useState(false);
@@ -1142,6 +1161,25 @@ export default function App() {
     );
   }
 
+  if (route === '/admin-dashboard') {
+    if (!isLoggedIn || user?.role !== 'Administrator') {
+      return (
+        <div className="signin-page-wrapper">
+          <div className="signin-card glass-panel" style={{ textAlign: 'center' }}>
+            <h2 className="signin-title text-danger mb-4" style={{ color: '#ef4444' }}>Access Denied</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
+              You do not have Administrator permissions to access the Admin Console.
+            </p>
+            <button className="btn btn-primary w-full" onClick={(e) => navigateTo(e, '/sign-in')}>
+              Return to Sign In
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <AdminDashboard user={user} onLogout={handleLogout} />;
+  }
+
   if (route === '/demo-dashboard') {
     return <DemoDashboardPage navigateTo={navigateTo} />;
   }
@@ -1177,6 +1215,10 @@ export default function App() {
           <div className="auth-buttons">
             {!isLoggedIn ? (
               <>
+                <button className="btn btn-demo" onClick={(e) => handleDemoNavigation(e)}>
+                  <i className="fa-regular fa-calendar"></i>
+                  <span>Book a Demo</span>
+                </button>
                 <button className="btn btn-primary" onClick={(e) => navigateTo(e, '/sign-in')}>Sign In</button>
               </>
             ) : (
@@ -1261,8 +1303,11 @@ export default function App() {
           <div className="mobile-auth-buttons">
             {!isLoggedIn ? (
               <>
-                <button className="btn btn-outline w-full" onClick={(e) => { navigateTo(e, '/sign-in'); setMobileMenuOpen(false); }}>Sign In</button>
-                <button className="btn btn-primary w-full" onClick={() => { handleContactNavigation('Contact Sales'); setMobileMenuOpen(false); }}>Contact Us</button>
+                <button className="btn btn-demo w-full" onClick={(e) => { handleDemoNavigation(e); setMobileMenuOpen(false); }}>
+                  <i className="fa-regular fa-calendar"></i>
+                  <span>Book a Demo</span>
+                </button>
+                <button className="btn btn-primary w-full" onClick={(e) => { navigateTo(e, '/sign-in'); setMobileMenuOpen(false); }}>Sign In</button>
               </>
             ) : (
               <button className="btn btn-outline w-full" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Sign Out</button>
@@ -1299,7 +1344,14 @@ export default function App() {
               navigateTo={navigateTo}
               isLoggedIn={isLoggedIn}
               user={user}
-              onLoginSuccess={loginAction}
+              authErrorMessage={authErrorMessage}
+              onLoginSuccess={(u) => {
+                setUser(u);
+                setIsLoggedIn(true);
+                const target = '/media-profile';
+                window.history.pushState(null, '', target);
+                setRoute(target);
+              }}
             />
           ) : route === '/forgot-password' ? (
             <div className="signin-page-wrapper">
@@ -2278,8 +2330,8 @@ export default function App() {
             </>
           )}
 
-          {/* Contact Section */}
-          <ContactSection initialInquiryType={contactInquiryType} />
+          {/* Contact Section - rendered only on landing/home views */}
+          {route !== '/sign-in' && route !== '/forgot-password' && <ContactSection />}
 
           {/* Footer */}
           <footer id="footer" className="main-footer">
@@ -2362,6 +2414,9 @@ export default function App() {
           </footer>
         </main>
       )}
+
+      {/* Book a Demo Popup Modal */}
+      <BookDemoModal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)} />
     </div>
   );
 }

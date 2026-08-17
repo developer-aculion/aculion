@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { jsPDF } from 'jspdf';
 import LocationIntelligence from '../pages/LocationIntelligence';
 import lionLogo from '../assets/aculion_lion_logo.png';
 import transparentLogo from '../assets/aculion_logo_transparent.png';
@@ -276,6 +277,226 @@ export default function LiveDashboard({
       setExportingData(false);
       setExportSuccess(true);
     }, 2000);
+  };
+
+  // Download report as proper PDF (Location & Traffic Overview)
+  const downloadReportAsPDF = async (rep) => {
+    // Pre-load the Aculion logo via fetch → FileReader (avoids canvas CORS taint)
+    const logoDataUrl = await fetch(transparentLogo)
+      .then(r => r.blob())
+      .then(blob => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      }))
+      .catch(() => null);
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    const contentW = pageW - margin * 2;
+
+    // ── Helper functions ──────────────────────────────────────
+    const hex = (h) => {
+      const r = parseInt(h.slice(1, 3), 16);
+      const g = parseInt(h.slice(3, 5), 16);
+      const b = parseInt(h.slice(5, 7), 16);
+      return [r, g, b];
+    };
+
+    const fillRect = (x, y, w, h, color) => {
+      doc.setFillColor(...hex(color));
+      doc.rect(x, y, w, h, 'F');
+    };
+
+    const text = (str, x, y, opts = {}) => {
+      doc.text(str, x, y, opts);
+    };
+
+    const setFont = (style = 'normal', size = 10, color = '#FFFFFF') => {
+      doc.setFont('helvetica', style);
+      doc.setFontSize(size);
+      doc.setTextColor(...hex(color));
+    };
+
+    // ── BACKGROUND ────────────────────────────────────────────
+    fillRect(0, 0, pageW, pageH, '#0a0e1a');
+
+    // ── HEADER BANNER ────────────────────────────────────────
+    fillRect(0, 0, pageW, 32, '#0d1b40');
+    // accent line
+    fillRect(0, 32, pageW, 1.2, '#2563eb');
+
+    // Brand logo
+    if (logoDataUrl) {
+      // Logo image: height 14mm, width auto-calculated preserving aspect ratio
+      const logoH = 14;
+      const logoW = logoH * 4.2; // approximate aspect ratio of the transparent logo
+      doc.addImage(logoDataUrl, 'PNG', margin - 2, 8, logoW, logoH);
+    } else {
+      // Fallback text if image fails
+      setFont('bold', 18, '#FFFFFF');
+      text('ACULION', margin, 13);
+      setFont('normal', 7, '#60a5fa');
+      text('SEE BEYOND INTELLIGENCE PLATFORM', margin, 19);
+    }
+
+    // Report label on right
+    setFont('bold', 9, '#93c5fd');
+    text('CAMPAIGN REPORT', pageW - margin, 11, { align: 'right' });
+    setFont('normal', 7, '#94a3b8');
+    text(`ID: ${rep.id}`, pageW - margin, 17, { align: 'right' });
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+    text(`Generated: ${dateStr}`, pageW - margin, 22, { align: 'right' });
+
+    let y = 42;
+
+    // ── REPORT TITLE ─────────────────────────────────────────
+    setFont('bold', 13, '#e2e8f0');
+    const title = doc.splitTextToSize(rep.name, contentW);
+    doc.text(title, margin, y);
+    y += title.length * 7 + 2;
+
+    setFont('normal', 8, '#64748b');
+    text(`Period: ${rep.date}   •   Size: ${rep.size}   •   Weekly Summary`, margin, y);
+    y += 10;
+
+    // ── SECTION: LOCATION OVERVIEW ───────────────────────────
+    // Section header pill
+    fillRect(margin, y, contentW, 7.5, '#1e3a8a');
+    fillRect(margin, y, 3, 7.5, '#3b82f6');
+    setFont('bold', 9, '#93c5fd');
+    text('  LOCATION OVERVIEW', margin + 4, y + 5.2);
+    y += 11;
+
+    // Table header
+    fillRect(margin, y, contentW, 6.5, '#1e293b');
+    setFont('bold', 7.5, '#94a3b8');
+    const locCols = [margin + 2, margin + 62, margin + 95, margin + 125, margin + 152];
+    const locHeaders = ['LOCATION', 'CITY', 'IMPRESSIONS', 'TYPE', 'STATUS'];
+    locHeaders.forEach((h, i) => text(h, locCols[i], y + 4.5));
+    y += 7;
+
+    const locationData = [
+      { location: 'Anna Nagar – Shanthi Colony Jn.', city: 'Chennai', impressions: '245,000', type: 'Digital Billboard', status: 'Active' },
+      { location: 'T Nagar – Pondy Bazaar Hub', city: 'Chennai', impressions: '189,000', type: 'LED Unipole', status: 'Active' },
+      { location: 'Velachery – Vijaya Nagar', city: 'Chennai', impressions: '176,000', type: 'Digital Billboard', status: 'Active' },
+      { location: 'OMR – Tidel Park Flyover', city: 'Chennai', impressions: '162,000', type: 'DOOH Screen', status: 'Active' },
+      { location: 'T. Nagar Bus Stand', city: 'Chennai', impressions: '148,000', type: 'Digital Screen', status: 'Active' }
+    ];
+
+    locationData.forEach((row, i) => {
+      const rowBg = i % 2 === 0 ? '#0f172a' : '#111827';
+      fillRect(margin, y, contentW, 6.5, rowBg);
+      setFont('normal', 7.5, '#e2e8f0');
+      text(row.location, locCols[0], y + 4.5);
+      text(row.city, locCols[1], y + 4.5);
+      text(row.impressions, locCols[2], y + 4.5);
+      text(row.type, locCols[3], y + 4.5);
+      // Status badge
+      fillRect(locCols[4] - 1, y + 1.5, 18, 4, '#14532d');
+      setFont('bold', 6.5, '#4ade80');
+      text(row.status, locCols[4] + 8.5, y + 4.5, { align: 'center' });
+      y += 6.5;
+    });
+
+    // Totals row
+    fillRect(margin, y, contentW, 7, '#1e3a8a');
+    setFont('bold', 7.5, '#93c5fd');
+    text('TOTAL', locCols[0], y + 4.8);
+    text('5 locations', locCols[1], y + 4.8);
+    text('920,000', locCols[2], y + 4.8);
+    text('Chennai Metro Area', locCols[3], y + 4.8);
+    y += 12;
+
+    // ── SECTION: TRAFFIC OVERVIEW ─────────────────────────────
+    fillRect(margin, y, contentW, 7.5, '#1c1917');
+    fillRect(margin, y, 3, 7.5, '#f97316');
+    setFont('bold', 9, '#fdba74');
+    text('  TRAFFIC OVERVIEW', margin + 4, y + 5.2);
+    y += 11;
+
+    // Table header
+    fillRect(margin, y, contentW, 6.5, '#1e293b');
+    setFont('bold', 7.5, '#94a3b8');
+    const trfCols = [margin + 2, margin + 38, margin + 78, margin + 118];
+    const trfHeaders = ['TIME', 'PEOPLE COUNT', 'VEHICLE COUNT', 'INTENSITY'];
+    trfHeaders.forEach((h, i) => text(h, trfCols[i], y + 4.5));
+    y += 7;
+
+    const trafficData = [
+      { time: '12 AM', people: 150, vehicles: 80 },
+      { time: '06 AM', people: 240, vehicles: 130 },
+      { time: '08 AM', people: 680, vehicles: 420 },
+      { time: '10 AM', people: 1246, vehicles: 862 },
+      { time: '12 PM', people: 950, vehicles: 610 },
+      { time: '02 PM', people: 1100, vehicles: 720 },
+      { time: '04 PM', people: 1480, vehicles: 890 },
+      { time: '06 PM', people: 1600, vehicles: 940 },
+      { time: '08 PM', people: 1200, vehicles: 760 },
+      { time: '10 PM', people: 750, vehicles: 480 }
+    ];
+    const maxPeople = Math.max(...trafficData.map(t => t.people));
+
+    trafficData.forEach((row, i) => {
+      const rowBg = i % 2 === 0 ? '#0f172a' : '#111827';
+      fillRect(margin, y, contentW, 6.5, rowBg);
+      setFont('normal', 7.5, '#e2e8f0');
+      text(row.time, trfCols[0], y + 4.5);
+      text(row.people.toLocaleString(), trfCols[1], y + 4.5);
+      text(row.vehicles.toLocaleString(), trfCols[2], y + 4.5);
+      // Mini bar
+      const barMaxW = 45;
+      const barW = Math.max(2, (row.people / maxPeople) * barMaxW);
+      const intensity = row.people > 1400 ? '#ef4444' : row.people > 900 ? '#f97316' : '#22c55e';
+      fillRect(trfCols[3], y + 2, barMaxW, 2.5, '#1e293b');
+      fillRect(trfCols[3], y + 2, barW, 2.5, intensity);
+      y += 6.5;
+    });
+
+    y += 6;
+
+    // ── SECTION: KEY METRICS ─────────────────────────────────
+    fillRect(margin, y, contentW, 7.5, '#1a1a2e');
+    fillRect(margin, y, 3, 7.5, '#a855f7');
+    setFont('bold', 9, '#c084fc');
+    text('  KEY METRICS', margin + 4, y + 5.2);
+    y += 11;
+
+    const metrics = [
+      ['Peak Footfall', '1,600 persons (06 PM)'],
+      ['Peak Vehicles', '940 vehicles (06 PM)'],
+      ['Avg Dwell Duration', '7.6 minutes'],
+      ['Daily Footfall Total', '~11,216 persons'],
+      ['Daily Vehicle Total', '~6,894 vehicles'],
+      ['Total Impressions', '920,000'],
+      ['Data Streams', 'Footfall, Dwell, Vehicle Speed, Occupancy & Pricing']
+    ];
+
+    const col1 = margin + 2;
+    const col2 = margin + 65;
+    metrics.forEach((m, i) => {
+      const rowBg = i % 2 === 0 ? '#0f172a' : '#111827';
+      fillRect(margin, y, contentW, 6.5, rowBg);
+      setFont('bold', 7.5, '#94a3b8');
+      text(m[0], col1, y + 4.5);
+      setFont('normal', 7.5, '#e2e8f0');
+      text(m[1], col2, y + 4.5);
+      y += 6.5;
+    });
+
+    y += 8;
+
+    // ── FOOTER ────────────────────────────────────────────────
+    fillRect(0, pageH - 14, pageW, 14, '#0d1b40');
+    fillRect(0, pageH - 14, pageW, 0.8, '#2563eb');
+    setFont('normal', 6.5, '#475569');
+    text('Confidential — Generated by Aculion Analytics Engine v2.4', margin, pageH - 5);
+    text('© Aculion Intelligence Platform. All rights reserved.', pageW - margin, pageH - 5, { align: 'right' });
+
+    doc.save(`Aculion_${rep.id}_Location_Traffic_Report.pdf`);
   };
 
   // Settings Saver
@@ -1345,7 +1566,7 @@ export default function LiveDashboard({
                         ) : (
                           <>
                             <i className="fa-solid fa-file-pdf" />
-                            Generate Report PDF / Excel
+                            Generate Report PDF
                           </>
                         )}
                       </button>
@@ -1364,11 +1585,12 @@ export default function LiveDashboard({
                               <span className="text-white/45 mt-0.5 font-mono">{rep.id} • {rep.date} • {rep.size}</span>
                             </div>
                             <div className="flex gap-1">
-                              <button className="px-2 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/10 rounded text-[9.5px] font-semibold flex items-center gap-1 !shadow-none !outline-none">
+                              <button
+                                onClick={() => downloadReportAsPDF(rep)}
+                                className="px-2 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/10 rounded text-[9.5px] font-semibold flex items-center gap-1 !shadow-none !outline-none transition-all"
+                                title="Download Location & Traffic Overview"
+                              >
                                 <i className="fa-solid fa-download" /> PDF
-                              </button>
-                              <button className="px-2 py-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/10 rounded text-[9.5px] font-semibold flex items-center gap-1 !shadow-none !outline-none">
-                                <i className="fa-solid fa-download" /> EXCEL
                               </button>
                             </div>
                           </div>

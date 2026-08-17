@@ -189,6 +189,33 @@ a {
   transform: translateY(-1px);
 }
 
+.btn-demo {
+  background-color: rgba(6, 7, 10, 0.4);
+  border: 1px solid rgba(0, 82, 255, 0.65);
+  color: var(--text-white);
+  box-shadow: 0 0 10px rgba(0, 82, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.btn-demo:hover {
+  background-color: rgba(0, 82, 255, 0.14);
+  border-color: var(--cyan-accent);
+  color: var(--text-white);
+  box-shadow: 0 0 20px rgba(0, 82, 255, 0.55), 0 0 10px rgba(0, 240, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-demo i {
+  color: var(--cyan-accent);
+  font-size: 14px;
+  transition: var(--transition-smooth);
+}
+
+.btn-demo:hover i {
+  color: var(--text-white);
+}
+
 .btn-outline {
   background-color: transparent;
   border-color: var(--graphite-border);
@@ -336,6 +363,7 @@ a {
 
 .auth-buttons {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -13249,6 +13277,235 @@ body:has(.brand-portal) {
     border-radius: 12px;
   }
 }
+
+/* ==========================================================================
+   BOOK A DEMO MODAL OVERLAY & FORM STYLING
+   ========================================================================== */
+.bdm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 8, 22, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: bdmFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes bdmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bdm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, rgba(10, 12, 20, 0.98) 0%, rgba(7, 9, 17, 0.99) 100%);
+  border: 1px solid rgba(0, 110, 255, 0.55);
+  box-shadow: 0 0 40px rgba(0, 82, 255, 0.3), 0 20px 60px rgba(0, 0, 0, 0.9);
+  border-radius: 18px;
+  padding: 32px 36px;
+  color: var(--text-white);
+  animation: bdmSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 82, 255, 0.4) transparent;
+}
+
+.bdm-modal::-webkit-scrollbar {
+  width: 6px;
+}
+.bdm-modal::-webkit-scrollbar-thumb {
+  background: rgba(0, 82, 255, 0.4);
+  border-radius: 3px;
+}
+
+@keyframes bdmSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bdm-close-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  transition: var(--transition-smooth);
+}
+
+.bdm-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-white);
+  border-color: rgba(0, 110, 255, 0.6);
+  transform: rotate(90deg);
+}
+
+.bdm-header {
+  margin-bottom: 22px;
+  padding-right: 36px;
+}
+
+.bdm-title {
+  font-family: var(--font-heading);
+  font-size: 25px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.bdm-subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.bdm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bdm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .bdm-row {
+    grid-template-columns: 1fr;
+  }
+  .bdm-modal {
+    padding: 24px 20px;
+    max-height: 95vh;
+  }
+}
+
+.bdm-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.bdm-field label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 6px;
+}
+
+.bdm-field label span.bdm-req {
+  color: var(--cyan-accent);
+  margin-left: 2px;
+}
+
+.bdm-field input,
+.bdm-field select,
+.bdm-field textarea {
+  width: 100%;
+  background: rgba(14, 17, 28, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10.5px 14px;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  transition: var(--transition-smooth);
+  outline: none;
+}
+
+.bdm-field input::placeholder,
+.bdm-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.bdm-field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300f0ff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px;
+  padding-right: 36px;
+}
+
+.bdm-field select option {
+  background-color: #0c0d14;
+  color: #ffffff;
+}
+
+.bdm-field input:focus,
+.bdm-field select:focus,
+.bdm-field textarea:focus {
+  border-color: #006eff;
+  box-shadow: 0 0 12px rgba(0, 110, 255, 0.45);
+  background: rgba(16, 20, 32, 1);
+}
+
+.bdm-submit-btn {
+  margin-top: 6px;
+  width: 100%;
+  padding: 12.5px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0d4bb8 0%, #062e7a 100%);
+  border: 1px solid rgba(0, 130, 255, 0.6);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 110, 255, 0.4);
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bdm-submit-btn:hover {
+  background: linear-gradient(180deg, #1355cb 0%, #093994 100%);
+  border-color: #00f0ff;
+  box-shadow: 0 0 25px rgba(0, 110, 255, 0.65), 0 0 10px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.bdm-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 
 
 
