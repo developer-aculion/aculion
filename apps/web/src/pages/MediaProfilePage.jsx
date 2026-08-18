@@ -32,7 +32,8 @@ export default function MediaProfilePage({
   const [formData, setFormData] = useState({
     name: '',
     id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
-    cameraCode: '',
+    cameraCodeFF: '',
+    cameraCodeBF: '',
     location: '',
     address: '',
     city: 'Chennai',
@@ -45,14 +46,21 @@ export default function MediaProfilePage({
     type: 'Digital Billboard',
     screenType: 'High-Brightness Outdoor LED',
     status: 'Active',
-    image: '/blog_smart_city.png'
+    image: '/blog_smart_city.png',
+    ownerUserType: 'existing', // 'existing' | 'new'
+    ownerName: '',
+    ownerEmail: '',
+    ownerPassword: '',
+    ownerCompany: ''
   });
 
   // Form states for Add Brand Modal
   const [brandFormData, setBrandFormData] = useState({
     name: '',
     company: '',
+    username: '',
     email: '',
+    password: '',
     phone: '',
     category: 'Retail & FMCG',
     billboards: 'Chennai Network',
@@ -76,14 +84,47 @@ export default function MediaProfilePage({
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    if (!formData.name.trim() || !formData.location.trim() || !formData.address.trim() || !formData.cameraCode.trim()) {
-      setFormError('Please fill in all required fields (Name, Camera Code, Location Landmark, and Street Address).');
+    if (!formData.name.trim() || !formData.location.trim() || !formData.address.trim()) {
+      setFormError('Please fill in all required fields (Name, Location Landmark, and Street Address).');
       return;
+    }
+
+    if (!formData.cameraCodeFF.trim() && !formData.cameraCodeBF.trim()) {
+      setFormError('Please provide at least one camera code (Camera FF or Camera BF).');
+      return;
+    }
+
+    if (formData.ownerUserType === 'new') {
+      if (!formData.ownerName.trim() || !formData.ownerEmail.trim() || !formData.ownerPassword.trim()) {
+        setFormError('Please fill in New Owner Name, Owner Email ID, and Password.');
+        return;
+      }
+    } else {
+      if (!formData.ownerName.trim() && !formData.ownerEmail.trim()) {
+        setFormError('Please select or fill in Existing Owner details.');
+        return;
+      }
     }
 
     try {
       const lat = parseFloat(formData.latitude) || 13.0827;
       const lng = parseFloat(formData.longitude) || 80.2707;
+      const combinedCamCode = [
+        formData.cameraCodeFF ? `FF: ${formData.cameraCodeFF}` : null,
+        formData.cameraCodeBF ? `BF: ${formData.cameraCodeBF}` : null
+      ].filter(Boolean).join(' | ') || formData.cameraCodeFF || formData.cameraCodeBF || 'CAM-0001';
+
+      if (formData.ownerUserType === 'new' && formData.ownerEmail && formData.ownerPassword) {
+        const existingUsers = JSON.parse(localStorage.getItem('aculion_users') || '[]');
+        const newUserRecord = {
+          fullName: formData.ownerName || 'New Media Owner',
+          email: formData.ownerEmail,
+          password: formData.ownerPassword,
+          company: formData.ownerCompany || 'Media Owner Network',
+          role: 'owner'
+        };
+        localStorage.setItem('aculion_users', JSON.stringify([...existingUsers, newUserRecord]));
+      }
 
       const newAsset = await billboardService.createBillboard({
         name: formData.name,
@@ -91,15 +132,21 @@ export default function MediaProfilePage({
         location: formData.location || formData.address,
         latitude: lat,
         longitude: lng,
-        cameraCode: formData.cameraCode,
+        cameraCode: combinedCamCode,
       });
+
+      newAsset.ownerName = formData.ownerName;
+      newAsset.ownerEmail = formData.ownerEmail;
+      newAsset.cameraCodeFF = formData.cameraCodeFF;
+      newAsset.cameraCodeBF = formData.cameraCodeBF;
 
       onAddBillboard(newAsset);
       setShowAddModal(false);
       setFormData({
         name: '',
         id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
-        cameraCode: '',
+        cameraCodeFF: '',
+        cameraCodeBF: '',
         location: '',
         address: '',
         city: 'Chennai',
@@ -112,7 +159,12 @@ export default function MediaProfilePage({
         type: 'Digital Billboard',
         screenType: 'High-Brightness Outdoor LED',
         status: 'Active',
-        image: '/blog_smart_city.png'
+        image: '/blog_smart_city.png',
+        ownerUserType: 'existing',
+        ownerName: '',
+        ownerEmail: '',
+        ownerPassword: '',
+        ownerCompany: ''
       });
     } catch (err) {
       console.error('[handleAddSubmit] createBillboard error:', err);
@@ -123,15 +175,28 @@ export default function MediaProfilePage({
   const handleBrandSubmit = (e) => {
     e.preventDefault();
     setBrandFormError('');
-    if (!brandFormData.name.trim() || !brandFormData.company.trim() || !brandFormData.email.trim()) {
-      setBrandFormError('Please fill in Brand Name, Company Name, and Contact Email.');
+    if (!brandFormData.name.trim() || !brandFormData.company.trim() || !brandFormData.email.trim() || !brandFormData.username.trim() || !brandFormData.password.trim()) {
+      setBrandFormError('Please fill in Brand Title, Company Name, User Name, Contact Email, and Account Password.');
       return;
+    }
+
+    if (brandFormData.email && brandFormData.password) {
+      const existingUsers = JSON.parse(localStorage.getItem('aculion_users') || '[]');
+      const newBrandUser = {
+        fullName: brandFormData.username || brandFormData.name,
+        email: brandFormData.email,
+        password: brandFormData.password,
+        company: brandFormData.company,
+        role: 'brand'
+      };
+      localStorage.setItem('aculion_users', JSON.stringify([...existingUsers, newBrandUser]));
     }
 
     const newBrand = {
       id: `ACU-BR-${Math.floor(1000 + Math.random() * 9000)}`,
       name: brandFormData.name,
       company: brandFormData.company,
+      username: brandFormData.username,
       email: brandFormData.email,
       phone: brandFormData.phone || '+91 98765 00000',
       category: brandFormData.category,
@@ -147,7 +212,9 @@ export default function MediaProfilePage({
     setBrandFormData({
       name: '',
       company: '',
+      username: '',
       email: '',
+      password: '',
       phone: '',
       category: 'Retail & FMCG',
       billboards: 'Chennai Network',
@@ -647,10 +714,11 @@ export default function MediaProfilePage({
 
       {/* ── MODAL 1: ADD NEW BILLBOARD ── */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0e1424] border border-blue-500/30 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative flex flex-col gap-5 my-8">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+          <div className="bg-[#0e1424] border border-blue-500/30 rounded-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden my-auto">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            {/* FIXED HEADER */}
+            <div className="p-5 sm:p-6 border-b border-white/10 flex-shrink-0 flex items-center justify-between bg-[#0e1424] z-10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-cyan-400 text-base">
                   <i className="fa-solid fa-plus" />
@@ -663,135 +731,299 @@ export default function MediaProfilePage({
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-white/40 hover:text-white text-lg transition-colors p-1"
+                aria-label="Close modal"
               >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
 
-            {formError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs flex items-center gap-2">
-                <i className="fa-solid fa-circle-exclamation" />
-                <span>{formError}</span>
+            {/* FORM CONTAINING SCROLLABLE BODY & FIXED FOOTER */}
+            <form onSubmit={handleAddSubmit} className="flex-1 flex flex-col overflow-hidden" autoComplete="off">
+              
+              {/* SCROLLABLE BODY */}
+              <div className="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+                
+                {formError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs flex items-center gap-2">
+                    <i className="fa-solid fa-circle-exclamation" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  {/* ── OWNER NAME BAR & USER TYPE SELECTION ── */}
+                  <div className="bg-[#12192e]/90 border border-cyan-500/30 rounded-xl p-4 sm:col-span-2 flex flex-col gap-3 backdrop-blur-md shadow-lg">
+                    <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/10">
+                      <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2 font-heading">
+                        <i className="fa-solid fa-user-shield text-sm" /> Billboard Owner Account
+                      </span>
+                      <div className="flex items-center bg-[#090d18] p-1 rounded-lg border border-white/10 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, ownerUserType: 'existing' }))}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                            formData.ownerUserType === 'existing'
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                              : 'text-white/50 hover:text-white'
+                          }`}
+                        >
+                          Existing User
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, ownerUserType: 'new' }))}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                            formData.ownerUserType === 'new'
+                              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/30'
+                              : 'text-white/50 hover:text-white'
+                          }`}
+                        >
+                          New User
+                        </button>
+                      </div>
+                    </div>
+
+                    {formData.ownerUserType === 'existing' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="flex flex-col gap-1.5 sm:col-span-2">
+                          <label className="text-xs font-semibold text-white/70">Select Owner Name *</label>
+                          <select
+                            name="ownerName"
+                            value={formData.ownerName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              let emailVal = formData.ownerEmail;
+                              if (val.includes('(') && val.includes(')')) {
+                                emailVal = val.split('(')[1].replace(')', '');
+                              } else if (val === 'Anna Nagar Media Owners') emailVal = 'owner@annanagar.com';
+                              else if (val === 'Metro Outdoor Advertising') emailVal = 'contact@metroooh.com';
+                              else if (val === 'Apex Media Corp') emailVal = 'admin@apexmedia.com';
+                              setFormData(prev => ({ ...prev, ownerName: val, ownerEmail: emailVal }));
+                            }}
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                          >
+                            <option value="">-- Choose Registered Owner Name --</option>
+                            <option value="Aculion Developer Admin (developer@aculion.com)">Aculion Developer Admin (developer@aculion.com)</option>
+                            <option value="Anna Nagar Media Owners (owner@annanagar.com)">Anna Nagar Media Owners (owner@annanagar.com)</option>
+                            <option value="Metro Outdoor Advertising (contact@metroooh.com)">Metro Outdoor Advertising (contact@metroooh.com)</option>
+                            <option value="Apex Media Corp (admin@apexmedia.com)">Apex Media Corp (admin@apexmedia.com)</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 sm:col-span-2">
+                          <label className="text-xs font-semibold text-white/70">Owner Email ID *</label>
+                          <input
+                            type="email"
+                            name="ownerEmail"
+                            placeholder="e.g. owner@mediaooh.com"
+                            value={formData.ownerEmail}
+                            onChange={handleInputChange}
+                            autoComplete="off"
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                            required={formData.ownerUserType === 'existing'}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-white/70">New Owner Name *</label>
+                          <input
+                            type="text"
+                            name="ownerName"
+                            placeholder="e.g. Rajesh Kumar"
+                            value={formData.ownerName}
+                            onChange={handleInputChange}
+                            autoComplete="off"
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                            required={formData.ownerUserType === 'new'}
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-white/70">Company / Media Network</label>
+                          <input
+                            type="text"
+                            name="ownerCompany"
+                            placeholder="e.g. Skyline Outdoor Media"
+                            value={formData.ownerCompany}
+                            onChange={handleInputChange}
+                            autoComplete="off"
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-white/70">Owner Email ID *</label>
+                          <input
+                            type="email"
+                            name="ownerEmail"
+                            placeholder="e.g. rajesh@skylinemedia.com"
+                            value={formData.ownerEmail}
+                            onChange={handleInputChange}
+                            autoComplete="off"
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                            required={formData.ownerUserType === 'new'}
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-white/70">Owner Password *</label>
+                          <input
+                            type="password"
+                            name="ownerPassword"
+                            placeholder="••••••••"
+                            value={formData.ownerPassword}
+                            onChange={handleInputChange}
+                            autoComplete="new-password"
+                            className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                            required={formData.ownerUserType === 'new'}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── BILLBOARD NAME & ID ── */}
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Billboard Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="e.g. Anna Nagar – Shanthi Colony Junction"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Billboard ID *</label>
+                    <input
+                      type="text"
+                      name="id"
+                      placeholder="e.g. ACU-AN-001"
+                      value={formData.id}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  {/* ── SEPARATE CAMERA CODES (CAMERA FF & CAMERA BF) ── */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Camera FF Code (Front Facing) *</label>
+                    <input
+                      type="text"
+                      name="cameraCodeFF"
+                      placeholder="e.g. CAM-FF-0001"
+                      value={formData.cameraCodeFF || ''}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Camera BF Code (Back Facing) *</label>
+                    <input
+                      type="text"
+                      name="cameraCodeBF"
+                      placeholder="e.g. CAM-BF-0001"
+                      value={formData.cameraCodeBF || ''}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Billboard Type</label>
+                    <select
+                      name="type"
+                      value={formData.type}
+                      onChange={handleInputChange}
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="Digital Billboard">Digital Billboard</option>
+                      <option value="Static Billboard">Static Billboard</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Location Landmark *</label>
+                    <input
+                      type="text"
+                      name="location"
+                      placeholder="e.g. Shanthi Colony Junction, Anna Nagar"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Street Address *</label>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="e.g. 2nd Avenue, Shanthi Colony, Chennai - 600040"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">City</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Status</label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Maintenance">Maintenance</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <form onSubmit={handleAddSubmit} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-white/70">Billboard Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="e.g. Anna Nagar – Shanthi Colony Junction"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Billboard ID *</label>
-                  <input
-                    type="text"
-                    name="id"
-                    placeholder="e.g. ACU-AN-001"
-                    value={formData.id}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Camera Code *</label>
-                  <input
-                    type="text"
-                    name="cameraCode"
-                    placeholder="e.g. CAM-0001"
-                    value={formData.cameraCode || ''}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Billboard Type</label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="Digital Billboard">Digital Billboard</option>
-                    <option value="Static Billboard">Static Billboard</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-white/70">Location Landmark *</label>
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder="e.g. Shanthi Colony Junction, Anna Nagar"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-white/70">Street Address *</label>
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="e.g. 2nd Avenue, Shanthi Colony, Chennai - 600040"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10 mt-2">
+              {/* FIXED FOOTER BUTTONS */}
+              <div className="p-4 sm:px-6 border-t border-white/10 flex items-center justify-end gap-3 flex-shrink-0 bg-[#0b101d]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
                 >
                   Add Billboard
                 </button>
@@ -804,10 +1036,11 @@ export default function MediaProfilePage({
 
       {/* ── MODAL 2: ADD NEW BRAND ── */}
       {showAddBrandModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0e1424] border border-cyan-500/30 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative flex flex-col gap-5 my-8">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+          <div className="bg-[#0e1424] border border-cyan-500/30 rounded-2xl max-w-xl w-full max-h-[85vh] sm:max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden my-auto">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            {/* FIXED HEADER */}
+            <div className="p-5 sm:p-6 border-b border-white/10 flex-shrink-0 flex items-center justify-between bg-[#0e1424] z-10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-base">
                   <i className="fa-solid fa-plus" />
@@ -820,107 +1053,148 @@ export default function MediaProfilePage({
               <button
                 onClick={() => setShowAddBrandModal(false)}
                 className="text-white/40 hover:text-white text-lg transition-colors p-1"
+                aria-label="Close modal"
               >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
 
-            {brandFormError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs flex items-center gap-2">
-                <i className="fa-solid fa-circle-exclamation" />
-                <span>{brandFormError}</span>
+            {/* FORM WITH SCROLLABLE BODY & FIXED FOOTER */}
+            <form onSubmit={handleBrandSubmit} className="flex-1 flex flex-col overflow-hidden" autoComplete="off">
+              
+              {/* SCROLLABLE BODY */}
+              <div className="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+                {brandFormError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs flex items-center gap-2">
+                    <i className="fa-solid fa-circle-exclamation" />
+                    <span>{brandFormError}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Campaign / Brand Title *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="e.g. Nike Air Max OOH Campaign"
+                      value={brandFormData.name}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Company Name *</label>
+                    <input
+                      type="text"
+                      name="company"
+                      placeholder="e.g. Nike India Pvt. Ltd."
+                      value={brandFormData.company}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Brand User Name *</label>
+                    <input
+                      type="text"
+                      name="username"
+                      placeholder="e.g. Rahul Sharma"
+                      value={brandFormData.username}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Contact Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="e.g. ads@nike.com"
+                      value={brandFormData.email}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Account Password *</label>
+                    <input
+                      type="password"
+                      name="password"
+                      placeholder="••••••••"
+                      value={brandFormData.password}
+                      onChange={handleBrandInputChange}
+                      autoComplete="new-password"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Industry / Category</label>
+                    <input
+                      type="text"
+                      name="category"
+                      placeholder="e.g. Retail & Apparel"
+                      value={brandFormData.category}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Phone Number</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      placeholder="e.g. +91 98765 43210"
+                      value={brandFormData.phone}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-white/70">Target Coverage Range</label>
+                    <input
+                      type="text"
+                      name="billboards"
+                      placeholder="e.g. Anna Nagar & T. Nagar (15 Billboards)"
+                      value={brandFormData.billboards}
+                      onChange={handleBrandInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
               </div>
-            )}
 
-            <form onSubmit={handleBrandSubmit} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-white/70">Campaign / Brand Title *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="e.g. Nike Air Max OOH Campaign"
-                    value={brandFormData.name}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Company Name *</label>
-                  <input
-                    type="text"
-                    name="company"
-                    placeholder="e.g. Nike India Pvt. Ltd."
-                    value={brandFormData.company}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Industry / Category</label>
-                  <input
-                    type="text"
-                    name="category"
-                    placeholder="e.g. Retail & Apparel"
-                    value={brandFormData.category}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Contact Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="e.g. ads@nike.com"
-                    value={brandFormData.email}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-white/70">Phone Number</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    placeholder="e.g. +91 98765 43210"
-                    value={brandFormData.phone}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-white/70">Target Coverage Range</label>
-                  <input
-                    type="text"
-                    name="billboards"
-                    placeholder="e.g. Anna Nagar & T. Nagar (15 Billboards)"
-                    value={brandFormData.billboards}
-                    onChange={handleBrandInputChange}
-                    className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10 mt-2">
+              {/* FIXED FOOTER */}
+              <div className="p-4 sm:px-6 border-t border-white/10 flex items-center justify-end gap-3 flex-shrink-0 bg-[#0b101d]">
                 <button
                   type="button"
                   onClick={() => setShowAddBrandModal(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
                 >
                   Add Brand Partner
                 </button>
