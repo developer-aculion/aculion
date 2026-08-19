@@ -22,102 +22,71 @@ export async function resolveUserRoleFromSupabase(sessionUser) {
   const defaultName = metadata.fullName || metadata.name || userEmail.split('@')[0];
 
   try {
-    // 1. Check admin_master (admin_id -> auth.users.id)
-    const { data: adminRecord } = await supabase
-      .from('admin_master')
-      .select('admin_id, username')
-      .eq('admin_id', userId)
-      .maybeSingle();
-
-    if ((adminRecord && adminRecord.admin_id) || userEmail.toLowerCase() === 'developer@aculion.com') {
-      // Update or insert into admin_master
-      try {
-        await supabase
-          .from('admin_master')
-          .upsert({
-            admin_id: userId,
-            username: adminRecord?.username || metadata.fullName || 'Aculion Developer Admin',
-            last_login: new Date().toISOString()
-          }, { onConflict: 'admin_id' });
-      } catch (e) { /* ignore if policy restricted */ }
-
+    // 1. Check developer email bypass or admins table
+    if (userEmail.toLowerCase() === 'developer@aculion.com') {
       return {
         role: 'Administrator',
         targetPath: '/media-profile',
-        username: adminRecord?.username || metadata.fullName || 'Aculion Developer Admin',
+        username: 'Aculion Developer Admin',
         accessDenied: false
       };
     }
 
-    // 2. Check billboard_owner_master (billboard_owner_id -> auth.users.id)
-    const { data: bbRecord } = await supabase
-      .from('billboard_owner_master')
-      .select('billboard_owner_id, username')
-      .eq('billboard_owner_id', userId)
+    const { data: adminRecord } = await supabase
+      .from('admins')
+      .select('id, admin_name')
+      .eq('id', userId)
       .maybeSingle();
 
-    if (bbRecord && bbRecord.billboard_owner_id) {
-      // Update last_login timestamp in billboard_owner_master
-      try {
-        await supabase
-          .from('billboard_owner_master')
-          .update({ last_login: new Date().toISOString() })
-          .eq('billboard_owner_id', userId);
-      } catch (e) { /* ignore if policy restricted */ }
+    if (adminRecord && adminRecord.id) {
+      return {
+        role: 'Administrator',
+        targetPath: '/media-profile',
+        username: adminRecord.admin_name || defaultName,
+        accessDenied: false
+      };
+    }
 
+    // 2. Check billboard_owners table (id -> auth.users.id)
+    const { data: bbRecord } = await supabase
+      .from('billboard_owners')
+      .select('id, owner_name')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (bbRecord && bbRecord.id) {
       return {
         role: 'Media Owner (Billboard Operator)',
         targetPath: '/media-profile',
-        username: bbRecord.username || defaultName,
+        username: bbRecord.owner_name || defaultName,
         accessDenied: false
       };
     }
 
-    // 3. Check brand_owner_master (brand_owner_id -> auth.users.id)
+    // 3. Check brand_partners table (id -> auth.users.id)
     const { data: brandRecord } = await supabase
-      .from('brand_owner_master')
-      .select('brand_owner_id, username')
-      .eq('brand_owner_id', userId)
+      .from('brand_partners')
+      .select('id, brand_user_name')
+      .eq('id', userId)
       .maybeSingle();
 
-    if (brandRecord && brandRecord.brand_owner_id) {
-      // Update last_login timestamp in brand_owner_master
-      try {
-        await supabase
-          .from('brand_owner_master')
-          .update({ last_login: new Date().toISOString() })
-          .eq('brand_owner_id', userId);
-      } catch (e) { /* ignore if policy restricted */ }
-
+    if (brandRecord && brandRecord.id) {
       return {
         role: 'Brand Advertiser',
         targetPath: '/demo-dashboard',
-        username: brandRecord.username || defaultName,
+        username: brandRecord.brand_user_name || defaultName,
         accessDenied: false
       };
     }
 
-    // 4. Fallback check against local users list or user_metadata if database query returns empty (for seeded dev accounts)
-    const localUsers = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-    const localMatch = localUsers.find(u => u.email?.toLowerCase() === userEmail.toLowerCase());
-    if (localMatch) {
-      const mappedRole = localMatch.role || metadata.role || 'Media Owner (Billboard Operator)';
-      const targetPath = mappedRole === 'Administrator' ? '/admin-dashboard' : mappedRole === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-      return {
-        role: mappedRole,
-        targetPath,
-        username: localMatch.fullName || localMatch.name || defaultName,
-        accessDenied: false
-      };
-    }
-
+    // 4. Fallback check for seeded/dev accounts using user metadata or local storage
     if (metadata.role) {
-      const mappedRole = metadata.role;
-      const targetPath = mappedRole === 'Administrator' ? '/admin-dashboard' : mappedRole === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
+      const mappedRole = metadata.role === 'admin' || metadata.role === 'Administrator' ? 'Administrator' : metadata.role === 'brand' || metadata.role === 'Brand Advertiser' ? 'Brand Advertiser' : 'Media Owner (Billboard Operator)';
+      const targetPath = mappedRole === 'Administrator' || mappedRole === 'Media Owner (Billboard Operator)' ? '/media-profile' : '/demo-dashboard';
       return {
         role: mappedRole,
         targetPath,
-        username: defaultName,
+        username: metadata.fullName || metadata.name || defaultName,
         accessDenied: false
       };
     }
@@ -128,13 +97,13 @@ export async function resolveUserRoleFromSupabase(sessionUser) {
       targetPath: '/sign-in',
       username: defaultName,
       accessDenied: true,
-      error: 'Access Denied: Your account is not registered in admin_master, billboard_owner_master, or brand_owner_master.'
+      error: 'Access Denied: Your account is not registered in admins, billboard_owners, or brand_partners.'
     };
   } catch (err) {
     console.error('[resolveUserRoleFromSupabase] Error:', err);
     if (metadata.role) {
-      const mappedRole = metadata.role;
-      const targetPath = mappedRole === 'Administrator' ? '/admin-dashboard' : mappedRole === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
+      const mappedRole = metadata.role === 'admin' || metadata.role === 'Administrator' ? 'Administrator' : metadata.role === 'brand' || metadata.role === 'Brand Advertiser' ? 'Brand Advertiser' : 'Media Owner (Billboard Operator)';
+      const targetPath = mappedRole === 'Administrator' || mappedRole === 'Media Owner (Billboard Operator)' ? '/media-profile' : '/demo-dashboard';
       return {
         role: mappedRole,
         targetPath,

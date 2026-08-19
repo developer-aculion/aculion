@@ -59,24 +59,6 @@ export default function SignInPage({ navigateTo, isLoggedIn, user, onLoginSucces
       });
 
       if (error) {
-        if (cleanEmail === 'developer@aculion.com' && password === 'Kaadhal@2025') {
-          const adminUser = {
-            email: 'developer@aculion.com',
-            name: 'Aculion Developer Admin',
-            company: 'Aculion Platform',
-            role: 'Administrator'
-          };
-          localStorage.setItem('aculion_current_user', JSON.stringify(adminUser));
-          if (typeof onLoginSuccess === 'function') {
-            onLoginSuccess(adminUser);
-          }
-          if (typeof navigateTo === 'function') {
-            navigateTo(null, '/media-profile');
-          }
-          setIsSubmitting(false);
-          return;
-        }
-
         setGeneralError(error.message || 'Invalid email or password.');
         setIsSubmitting(false);
         return;
@@ -87,23 +69,6 @@ export default function SignInPage({ navigateTo, isLoggedIn, user, onLoginSucces
         return;
       }
     } catch (err) {
-      if (cleanEmail === 'developer@aculion.com' && password === 'Kaadhal@2025') {
-        const adminUser = {
-          email: 'developer@aculion.com',
-          name: 'Aculion Developer Admin',
-          company: 'Aculion Platform',
-          role: 'Administrator'
-        };
-        localStorage.setItem('aculion_current_user', JSON.stringify(adminUser));
-        if (typeof onLoginSuccess === 'function') {
-          onLoginSuccess(adminUser);
-        }
-        if (typeof navigateTo === 'function') {
-          navigateTo(null, '/admin-dashboard');
-        }
-        setIsSubmitting(false);
-        return;
-      }
       console.error('Sign in error:', err);
       setGeneralError('Invalid email or password.');
       setIsSubmitting(false);
@@ -115,7 +80,7 @@ export default function SignInPage({ navigateTo, isLoggedIn, user, onLoginSucces
       <div className="signin-card glass-panel">
 
         <h2 className="signin-title">Sign In</h2>
-        
+
         {(generalError || authErrorMessage) && (
           <div className="signin-error-banner">
             <i className="fa-solid fa-circle-exclamation"></i>

@@ -734,70 +734,95 @@ export default function App() {
 
     // Switch to step 3 loader
     setRegStep(3);
+    setSuccessProgress(20);
 
-    // Encrypt password using SHA-256
-    const hashedPassword = await hashPassword(password);
-
-    // Simulate loading progress
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 10;
-      setSuccessProgress(prog);
-      if (prog >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          const users = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-          const cleanEmail = email.trim().toLowerCase();
-          const cleanReg = regNumber.trim().toUpperCase();
-
-          const emailExists = users.some(u => u.email && u.email.trim().toLowerCase() === cleanEmail);
-          const regExists = users.some(u => u.regNumber && u.regNumber.trim().toUpperCase() === cleanReg);
-
-          if (!emailExists && !regExists) {
-            users.push({
-              email: cleanEmail,
-              password: hashedPassword,
-              company: company ? company.trim() : 'Aculion Partner',
-              fullName: fullName ? fullName.trim() : cleanEmail.split('@')[0],
-              username: fullName ? fullName.trim() : cleanEmail.split('@')[0],
-              phone: selectedCountry.code + ' ' + phone,
-              role: role || 'owner',
-              regNumber: regNumber ? regNumber.trim() : ''
-            });
-            localStorage.setItem('aculion_users', JSON.stringify(users));
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: password,
+        options: {
+          data: {
+            owner_name: fullName,
+            company_name: company
           }
+        }
+      });
 
-          // Clear registration wizard fields
-          setRegStep(1);
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
-          setFullName('');
-          setCompany('');
-          setRegNumber('');
-          setRegNumberError('');
-          setAgreeTerms(false);
-          setShowRegPassword(false);
-          setShowRegConfirmPassword(false);
-          setRole('Media Owner (Billboard Operator)');
-          setOtp(['', '', '', '', '', '']);
-          setOtpError('');
-          setEmailError('');
-          setPassError('');
-          setConfirmError('');
-          setPhone('');
-          setPhoneError('');
-          setPhoneIsValid(false);
-          setSuccessProgress(0);
-
-          // Close register modal, open signin modal, pre-populate regNumber, show success message
-          setShowRegister(false);
-          setShowSignin(true);
-          setSigninRegNumber(regNumber);
-          setSigninSuccessMessage(`Registration Successful! Your Register Number is ${regNumber}. Please use this Register Number and your password to sign in.`);
-        }, 300);
+      if (signUpError) {
+        setRegStep(2);
+        setPassError(signUpError.message || 'Registration failed.');
+        setSuccessProgress(0);
+        return;
       }
-    }, 200);
+
+      setSuccessProgress(50);
+
+      // Verify that the trigger created the corresponding billboard_owners record
+      let verified = false;
+      if (signUpData?.user) {
+        for (let i = 0; i < 20; i++) {
+          const { data: ownerRecord, error: ownerError } = await supabase
+            .from('billboard_owners')
+            .select('id')
+            .eq('id', signUpData.user.id)
+            .maybeSingle();
+
+          if (ownerRecord && ownerRecord.id) {
+            verified = true;
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      if (!verified) {
+        setRegStep(2);
+        setPassError('Registration succeeded, but billboard owner profile verification timed out. Please try signing in.');
+        setSuccessProgress(0);
+        return;
+      }
+
+      setSuccessProgress(100);
+
+      setTimeout(() => {
+        // Clear registration wizard fields
+        setRegStep(1);
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setFullName('');
+        setCompany('');
+        setRegNumber('');
+        setRegNumberError('');
+        setAgreeTerms(false);
+        setShowRegPassword(false);
+        setShowRegConfirmPassword(false);
+        setRole('Media Owner (Billboard Operator)');
+        setOtp(['', '', '', '', '', '']);
+        setOtpError('');
+        setEmailError('');
+        setPassError('');
+        setConfirmError('');
+        setPhone('');
+        setPhoneError('');
+        setPhoneIsValid(false);
+        setSuccessProgress(0);
+
+        // Close register modal, open signin modal, pre-populate email, show success message
+        setShowRegister(false);
+        setShowSignin(true);
+        setSigninEmail(cleanEmail);
+        setSigninSuccessMessage(`Registration Successful! Please use your email and password to sign in.`);
+      }, 500);
+
+    } catch (err) {
+      console.error('Registration submit error:', err);
+      setRegStep(2);
+      setPassError('An unexpected error occurred during registration.');
+      setSuccessProgress(0);
+    }
   };
 
   const handleSigninSubmit = async (e) => {
@@ -805,61 +830,35 @@ export default function App() {
     setSigninGeneralError('');
     setSigninSuccessMessage('');
 
-    const uEmail = signinEmail.trim().toLowerCase();
-    const uReg = signinRegNumber.trim().toUpperCase();
-    const uPass = signinPassword.trim();
+    // If using custom sign-in form on landing page, support email & password
+    const uEmail = (signinEmail || '').trim().toLowerCase();
+    const uPass = (signinPassword || '').trim();
 
-    if (!uPass) {
-      setSigninGeneralError('Invalid email/register number or password.');
+    if (!uEmail || !uPass) {
+      setSigninGeneralError('Please enter both email and password.');
       return;
     }
 
-    if (!uEmail && !uReg) {
-      setSigninGeneralError('Invalid email/register number or password.');
-      return;
-    }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: uEmail,
+        password: uPass,
+      });
 
-    const users = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-    const inputHashedPassword = await hashPassword(uPass);
-
-    // Search for a matching record
-    const matchedUser = users.find(u => {
-      const emailMatches = uEmail && u.email && u.email.trim().toLowerCase() === uEmail;
-      const regMatches = uReg && u.regNumber && u.regNumber.trim().toUpperCase() === uReg;
-
-      if (uEmail && uReg) {
-        return emailMatches && regMatches;
+      if (error) {
+        setSigninGeneralError(error.message || 'Invalid email or password.');
+        return;
       }
-      return emailMatches || regMatches;
-    });
 
-    if (!matchedUser || matchedUser.password !== inputHashedPassword) {
-      setSigninGeneralError('Invalid email/register number or password.');
-      return;
+      setSigninSuccessMessage('Login successful. Welcome to Aculion Intelligence Console.');
+
+      setTimeout(() => {
+        closeAllModals();
+      }, 1500);
+    } catch (err) {
+      console.error('Signin submit error:', err);
+      setSigninGeneralError('Invalid email or password.');
     }
-
-    // Success! Authenticate and show success message
-    const userRole = matchedUser.role || 'Media Owner (Billboard Operator)';
-
-    setSigninSuccessMessage('Login successful. Welcome to Aculion Intelligence Console.');
-
-    // We delay the actual loginAction and navigateTo so the user can read the success banner
-    setTimeout(() => {
-      loginAction(
-        matchedUser.email || 'demo@aculion.com',
-        matchedUser.company || 'Aculion Client',
-        userRole,
-        matchedUser.fullName || matchedUser.username
-      );
-      closeAllModals();
-
-      // Redirect user to the appropriate dashboard
-      if (userRole === 'Brand Advertiser') {
-        navigateTo(null, '/demo-dashboard');
-      } else {
-        navigateTo(null, '/dashboard');
-      }
-    }, 1500);
   };
 
   const handleForgotPasswordSubmit = async (e) => {

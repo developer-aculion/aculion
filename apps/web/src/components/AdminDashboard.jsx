@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
 
 // Reusing number animator from BrandPortal
 function AnimNum({ value, suffix = '', precision = 0 }) {
@@ -28,10 +29,21 @@ export default function AdminDashboard({ user, onLogout }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [clock, setClock] = useState('');
   
-  // Local storage users list for user management tab
+  // Database backed owners list
   const [userList, setUserList] = useState([]);
+  const [billboardCount, setBillboardCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Secure User Creation Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
   // System monitoring states
   const [edgeNodes, setEdgeNodes] = useState(42);
   const [systemLoad, setSystemLoad] = useState(34.2);
@@ -48,10 +60,32 @@ export default function AdminDashboard({ user, onLogout }) {
     return () => clearInterval(t);
   }, []);
 
-  // Sync users list from localStorage
+  // Fetch users and billboards count from DB
+  const fetchDbData = async () => {
+    try {
+      // 1. Fetch owners from billboard_owners table
+      const { data: owners, error: ownersErr } = await supabase
+        .from('billboard_owners')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ownersErr) throw ownersErr;
+      setUserList(owners || []);
+
+      // 2. Fetch billboards count
+      const { count, error: bbErr } = await supabase
+        .from('billboards')
+        .select('*', { count: 'exact', head: true });
+
+      if (bbErr) throw bbErr;
+      setBillboardCount(count || 0);
+    } catch (err) {
+      console.error('[AdminDashboard] Error fetching database data:', err);
+    }
+  };
+
   useEffect(() => {
-    const list = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-    setUserList(list);
+    fetchDbData();
   }, [activeTab]);
 
   // Simulate server load fluctuations
@@ -69,15 +103,83 @@ export default function AdminDashboard({ user, onLogout }) {
     return () => clearInterval(interval);
   }, []);
 
-  const deleteUser = (emailToDelete) => {
+  const deleteUser = async (idToDelete, emailToDelete) => {
     if (emailToDelete === user.email) {
       alert("You cannot delete your own Administrator account!");
       return;
     }
-    if (window.confirm(`Are you sure you want to remove user ${emailToDelete}?`)) {
-      const updated = userList.filter(u => u.email !== emailToDelete);
-      localStorage.setItem('aculion_users', JSON.stringify(updated));
-      setUserList(updated);
+    if (window.confirm(`Are you sure you want to remove user account ${emailToDelete}?`)) {
+      try {
+        const { error } = await supabase
+          .from('billboard_owners')
+          .delete()
+          .eq('id', idToDelete);
+
+        if (error) throw error;
+        
+        // Refresh local list
+        setUserList(prev => prev.filter(u => u.id !== idToDelete));
+      } catch (err) {
+        console.error('Revoke access error:', err);
+        alert(`Failed to revoke access: ${err.message || err}`);
+      }
+    }
+  };
+
+  const handleCreateOwnerSubmit = async (e) => {
+    e.preventDefault();
+    setCreateError('');
+    setCreateSuccess('');
+    setIsCreating(true);
+
+    if (!newEmail.trim() || !newPassword.trim() || !newOwnerName.trim()) {
+      setCreateError('Please fill in email, password, and owner name.');
+      setIsCreating(false);
+      return;
+    }
+
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+      
+      const response = await fetch('http://localhost:8000/api/v1/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: newEmail.trim().toLowerCase(),
+          password: newPassword,
+          owner_name: newOwnerName.trim(),
+          company_name: newCompanyName.trim() || 'Aculion Owner Partner',
+          role: 'Media Owner (Billboard Operator)'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to create user account.');
+      }
+
+      setCreateSuccess('New Billboard Owner profile registered successfully!');
+      setNewEmail('');
+      setNewPassword('');
+      setNewOwnerName('');
+      setNewCompanyName('');
+      
+      // Refresh user list
+      fetchDbData();
+      
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setCreateSuccess('');
+      }, 1500);
+    } catch (err) {
+      console.error('Error creating owner:', err);
+      setCreateError(err.message || 'An error occurred during account creation.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -89,10 +191,9 @@ export default function AdminDashboard({ user, onLogout }) {
   ];
 
   const filteredUsers = userList.filter(u => 
-    (u.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.owner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.company || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.role || 'owner').toLowerCase().includes(searchQuery.toLowerCase())
+    (u.company_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -202,8 +303,8 @@ export default function AdminDashboard({ user, onLogout }) {
                 <div className="brand-kpi-card">
                   <div className="brand-kpi-icon" style={{ color: '#ef4444' }}><i className="fa-solid fa-network-wired"></i></div>
                   <div className="brand-kpi-data">
-                    <span className="brand-kpi-label">Data Ingestion Rate</span>
-                    <span className="brand-kpi-value"><AnimNum value={bandwidth} suffix=" GB/s" precision={2} /></span>
+                    <span className="brand-kpi-label">Active Billboards</span>
+                    <span className="brand-kpi-value"><AnimNum value={billboardCount} /></span>
                   </div>
                 </div>
               </div>
@@ -241,24 +342,43 @@ export default function AdminDashboard({ user, onLogout }) {
               <div className="brand-card">
                 <div className="brand-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                   <h3><i className="fa-solid fa-users-gear"></i> User Account Control Directory</h3>
-                  <div style={{ position: 'relative' }}>
-                    <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 13 }}></i>
-                    <input
-                      type="text"
-                      placeholder="Search accounts..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                  
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <button
+                      onClick={() => setShowCreateModal(true)}
                       style={{
-                        padding: '8px 12px 8px 34px',
-                        background: 'var(--bg-midnight)',
-                        border: '1px solid var(--graphite-border)',
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #8b5cf6, #ef4444)',
+                        border: 'none',
                         color: '#fff',
                         borderRadius: 6,
-                        outline: 'none',
+                        cursor: 'pointer',
                         fontSize: 13,
-                        width: 220
+                        fontWeight: 600
                       }}
-                    />
+                    >
+                      + Create Owner Account
+                    </button>
+
+                    <div style={{ position: 'relative' }}>
+                      <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 13 }}></i>
+                      <input
+                        type="text"
+                        placeholder="Search accounts..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{
+                          padding: '8px 12px 8px 34px',
+                          background: 'var(--bg-midnight)',
+                          border: '1px solid var(--graphite-border)',
+                          color: '#fff',
+                          borderRadius: 6,
+                          outline: 'none',
+                          fontSize: 13,
+                          width: 200
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -268,7 +388,7 @@ export default function AdminDashboard({ user, onLogout }) {
                       <tr style={{ borderBottom: '1px solid var(--graphite-border)', color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase' }}>
                         <th style={{ padding: '12px 8px' }}>User Details</th>
                         <th style={{ padding: '12px 8px' }}>Company</th>
-                        <th style={{ padding: '12px 8px' }}>Assigned Role</th>
+                        <th style={{ padding: '12px 8px' }}>Role</th>
                         <th style={{ padding: '12px 8px', textAlign: 'right' }}>Manage Access</th>
                       </tr>
                     </thead>
@@ -276,10 +396,10 @@ export default function AdminDashboard({ user, onLogout }) {
                       {filteredUsers.map((u, i) => (
                         <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: 14 }}>
                           <td style={{ padding: '16px 8px' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-white)' }}>{u.fullName || 'No Name'}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-white)' }}>{u.owner_name || 'No Name'}</div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
                           </td>
-                          <td style={{ padding: '16px 8px', color: 'var(--text-light)' }}>{u.company || '—'}</td>
+                          <td style={{ padding: '16px 8px', color: 'var(--text-light)' }}>{u.company_name || '—'}</td>
                           <td style={{ padding: '16px 8px' }}>
                             <span style={{
                               fontSize: 11,
@@ -287,16 +407,16 @@ export default function AdminDashboard({ user, onLogout }) {
                               textTransform: 'uppercase',
                               padding: '2px 8px',
                               borderRadius: 4,
-                              background: u.role === 'admin' ? 'rgba(239, 68, 68, 0.15)' : u.role === 'brand' ? 'rgba(0, 82, 255, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                              color: u.role === 'admin' ? 'var(--danger-red)' : u.role === 'brand' ? 'var(--electric-blue)' : 'var(--success-green)',
-                              border: `1px solid ${u.role === 'admin' ? 'rgba(239, 68, 68, 0.3)' : u.role === 'brand' ? 'rgba(0, 82, 255, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: 'var(--success-green)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)'
                             }}>
-                              {u.role === 'admin' ? 'Admin' : u.role === 'brand' ? 'Advertiser' : 'Media Owner'}
+                              Media Owner
                             </span>
                           </td>
                           <td style={{ padding: '16px 8px', textAlign: 'right' }}>
                             <button
-                              onClick={() => deleteUser(u.email)}
+                              onClick={() => deleteUser(u.id, u.email)}
                               style={{
                                 background: 'rgba(239, 68, 68, 0.1)',
                                 color: 'var(--danger-red)',
@@ -337,7 +457,7 @@ export default function AdminDashboard({ user, onLogout }) {
                     { id: 'NODE-BLR-01', location: 'MG Road Metro Crossing, Bangalore', model: 'YOLOv8n Pedestrian (INT8)', fps: '60.0 fps', ping: '8ms', status: 'Online' },
                     { id: 'NODE-MUM-01', location: 'Marine Drive Gateway Premium, Mumbai', model: 'YOLOv8x Vehicle+Ped (FP16)', fps: '28.2 fps', ping: '19ms', status: 'Online' }
                   ].map(node => (
-                    <div key={node.id} style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--graphite-border)', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                    <div key={node.id} style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--graphite-border)', borderRadius: 8, marginBottom: 12, display: 'flex', justifycontent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontWeight: 'bold', color: '#fff' }}>{node.id}</span>
@@ -366,8 +486,8 @@ export default function AdminDashboard({ user, onLogout }) {
                   <h3><i className="fa-solid fa-shield-halved"></i> Global Security Audit Trails</h3>
                 </div>
                 <div style={{ marginTop: 24, fontFamily: 'monospace', fontSize: 12, color: '#00ff66', background: '#040508', padding: 20, borderRadius: 8, border: '1px solid var(--graphite-border)', lineHeight: 1.6, maxHeight: 400, overflowY: 'auto' }}>
-                  <div>[2026-06-27 12:12:04] AUTH: Administrator session token successfully signed and dispatched for user {user.email}.</div>
-                  <div>[2026-06-27 12:05:42] SYSTEM: Synced local database nodes from localStorage (5 total profiles).</div>
+                  <div>[2026-06-27 12:12:04] AUTH: Administrator session token successfully signed and dispatched for user {user?.email}.</div>
+                  <div>[2026-06-27 12:05:42] SYSTEM: Synced local database nodes from Supabase databases.</div>
                   <div>[2026-06-27 11:59:18] COMPLIANCE: Triggered auto-anonymization check on active node streams. 100% compliant.</div>
                   <div>[2026-06-27 11:48:33] NETWORK: Node NODE-BLR-01 completed model deployment (YOLOv8n Pedestrian).</div>
                   <div>[2026-06-27 11:34:02] COMPLIANCE: Faces and plates matching index cleared from edge cache.</div>
@@ -379,6 +499,120 @@ export default function AdminDashboard({ user, onLogout }) {
           )}
         </div>
       </div>
+
+      {/* SECURE OWNER USER CREATION DIALOG MODAL */}
+      {showCreateModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16
+        }}>
+          <div style={{
+            background: 'var(--bg-midnight)',
+            border: '1px solid var(--graphite-border)',
+            borderRadius: 16,
+            padding: 24,
+            maxWidth: 440,
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fff', fontWeight: 'bold' }}>Create Owner Account</h3>
+            
+            {createError && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '10px 14px', borderRadius: 8, color: 'var(--danger-red)', fontSize: 13, marginBottom: 16 }}>
+                {createError}
+              </div>
+            )}
+            {createSuccess && (
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: 8, color: 'var(--success-green)', fontSize: 13, marginBottom: 16 }}>
+                {createSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateOwnerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Owner Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newOwnerName}
+                  onChange={(e) => setNewOwnerName(e.target.value)}
+                  placeholder="e.g. Rajesh Kumar"
+                  style={{ padding: 10, background: '#090d18', border: '1px solid var(--graphite-border)', borderRadius: 8, color: '#fff', fontSize: 14 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Company Name</label>
+                <input
+                  type="text"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  placeholder="e.g. Skyline Outdoor Media"
+                  style={{ padding: 10, background: '#090d18', border: '1px solid var(--graphite-border)', borderRadius: 8, color: '#fff', fontSize: 14 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Owner Email ID *</label>
+                <input
+                  type="email"
+                  required
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="e.g. rajesh@skylinemedia.com"
+                  style={{ padding: 10, background: '#090d18', border: '1px solid var(--graphite-border)', borderRadius: 8, color: '#fff', fontSize: 14 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 8 characters"
+                  style={{ padding: 10, background: '#090d18', border: '1px solid var(--graphite-border)', borderRadius: 8, color: '#fff', fontSize: 14 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifycontent: 'flex-end', gap: 12, marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                  style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--graphite-border)', color: 'var(--text-muted)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  style={{
+                    padding: '8px 20px',
+                    background: 'linear-gradient(135deg, #8b5cf6, #ef4444)',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600
+                  }}
+                >
+                  {isCreating ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {mobileSidebarOpen && <div className="brand-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)}></div>}
     </div>
   );

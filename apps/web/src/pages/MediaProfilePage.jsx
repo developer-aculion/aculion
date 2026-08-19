@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import newLogo from '../assets/aculion_logo_transparent.png';
 import { billboardService } from '../services/billboard.service';
+import { supabase } from '../services/supabase';
 
 export default function MediaProfilePage({
   user,
@@ -17,16 +18,8 @@ export default function MediaProfilePage({
   const [activeSearch, setActiveSearch] = useState('');
   const [filterType, setFilterType] = useState('Billboard'); // ONLY 'Billboard' | 'Brand' (NO 'All')
 
-  // Brands list state
-  const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('aculion_brands_list');
-    return saved ? JSON.parse(saved) : [
-      { id: 'ACU-BR-001', name: 'Nike OOH Campaign', company: 'Nike India', email: 'campaigns@nike.in', phone: '+91 98765 11223', category: 'Retail & Sports', billboards: 'Anna Nagar & T. Nagar (15 Billboards)', status: 'Active', image: '/blog_attention_metrics.png' },
-      { id: 'ACU-BR-002', name: 'Samsung Galaxy Launch', company: 'Samsung Electronics', email: 'ooh@samsung.com', phone: '+91 98765 22334', category: 'Consumer Tech', billboards: 'Pondy Bazaar & OMR (32 Billboards)', status: 'Active', image: '/blog_billboard_roi.png' },
-      { id: 'ACU-BR-003', name: 'Tata Croma City Drive', company: 'Tata Retail', email: 'marketing@croma.com', phone: '+91 98765 33445', category: 'Electronics', billboards: 'Velachery & Tidel Park (20 Billboards)', status: 'Active', image: '/blog_smart_city.png' },
-      { id: 'ACU-BR-004', name: 'Hyundai EV Showcase', company: 'Hyundai Motors', email: 'ads@hyundai.in', phone: '+91 98765 44556', category: 'Automotive', billboards: 'Guindy & Mount Road (18 Billboards)', status: 'Active', image: '/blog_privacy_edge.png' }
-    ];
-  });
+  // Brands list state - loaded dynamically from database
+  const [brands, setBrands] = useState([]);
 
   // Form states for Add Billboard Modal
   const [formData, setFormData] = useState({
@@ -70,6 +63,58 @@ export default function MediaProfilePage({
 
   const [formError, setFormError] = useState('');
   const [brandFormError, setBrandFormError] = useState('');
+  const [registeredOwners, setRegisteredOwners] = useState([]);
+
+  // Toast notification state
+  const [toast, setToast] = useState(null); // { type: 'billboard'|'brand', name: string }
+  const toastTimerRef = React.useRef(null);
+
+  const showToast = (type, name) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ type, name });
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+  };
+
+  // Fetch owners and brands dynamically from database
+  const fetchDbData = async () => {
+    try {
+      // Fetch owners
+      const { data: owners, error: ownersErr } = await supabase
+        .from('billboard_owners')
+        .select('id, owner_name, email, company_name');
+      if (ownersErr) throw ownersErr;
+      setRegisteredOwners(owners || []);
+
+      // Fetch brands if Administrator
+      if (user?.role === 'Administrator') {
+        const { data: bPartners, error: brandErr } = await supabase
+          .from('brand_partners')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (brandErr) throw brandErr;
+        
+        const mapped = (bPartners || []).map(b => ({
+          id: b.id,
+          brand_code: `ACU-BR-${b.id.substring(0, 4).toUpperCase()}`,
+          name: b.campaign_title,
+          company: b.company_name,
+          username: b.brand_user_name,
+          email: b.contact_email,
+          phone: b.phone_number,
+          category: b.industry_category,
+          billboards: b.target_coverage_range,
+          status: 'Active'
+        }));
+        setBrands(mapped);
+      }
+    } catch (err) {
+      console.error('[MediaProfilePage] Error loading DB users/brands:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbData();
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -100,8 +145,8 @@ export default function MediaProfilePage({
         return;
       }
     } else {
-      if (!formData.ownerName.trim() && !formData.ownerEmail.trim()) {
-        setFormError('Please select or fill in Existing Owner details.');
+      if (!formData.ownerEmail.trim()) {
+        setFormError('Please select an existing owner from the list.');
         return;
       }
     }
@@ -109,30 +154,57 @@ export default function MediaProfilePage({
     try {
       const lat = parseFloat(formData.latitude) || 13.0827;
       const lng = parseFloat(formData.longitude) || 80.2707;
-      const combinedCamCode = [
-        formData.cameraCodeFF ? `FF: ${formData.cameraCodeFF}` : null,
-        formData.cameraCodeBF ? `BF: ${formData.cameraCodeBF}` : null
-      ].filter(Boolean).join(' | ') || formData.cameraCodeFF || formData.cameraCodeBF || 'CAM-0001';
+      
+      let targetOwnerId = null;
 
-      if (formData.ownerUserType === 'new' && formData.ownerEmail && formData.ownerPassword) {
-        const existingUsers = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-        const newUserRecord = {
-          fullName: formData.ownerName || 'New Media Owner',
-          email: formData.ownerEmail,
-          password: formData.ownerPassword,
-          company: formData.ownerCompany || 'Media Owner Network',
-          role: 'owner'
-        };
-        localStorage.setItem('aculion_users', JSON.stringify([...existingUsers, newUserRecord]));
+      // 1. Handle user registration if new owner
+      if (formData.ownerUserType === 'new') {
+        const session = (await supabase.auth.getSession()).data.session;
+        const token = session?.access_token;
+
+        const response = await fetch('http://localhost:8000/api/v1/admin/create-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            email: formData.ownerEmail.trim().toLowerCase(),
+            password: formData.ownerPassword,
+            owner_name: formData.ownerName.trim(),
+            company_name: formData.ownerCompany.trim() || 'Aculion Owner Partner',
+            role: 'Media Owner (Billboard Operator)'
+          })
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.detail || 'Failed to register new owner user.');
+        }
+        targetOwnerId = result.user.id;
+      } else {
+        // Resolve targetOwnerId from existing owners list
+        const match = registeredOwners.find(o => o.email.trim().toLowerCase() === formData.ownerEmail.trim().toLowerCase());
+        if (!match) {
+          throw new Error('Selected owner email is not registered in the database.');
+        }
+        targetOwnerId = match.id;
       }
 
+      // 2. Insert billboard into database
       const newAsset = await billboardService.createBillboard({
         name: formData.name,
         id: formData.id,
         location: formData.location || formData.address,
+        address: formData.address,
+        city: formData.city,
+        type: formData.type,
+        status: formData.status,
         latitude: lat,
         longitude: lng,
-        cameraCode: combinedCamCode,
+        cameraCodeFF: formData.cameraCodeFF,
+        cameraCodeBF: formData.cameraCodeBF,
+        ownerId: targetOwnerId
       });
 
       newAsset.ownerName = formData.ownerName;
@@ -141,7 +213,9 @@ export default function MediaProfilePage({
       newAsset.cameraCodeBF = formData.cameraCodeBF;
 
       onAddBillboard(newAsset);
+      showToast('billboard', formData.name || 'Billboard');
       setShowAddModal(false);
+      
       setFormData({
         name: '',
         id: `ACU-BB-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -166,13 +240,21 @@ export default function MediaProfilePage({
         ownerPassword: '',
         ownerCompany: ''
       });
+
+      // Refresh registered owners list
+      const { data: updatedOwners } = await supabase
+        .from('billboard_owners')
+        .select('id, owner_name, email, company_name');
+      if (updatedOwners) {
+        setRegisteredOwners(updatedOwners);
+      }
     } catch (err) {
       console.error('[handleAddSubmit] createBillboard error:', err);
       setFormError(err.message || 'Failed to save billboard.');
     }
   };
 
-  const handleBrandSubmit = (e) => {
+  const handleBrandSubmit = async (e) => {
     e.preventDefault();
     setBrandFormError('');
     if (!brandFormData.name.trim() || !brandFormData.company.trim() || !brandFormData.email.trim() || !brandFormData.username.trim() || !brandFormData.password.trim()) {
@@ -180,47 +262,71 @@ export default function MediaProfilePage({
       return;
     }
 
-    if (brandFormData.email && brandFormData.password) {
-      const existingUsers = JSON.parse(localStorage.getItem('aculion_users') || '[]');
-      const newBrandUser = {
-        fullName: brandFormData.username || brandFormData.name,
-        email: brandFormData.email,
-        password: brandFormData.password,
-        company: brandFormData.company,
-        role: 'brand'
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+
+      // 1. Create brand advertiser user on the backend
+      const response = await fetch('http://localhost:8000/api/v1/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: brandFormData.email.trim().toLowerCase(),
+          password: brandFormData.password,
+          owner_name: brandFormData.username || brandFormData.name,
+          company_name: brandFormData.company.trim(),
+          role: 'Brand Advertiser',
+          brand_user_name: brandFormData.username.trim(),
+          campaign_title: brandFormData.name.trim(),
+          industry_category: brandFormData.category,
+          phone_number: brandFormData.phone || '+91 98765 00000',
+          target_coverage_range: brandFormData.billboards || 'Chennai Network'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to create brand advertiser account.');
+      }
+
+      // 2. Map response to brand item
+      const newBrand = {
+        id: result.user.id,
+        brand_code: `ACU-BR-${result.user.id.substring(0, 4).toUpperCase()}`,
+        name: brandFormData.name.trim(),
+        company: brandFormData.company.trim(),
+        username: brandFormData.username.trim(),
+        email: brandFormData.email.trim().toLowerCase(),
+        phone: brandFormData.phone || '+91 98765 00000',
+        category: brandFormData.category,
+        billboards: brandFormData.billboards || 'Chennai Network',
+        status: 'Active',
+        image: '/blog_attention_metrics.png'
       };
-      localStorage.setItem('aculion_users', JSON.stringify([...existingUsers, newBrandUser]));
+
+      setBrands(prev => [newBrand, ...prev]);
+      showToast('brand', brandFormData.name || 'Brand');
+      setShowAddBrandModal(false);
+      
+      setBrandFormData({
+        name: '',
+        company: '',
+        username: '',
+        email: '',
+        password: '',
+        phone: '',
+        category: 'Retail & FMCG',
+        billboards: 'Chennai Network',
+        status: 'Active',
+        image: '/blog_attention_metrics.png'
+      });
+    } catch (err) {
+      console.error('Error creating brand:', err);
+      setBrandFormError(err.message || 'An error occurred during Brand creation.');
     }
-
-    const newBrand = {
-      id: `ACU-BR-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: brandFormData.name,
-      company: brandFormData.company,
-      username: brandFormData.username,
-      email: brandFormData.email,
-      phone: brandFormData.phone || '+91 98765 00000',
-      category: brandFormData.category,
-      billboards: brandFormData.billboards || 'Chennai Network',
-      status: brandFormData.status || 'Active',
-      image: '/blog_attention_metrics.png'
-    };
-
-    const updated = [newBrand, ...brands];
-    setBrands(updated);
-    localStorage.setItem('aculion_brands_list', JSON.stringify(updated));
-    setShowAddBrandModal(false);
-    setBrandFormData({
-      name: '',
-      company: '',
-      username: '',
-      email: '',
-      password: '',
-      phone: '',
-      category: 'Retail & FMCG',
-      billboards: 'Chennai Network',
-      status: 'Active',
-      image: '/blog_attention_metrics.png'
-    });
   };
 
   // Place / Location functional search filter
@@ -256,6 +362,111 @@ export default function MediaProfilePage({
       {/* Background ambient glow orbs - Aculion Blue & Cyan Palette */}
       <div className="fixed top-[-100px] left-1/4 w-[500px] h-[500px] bg-[#0052ff]/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="fixed bottom-[-100px] right-1/4 w-[500px] h-[500px] bg-[#00f0ff]/10 rounded-full blur-[140px] pointer-events-none" />
+
+      {/* ── SUCCESS TOAST NOTIFICATION ── */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '24px',
+          right: toast ? '24px' : '-420px',
+          zIndex: 9999,
+          transition: 'right 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          minWidth: '320px',
+          maxWidth: '400px'
+        }}
+      >
+        {toast && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '14px 18px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(10,20,40,0.97) 0%, rgba(10,30,50,0.97) 100%)',
+            border: '1px solid rgba(0, 240, 80, 0.35)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(0,240,80,0.12)',
+            backdropFilter: 'blur(16px)'
+          }}>
+            {/* Icon bubble */}
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: 'rgba(0, 240, 80, 0.12)',
+              border: '1px solid rgba(0, 240, 80, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <i
+                className={toast.type === 'brand' ? 'fa-solid fa-briefcase' : 'fa-solid fa-tower-cell'}
+                style={{ color: '#00f050', fontSize: '16px' }}
+              />
+            </div>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                <i className="fa-solid fa-circle-check" style={{ color: '#00f050', fontSize: '12px' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#00f050', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {toast.type === 'brand' ? 'Brand Saved' : 'Billboard Saved'}
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>"</span>
+                {toast.name}
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>"</span>
+                {' '}details saved successfully.
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              borderRadius: '0 0 14px 14px',
+              background: 'rgba(0,240,80,0.15)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                height: '100%',
+                background: 'linear-gradient(90deg, #00c853, #00f050)',
+                animation: 'toastProgress 4s linear forwards'
+              }} />
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToast(null); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: '13px',
+                padding: '4px',
+                flexShrink: 0,
+                lineHeight: 1
+              }}
+              title="Dismiss"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Keyframe for toast progress bar */}
+      <style>{`
+        @keyframes toastProgress {
+          from { width: 100%; }
+          to   { width: 0%; }
+        }
+      `}</style>
 
       {/* ── TOP HEADER ── */}
       <header className="h-[72px] border-b border-white/10 px-6 lg:px-12 flex items-center justify-between bg-[#080c16]/80 backdrop-blur-md sticky top-0 z-40">
@@ -296,62 +507,66 @@ export default function MediaProfilePage({
           <div>
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-1">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              Admin Management Console
+              {user?.role === 'Administrator' ? 'Admin Management Console' : 'Billboard Operator Console'}
             </div>
             <h1 className="text-2xl md:text-3xl font-bold font-heading tracking-tight text-white flex items-center gap-3">
-              <span>Admin Portal</span>
+              <span>{user?.role === 'Administrator' ? 'Admin Portal' : 'Media Owner Portal'}</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-cyan-300 font-medium">
-                Admin Role
+                {user?.role === 'Administrator' ? 'Admin Role' : 'Operator Role'}
               </span>
             </h1>
             <p className="text-sm text-white/50 mt-1">
-              Manage outdoor billboard networks and brand advertiser accounts across the Aculion platform.
+              {user?.role === 'Administrator' 
+                ? 'Manage outdoor billboard networks and brand advertiser accounts across the Aculion platform.' 
+                : 'Monitor active telemetry, camera exposure stats, and managed billboard listings.'}
             </p>
           </div>
 
-          {/* ONLY ONE "+" ACTION BUTTON WITH DROPDOWN OPTIONS */}
-          <div className="relative self-start md:self-auto">
-            <button
-              onClick={() => setShowAddMenu(!showAddMenu)}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-xs tracking-wide shadow-lg shadow-blue-500/25 border border-cyan-400/30 transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <i className="fa-solid fa-plus text-sm" />
-              <span>Add</span>
-              <i className="fa-solid fa-chevron-down text-[10px] opacity-70 ml-1" />
-            </button>
+          {/* ONLY ONE "+" ACTION BUTTON WITH DROPDOWN OPTIONS (ADMIN ONLY) */}
+          {user?.role === 'Administrator' && (
+            <div className="relative self-start md:self-auto">
+              <button
+                onClick={() => setShowAddMenu(!showAddMenu)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-xs tracking-wide shadow-lg shadow-blue-500/25 border border-cyan-400/30 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <i className="fa-solid fa-plus text-sm" />
+                <span>Add</span>
+                <i className="fa-solid fa-chevron-down text-[10px] opacity-70 ml-1" />
+              </button>
 
-            {showAddMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0e1424] border border-cyan-500/30 rounded-xl shadow-2xl py-2 z-50 flex flex-col gap-1 backdrop-blur-md">
-                <button
-                  onClick={() => { setShowAddMenu(false); setShowAddModal(true); }}
-                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-600/20 hover:text-blue-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <i className="fa-solid fa-tower-cell text-blue-400 text-sm" />
-                  <span>Add Billboard</span>
-                </button>
-                <button
-                  onClick={() => { setShowAddMenu(false); setShowAddBrandModal(true); }}
-                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-white hover:bg-cyan-600/20 hover:text-cyan-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <i className="fa-solid fa-briefcase text-cyan-400 text-sm" />
-                  <span>Add Brand</span>
-                </button>
-              </div>
-            )}
-          </div>
+              {showAddMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-[#0e1424] border border-cyan-500/30 rounded-xl shadow-2xl py-2 z-50 flex flex-col gap-1 backdrop-blur-md">
+                  <button
+                    onClick={() => { setShowAddMenu(false); setShowAddModal(true); }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-600/20 hover:text-blue-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <i className="fa-solid fa-tower-cell text-blue-400 text-sm" />
+                    <span>Add Billboard</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowAddMenu(false); setShowAddBrandModal(true); }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-semibold text-white hover:bg-cyan-600/20 hover:text-cyan-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <i className="fa-solid fa-briefcase text-cyan-400 text-sm" />
+                    <span>Add Brand</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ── ADMIN INFORMATION BADGE PANEL ── */}
+        {/* ── PROFILE INFORMATION BADGE PANEL ── */}
         <section className="bg-[#0e1424]/70 border border-white/10 rounded-2xl p-6 backdrop-blur-md shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-blue-600/10 to-transparent pointer-events-none" />
 
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-bold text-cyan-400 tracking-widest uppercase flex items-center gap-1.5">
-              <i className="fa-solid fa-user-shield" /> ADMIN MASTER PROFILE
+              <i className="fa-solid fa-user-shield" /> {user?.role === 'Administrator' ? 'ADMIN MASTER PROFILE' : 'MEDIA OWNER PROFILE'}
             </span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-semibold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              System Admin
+              {user?.role === 'Administrator' ? 'System Admin' : 'Media Owner'}
             </span>
           </div>
 
@@ -361,9 +576,11 @@ export default function MediaProfilePage({
                 <i className="fa-solid fa-building-shield" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Platform</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                  {user?.role === 'Administrator' ? 'Platform' : 'Media Network'}
+                </span>
                 <span className="text-sm font-bold text-white truncate mt-0.5 font-heading">
-                  Aculion Enterprise
+                  {user?.role === 'Administrator' ? 'Aculion Enterprise' : (user?.company || 'Media Owner Network')}
                 </span>
               </div>
             </div>
@@ -373,9 +590,11 @@ export default function MediaProfilePage({
                 <i className="fa-solid fa-user-gear" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Admin Account</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                  {user?.role === 'Administrator' ? 'Admin Account' : 'Operator Account'}
+                </span>
                 <span className="text-sm font-bold text-white truncate mt-0.5 font-heading">
-                  {user?.name || 'Aculion Developer Admin'}
+                  {user?.name || 'Media Owner'}
                 </span>
               </div>
             </div>
@@ -385,9 +604,11 @@ export default function MediaProfilePage({
                 <i className="fa-solid fa-envelope" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Admin Email</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                  {user?.role === 'Administrator' ? 'Admin Email' : 'Operator Email'}
+                </span>
                 <span className="text-sm font-bold text-white truncate mt-0.5 font-mono">
-                  {user?.email || 'developer@aculion.com'}
+                  {user?.email || 'owner@aculion.com'}
                 </span>
               </div>
             </div>
@@ -397,10 +618,14 @@ export default function MediaProfilePage({
                 <i className="fa-solid fa-layer-group" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Total Accounts</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                  {user?.role === 'Administrator' ? 'Total Accounts' : 'Total Owned'}
+                </span>
                 <span className="text-sm font-bold text-emerald-400 mt-0.5 flex items-center gap-1.5">
                   <span>{billboards.length} Billboards</span>
-                  <span className="text-[10px] text-white/40">({brands.length} Brands)</span>
+                  {user?.role === 'Administrator' && (
+                    <span className="text-[10px] text-white/40">({brands.length} Brands)</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -482,31 +707,33 @@ export default function MediaProfilePage({
             <span>Search Location</span>
           </button>
 
-          {/* DROPDOWN SELECTOR */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-            <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600', whiteSpace: 'nowrap' }}>View:</span>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              style={{
-                width: '160px',
-                height: '46px',
-                backgroundColor: '#141d33',
-                border: '1px solid rgba(0, 240, 255, 0.4)',
-                borderRadius: '12px',
-                paddingLeft: '14px',
-                paddingRight: '14px',
-                fontSize: '13px',
-                color: '#ffffff',
-                fontWeight: '600',
-                cursor: 'pointer',
-                outline: 'none'
-              }}
-            >
-              <option value="Billboard">Billboard</option>
-              <option value="Brand">Brand</option>
-            </select>
-          </div>
+          {/* DROPDOWN SELECTOR (ADMIN ONLY) */}
+          {user?.role === 'Administrator' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+              <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600', whiteSpace: 'nowrap' }}>View:</span>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{
+                  width: '160px',
+                  height: '46px',
+                  backgroundColor: '#141d33',
+                  border: '1px solid rgba(0, 240, 255, 0.4)',
+                  borderRadius: '12px',
+                  paddingLeft: '14px',
+                  paddingRight: '14px',
+                  fontSize: '13px',
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="Billboard">Billboard</option>
+                <option value="Brand">Brand</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* ── DISPLAY SELECTED VIEW (BILLBOARD OR BRAND) ── */}
@@ -789,25 +1016,32 @@ export default function MediaProfilePage({
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
                           <label className="text-xs font-semibold text-white/70">Select Owner Name *</label>
                           <select
-                            name="ownerName"
-                            value={formData.ownerName}
+                            name="ownerNameSelect"
+                            value={formData.ownerEmail}
                             onChange={(e) => {
                               const val = e.target.value;
-                              let emailVal = formData.ownerEmail;
-                              if (val.includes('(') && val.includes(')')) {
-                                emailVal = val.split('(')[1].replace(')', '');
-                              } else if (val === 'Anna Nagar Media Owners') emailVal = 'owner@annanagar.com';
-                              else if (val === 'Metro Outdoor Advertising') emailVal = 'contact@metroooh.com';
-                              else if (val === 'Apex Media Corp') emailVal = 'admin@apexmedia.com';
-                              setFormData(prev => ({ ...prev, ownerName: val, ownerEmail: emailVal }));
+                              if (!val) {
+                                setFormData(prev => ({ ...prev, ownerName: '', ownerEmail: '', ownerCompany: '' }));
+                                return;
+                              }
+                              const selected = registeredOwners.find(o => o.email === val);
+                              if (selected) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  ownerName: selected.owner_name,
+                                  ownerEmail: selected.email,
+                                  ownerCompany: selected.company_name || ''
+                                }));
+                              }
                             }}
                             className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             <option value="">-- Choose Registered Owner Name --</option>
-                            <option value="Aculion Developer Admin (developer@aculion.com)">Aculion Developer Admin (developer@aculion.com)</option>
-                            <option value="Anna Nagar Media Owners (owner@annanagar.com)">Anna Nagar Media Owners (owner@annanagar.com)</option>
-                            <option value="Metro Outdoor Advertising (contact@metroooh.com)">Metro Outdoor Advertising (contact@metroooh.com)</option>
-                            <option value="Apex Media Corp (admin@apexmedia.com)">Apex Media Corp (admin@apexmedia.com)</option>
+                            {registeredOwners.map(o => (
+                              <option key={o.id} value={o.email}>
+                                {o.owner_name} ({o.email})
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -980,6 +1214,35 @@ export default function MediaProfilePage({
                       onChange={handleInputChange}
                       autoComplete="off"
                       className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  {/* ── LATITUDE & LONGITUDE ── */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Latitude *</label>
+                    <input
+                      type="text"
+                      name="latitude"
+                      placeholder="e.g. 13.0827"
+                      value={formData.latitude}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Longitude *</label>
+                    <input
+                      type="text"
+                      name="longitude"
+                      placeholder="e.g. 80.2707"
+                      value={formData.longitude}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-white/30 focus:outline-none focus:border-blue-500"
                       required
                     />
                   </div>

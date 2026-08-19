@@ -1854,7 +1854,7 @@ def recommend_billboards(req: RecommendationRequest):
         with engine.connect() as conn:
             rows = conn.execute(text("""
                 SELECT billboard_name, latitude, longitude, city
-                FROM master.billboards
+                FROM public.billboards
                 WHERE LOWER(city) = LOWER(:city);
             """), {"city": req.city}).fetchall()
 
@@ -1966,3 +1966,361 @@ def recommend_billboards(req: RecommendationRequest):
             status_code=500,
             detail=f"Recommendation query engine failed: {str(e)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Supabase Authentication + Admin & Traffic Integration Endpoints
+# ---------------------------------------------------------------------------
+import os
+import json
+import httpx
+import asyncio
+from typing import List, Optional
+from fastapi import Request, Header, Query, Depends
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+class AdminCreateUserRequest(BaseModel):
+    email: str
+    password: str
+    owner_name: str
+    company_name: str
+    role: str = "Media Owner (Billboard Operator)"
+    # Brand Advertiser fields
+    brand_user_name: Optional[str] = None
+    campaign_title: Optional[str] = None
+    industry_category: Optional[str] = None
+    phone_number: Optional[str] = None
+    target_coverage_range: Optional[str] = None
+
+class TrafficRecord(BaseModel):
+    id: Optional[str] = None
+    location_name: str
+    camera_code: str
+    total_vehicles: int
+    bikes: int
+    economy: int
+    premium: int
+    luxury: int
+    ultra_luxury: int
+    commercial: int
+    avg_exposure_time: float
+    max_exposure_time: float
+    estimated_reach: int
+    flow_rate: float
+    peak_traffic_hour: str
+    is_live: bool = True
+    last_updated: Optional[str] = None
+    created_at: Optional[str] = None
+
+class CameraInfo(BaseModel):
+    camera_code: str
+    location_name: str
+
+class TrafficManager:
+    def __init__(self):
+        self.queues = set()
+        self.last_records = {}
+        self.is_running = False
+        self.polling_task = None
+
+    def register(self, q):
+        self.queues.add(q)
+        logger.info(f"Registered traffic queue. Total: {len(self.queues)}")
+
+    def unregister(self, q):
+        self.queues.discard(q)
+        logger.info(f"Unregistered traffic queue. Total: {len(self.queues)}")
+
+    def broadcast(self, camera_code, record):
+        for q in list(self.queues):
+            try:
+                q.put_nowait((camera_code, record))
+            except Exception:
+                pass
+
+traffic_manager = TrafficManager()
+
+async def poll_traffic_db():
+    traffic_manager.is_running = True
+    logger.info("Starting traffic database polling loop...")
+    while traffic_manager.is_running:
+        try:
+            with engine.connect() as conn:
+                rows = conn.execute(text("""
+                    SELECT id, location_name, camera_code, total_vehicles, bikes, economy, premium, luxury, ultra_luxury, commercial, avg_exposure_time, max_exposure_time, estimated_reach, flow_rate, peak_traffic_hour, is_live, last_updated
+                    FROM public.traffic_demo_master;
+                """)).fetchall()
+                for r in rows:
+                    cc = r[2]
+                    if not cc:
+                        continue
+                    new_rec = {
+                        "id": str(r[0]),
+                        "location_name": r[1],
+                        "camera_code": r[2],
+                        "total_vehicles": int(r[3]),
+                        "bikes": int(r[4]),
+                        "economy": int(r[5]),
+                        "premium": int(r[6]),
+                        "luxury": int(r[7]),
+                        "ultra_luxury": int(r[8]),
+                        "commercial": int(r[9]),
+                        "avg_exposure_time": float(r[10]),
+                        "max_exposure_time": float(r[11]),
+                        "estimated_reach": int(r[12]),
+                        "flow_rate": float(r[13]),
+                        "peak_traffic_hour": r[14],
+                        "is_live": r[15],
+                        "last_updated": r[16].isoformat() if r[16] else None
+                    }
+                    last_rec = traffic_manager.last_records.get(cc)
+                    if (not last_rec or 
+                        last_rec.get("total_vehicles") != new_rec.get("total_vehicles") or 
+                        last_rec.get("last_updated") != new_rec.get("last_updated")):
+                        traffic_manager.last_records[cc] = new_rec
+                        traffic_manager.broadcast(cc, new_rec)
+        except Exception as e:
+            logger.error(f"Error in traffic database poll: {e}")
+        await asyncio.sleep(3.0)
+
+@app.on_event("startup")
+async def startup_event():
+    traffic_manager.polling_task = asyncio.create_task(poll_traffic_db())
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    traffic_manager.is_running = False
+    if traffic_manager.polling_task:
+        traffic_manager.polling_task.cancel()
+
+async def verify_admin(authorization: str = Header(None)) -> str:
+    """
+    Authenticates bearer token with Supabase and checks admin permission in admins table.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header.")
+    
+    token = authorization.split("Bearer ")[1]
+    supabase_url = os.getenv("SUPABASE_URL", "https://buqtshfptmqieaqcghfx.supabase.co")
+    
+    # 1. Fetch user profile from Supabase Auth
+    async with httpx.AsyncClient() as client:
+        res = await client.get(
+            f"{supabase_url}/auth/v1/user",
+            headers={"Authorization": f"Bearer {token}", "apikey": os.getenv("SUPABASE_KEY")}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid Supabase authentication token.")
+        
+        user_data = res.json()
+        user_id = user_data.get("id")
+        user_email = user_data.get("email", "")
+
+    # 2. Bypass check for developer admin
+    if user_email.lower() == "developer@aculion.com":
+        return user_id
+
+    # 3. Check if user is in public.admins table
+    with engine.connect() as conn:
+        admin_row = conn.execute(
+            text("SELECT 1 FROM public.admins WHERE id = :admin_id"),
+            {"admin_id": user_id}
+        ).fetchone()
+        if not admin_row:
+            raise HTTPException(status_code=403, detail="Access denied: Administrator privileges required.")
+            
+    return user_id
+
+@app.post("/api/v1/admin/create-user")
+async def admin_create_user(req: AdminCreateUserRequest, admin_id: str = Depends(verify_admin)):
+    """
+    Secure endpoint for admins to create owner/brand users.
+    Calls Supabase Auth Admin API and inserts corresponding profile details.
+    """
+    supabase_url = os.getenv("SUPABASE_URL", "https://buqtshfptmqieaqcghfx.supabase.co")
+    supabase_key = os.getenv("SUPABASE_KEY") # service-role key
+    
+    if not supabase_key:
+        raise HTTPException(status_code=500, detail="Supabase service role key is not configured on backend.")
+
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            f"{supabase_url}/auth/v1/admin/users",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "email": req.email,
+                "password": req.password,
+                "email_confirm": True,
+                "user_metadata": {
+                    "owner_name": req.owner_name,
+                    "company_name": req.company_name,
+                    "role": req.role
+                }
+            }
+        )
+        
+        if res.status_code >= 400:
+            logger.error(f"Supabase user creation failed: {res.text}")
+            detail = res.json().get("msg", "Failed to create user in Supabase.")
+            raise HTTPException(status_code=res.status_code, detail=detail)
+            
+        user_data = res.json()
+        new_uuid = user_data.get("id")
+
+        # IMPORTANT: The DB trigger `on_auth_user_created` ALWAYS inserts into
+        # billboard_owners when any new user is added to auth.users.
+        # For Brand Advertisers, we must:
+        #   1. Delete the auto-created billboard_owners row
+        #   2. Insert the correct row into brand_partners
+        with engine.begin() as conn:
+            if req.role == "Brand Advertiser":
+                # Step 1: Remove the auto-created billboard_owners row from the trigger
+                conn.execute(
+                    text("DELETE FROM public.billboard_owners WHERE id = :uid"),
+                    {"uid": new_uuid}
+                )
+                # Step 2: Insert the brand details into brand_partners
+                conn.execute(
+                    text("""
+                        INSERT INTO public.brand_partners (
+                            id, campaign_title, company_name, brand_user_name,
+                            contact_email, industry_category, phone_number, target_coverage_range
+                        ) VALUES (
+                            :id, :campaign_title, :company_name, :brand_user_name,
+                            :contact_email, :industry_category, :phone_number, :target_coverage_range
+                        ) ON CONFLICT (id) DO UPDATE SET
+                            campaign_title = EXCLUDED.campaign_title,
+                            company_name = EXCLUDED.company_name,
+                            brand_user_name = EXCLUDED.brand_user_name,
+                            industry_category = EXCLUDED.industry_category,
+                            phone_number = EXCLUDED.phone_number,
+                            target_coverage_range = EXCLUDED.target_coverage_range;
+                    """),
+                    {
+                        "id": new_uuid,
+                        "campaign_title": req.campaign_title or req.company_name or "New Campaign",
+                        "company_name": req.company_name,
+                        "brand_user_name": req.brand_user_name or req.owner_name,
+                        "contact_email": req.email,
+                        "industry_category": req.industry_category or "Retail & FMCG",
+                        "phone_number": req.phone_number or "+91 98765 00000",
+                        "target_coverage_range": req.target_coverage_range or "Chennai Network"
+                    }
+                )
+            else:
+                # Media Owner — the trigger already inserted into billboard_owners.
+                # Just UPDATE with the correct company_name and role from the request.
+                conn.execute(
+                    text("""
+                        INSERT INTO public.billboard_owners (
+                            id, owner_name, company_name, email, role
+                        ) VALUES (
+                            :id, :owner_name, :company_name, :email, 'owner'
+                        ) ON CONFLICT (id) DO UPDATE SET
+                            owner_name = EXCLUDED.owner_name,
+                            company_name = EXCLUDED.company_name,
+                            email = EXCLUDED.email;
+                    """),
+                    {
+                        "id": new_uuid,
+                        "owner_name": req.owner_name,
+                        "company_name": req.company_name,
+                        "email": req.email
+                    }
+                )
+
+        return {"success": True, "user": user_data}
+
+@app.get("/traffic/cameras", response_model=List[CameraInfo])
+def get_cameras():
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT DISTINCT camera_code, location_name
+                FROM public.traffic_demo_master;
+            """)).fetchall()
+            return [
+                {"camera_code": r[0], "location_name": r[1] or r[0]}
+                for r in rows if r[0]
+            ]
+    except Exception as e:
+        logger.error(f"Error fetching cameras: {e}")
+        return []
+
+@app.get("/traffic/latest", response_model=TrafficRecord)
+def get_latest_traffic(camera_code: str = Query(..., description="Camera code to filter by")):
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(text("""
+                SELECT id, location_name, camera_code, total_vehicles, bikes, economy, premium, luxury, ultra_luxury, commercial, avg_exposure_time, max_exposure_time, estimated_reach, flow_rate, peak_traffic_hour, is_live, last_updated, created_at
+                FROM public.traffic_demo_master
+                WHERE camera_code = :cc
+                ORDER BY last_updated DESC
+                LIMIT 1;
+            """), {"cc": camera_code}).fetchone()
+            
+            if not row:
+                raise HTTPException(status_code=404, detail=f"No traffic record found for camera {camera_code}")
+                
+            return {
+                "id": str(row[0]),
+                "location_name": row[1],
+                "camera_code": row[2],
+                "total_vehicles": row[3],
+                "bikes": row[4],
+                "economy": row[5],
+                "premium": row[6],
+                "luxury": row[7],
+                "ultra_luxury": row[8],
+                "commercial": row[9],
+                "avg_exposure_time": float(row[10]),
+                "max_exposure_time": float(row[11]),
+                "estimated_reach": row[12],
+                "flow_rate": float(row[13]),
+                "peak_traffic_hour": row[14],
+                "is_live": row[15],
+                "last_updated": row[16].isoformat() if row[16] else None,
+                "created_at": row[17].isoformat() if row[17] else None
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching latest traffic for {camera_code}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/traffic/stream")
+async def traffic_stream(request: Request, camera_code: Optional[str] = Query(None, description="Optional camera code filter")):
+    q = asyncio.Queue()
+    traffic_manager.register(q)
+    
+    async def event_generator():
+        try:
+            # Yield initial snapshot if camera_code is specified
+            if camera_code:
+                latest = traffic_manager.last_records.get(camera_code)
+                if latest:
+                    yield f"data: {json.dumps(latest)}\n\n"
+            
+            # Streaming loop
+            while True:
+                if await request.is_disconnected():
+                    break
+                
+                try:
+                    cc, msg = await asyncio.wait_for(q.get(), timeout=1.0)
+                    if not camera_code or cc == camera_code:
+                        yield f"data: {json.dumps(msg)}\n\n"
+                except asyncio.TimeoutError:
+                    # Keep-alive event
+                    yield ": keep-alive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            traffic_manager.unregister(q)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

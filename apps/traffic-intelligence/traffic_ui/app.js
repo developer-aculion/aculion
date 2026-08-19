@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             estimatedReach: 42500,
             flowRate: 84.5,
             accuracy: 98.7,
-            
+
             // Vehicle breakdown
             classes: {
                 economy: { name: 'Economy', count: 8420, pct: 52, color: '#1E88FF' },
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 bikes: { name: 'Bikes', count: 4760, pct: 29, color: '#10B981' },
                 commercial: { name: 'Commercial', count: 1980, pct: 12, color: '#F97316' }
             },
-            
+
             // Dwell time breakdown
             dwellStats: {
                 avg: 14.8,
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         },
-        
+
         // Active Filters
         filters: {
             location: 'broadway-42',
@@ -55,11 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
             density: 'all',
             weather: 'all'
         },
-        
+
         // Dynamic Simulation Speed multiplier
         simulationSpeed: 1.0,
         spawnChance: 0.035, // Probability of spawning a vehicle per frame
-        
+
         // Chart Instances
         charts: {}
     };
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetFiltersBtn: document.getElementById('resetFiltersBtn'),
         refreshBtn: document.getElementById('refreshBtn'),
         exportBtn: document.getElementById('exportBtn'),
-        
+
         // Selectors
         headerLocationSelect: document.getElementById('headerLocationSelect'),
         filterLocation: document.getElementById('filterLocation'),
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filterDayType: document.getElementById('filterDayType'),
         filterDensity: document.getElementById('filterDensity'),
         filterWeather: document.getElementById('filterWeather'),
-        
+
         // Checkboxes
         catEconomy: document.getElementById('catEconomy'),
         catPremium: document.getElementById('catPremium'),
@@ -91,14 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
         catUltra: document.getElementById('catUltra'),
         catBikes: document.getElementById('catBikes'),
         catCommercial: document.getElementById('catCommercial'),
-        
+
         // KPI values
         kpiVehicles: document.getElementById('kpi-vehicles-value'),
         kpiDwell: document.getElementById('kpi-dwell-value'),
         kpiPeak: document.getElementById('kpi-peak-value'),
         kpiReach: document.getElementById('kpi-reach-value'),
         kpiFlow: document.getElementById('kpi-flow-value'),
-        
+
         // Class counts and bars
         counts: {
             economy: document.getElementById('count-economy'),
@@ -124,20 +124,20 @@ document.addEventListener('DOMContentLoaded', () => {
             bikes: document.getElementById('bar-bikes'),
             commercial: document.getElementById('bar-commercial')
         },
-        
+
         // Dwell Stats
         dwellAvg: document.getElementById('dwell-stat-avg'),
         dwellMax: document.getElementById('dwell-stat-max'),
         dwellMin: document.getElementById('dwell-stat-min'),
         dwellMedian: document.getElementById('dwell-stat-median'),
         dwellMedianBox: document.getElementById('dwell-stat-median-box'),
-        
+
         // Dwell Periods
         dwellMorning: document.getElementById('dwell-period-morning'),
         dwellAfternoon: document.getElementById('dwell-period-afternoon'),
         dwellEvening: document.getElementById('dwell-period-evening'),
         dwellNight: document.getElementById('dwell-period-night'),
-        
+
         // Metadata & Timestamp
         lastUpdatedTime: document.getElementById('lastUpdatedTime'),
         hudTime: document.getElementById('hudTime'),
@@ -145,10 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cctvCamId: document.getElementById('cctvCamId'),
         cctvFps: document.getElementById('cctvFps'),
         cctvConfidence: document.getElementById('cctvConfidence'),
-        
+
         // Heatmap
         densityHeatmap: document.getElementById('densityHeatmap'),
-        
+
         // Canvas
         canvas: document.getElementById('cctvCanvas')
     };
@@ -177,11 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateLocationConfig(locationVal) {
         state.filters.location = locationVal;
-        
+
         if (window.syncHeaderDropdown) {
             window.syncHeaderDropdown(locationVal);
         }
-        
+
         // Update CCTV camera ID display
         if (elements.cctvCamId) {
             const dropdown = document.getElementById('locationDropdown');
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const labelText = activeItem ? activeItem.querySelector('.item-text').textContent : locationVal;
             elements.cctvCamId.textContent = `Camera ID: ${labelText}`;
         }
-        
+
         // Trigger live fetch and realtime subscribe
         fetchLatestData(locationVal);
         connectToSSE(locationVal);
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Filters Submission ---
     elements.applyFiltersBtn.addEventListener('click', () => {
         elements.sidebar.classList.remove('active');
-        
+
         // Grab values
         state.filters.location = elements.filterLocation.value;
         state.filters.roadType = elements.filterRoadType.value;
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.filterDayType.value = 'all';
         elements.filterDensity.value = 'all';
         elements.filterWeather.value = 'all';
-        
+
         elements.catEconomy.checked = true;
         elements.catPremium.checked = true;
         elements.catLuxury.checked = true;
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderHeatTimeline() {
         elements.densityHeatmap.innerHTML = '';
         const hours = ['6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
-        
+
         // We will generate hours from 6 AM to 10 PM in 1-hour increments
         // 6AM to 10PM is 16 slots.
         const totalSlots = 17;
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Shades of Electric Blue: background opacity represents density
             block.style.backgroundColor = `rgba(30, 136, 255, ${densityMult})`;
             block.style.borderTop = `2px solid rgba(0, 240, 255, ${densityMult * 0.5})`;
-            
+
             // Only show labels on alternate/specific intervals to avoid congestion
             if (i % 2 === 0) {
                 const label = document.createElement('span');
@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const baseTime = new Date();
         baseTime.setMinutes(0);
         baseTime.setSeconds(0);
-        
+
         // 10 historical hourly coordinates
         for (let i = 9; i >= 0; i--) {
             const d = new Date(baseTime.getTime() - i * 60 * 1000 * 15); // 15 min intervals
@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshCharts() {
         const classes = state.stats.classes;
-        
+
         // Donut update
         if (state.charts.donut) {
             state.charts.donut.updateSeries([
@@ -727,7 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sparklines update slightly
         if (state.charts.sparkVehicles) {
             let data = state.charts.sparkVehicles.w.config.series[0].data;
-            data.push(Math.round(data[data.length-1] * (0.95 + Math.random()*0.1)));
+            data.push(Math.round(data[data.length - 1] * (0.95 + Math.random() * 0.1)));
             if (data.length > 12) data.shift();
             state.charts.sparkVehicles.updateSeries([{ data: data }]);
         }
@@ -736,11 +736,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CCTV Live Canvas Simulation ---
     const canvas = elements.canvas;
     const ctx = canvas ? canvas.getContext('2d') : null;
-    
+
     let vehicles = [];
     let detectionTriggered = false;
     let detectionTriggerTimer = 0;
-    
+
     // FPS tracking variables
     let lastFpsUpdateTime = 0;
     let frameCount = 0;
@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.scale = 0.15;
             this.opacity = 0;
             this.detected = false;
-            
+
             // Lane mapping (three lanes diverging in perspective)
             this.lane = Math.floor(Math.random() * 3); // 0 = left, 1 = middle, 2 = right
             this.speed = 1.6 + Math.random() * 1.5;
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
         update() {
             // Move vehicle down the street perspective
             this.y += this.speed * state.simulationSpeed;
-            
+
             // Perspective calculations
             // As y goes from 70 to 360:
             const ratio = (this.y - 70) / (360 - 70);
@@ -788,7 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dimensions scaled
             const width = 85 * this.scale;
             const height = 55 * this.scale;
-            
+
             // Neon tracking color
             let color = 'rgba(30, 136, 255, 0.7)'; // electric blue default
             if (this.detected) {
@@ -799,42 +799,42 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.lineWidth = Math.max(1, 2 * this.scale);
 
             // 1. Draw detection bounding box
-            ctx.strokeRect(this.x - width/2, this.y - height/2, width, height);
+            ctx.strokeRect(this.x - width / 2, this.y - height / 2, width, height);
 
             // 2. Draw HUD bounding corners
             const len = 8 * this.scale;
             ctx.beginPath();
             // Top-left
-            ctx.moveTo(this.x - width/2 + len, this.y - height/2);
-            ctx.lineTo(this.x - width/2, this.y - height/2);
-            ctx.lineTo(this.x - width/2, this.y - height/2 + len);
+            ctx.moveTo(this.x - width / 2 + len, this.y - height / 2);
+            ctx.lineTo(this.x - width / 2, this.y - height / 2);
+            ctx.lineTo(this.x - width / 2, this.y - height / 2 + len);
             // Top-right
-            ctx.moveTo(this.x + width/2 - len, this.y - height/2);
-            ctx.lineTo(this.x + width/2, this.y - height/2);
-            ctx.lineTo(this.x + width/2, this.y - height/2 + len);
+            ctx.moveTo(this.x + width / 2 - len, this.y - height / 2);
+            ctx.lineTo(this.x + width / 2, this.y - height / 2);
+            ctx.lineTo(this.x + width / 2, this.y - height / 2 + len);
             // Bottom-left
-            ctx.moveTo(this.x - width/2 + len, this.y + height/2);
-            ctx.lineTo(this.x - width/2, this.y + height/2);
-            ctx.lineTo(this.x - width/2, this.y + height/2 - len);
+            ctx.moveTo(this.x - width / 2 + len, this.y + height / 2);
+            ctx.lineTo(this.x - width / 2, this.y + height / 2);
+            ctx.lineTo(this.x - width / 2, this.y + height / 2 - len);
             // Bottom-right
-            ctx.moveTo(this.x + width/2 - len, this.y + height/2);
-            ctx.lineTo(this.x + width/2, this.y + height/2);
-            ctx.lineTo(this.x + width/2, this.y + height/2 - len);
+            ctx.moveTo(this.x + width / 2 - len, this.y + height / 2);
+            ctx.lineTo(this.x + width / 2, this.y + height / 2);
+            ctx.lineTo(this.x + width / 2, this.y + height / 2 - len);
             ctx.stroke();
 
             // 3. Draw classification tag
             ctx.fillStyle = color;
             ctx.font = `bold ${Math.max(8, Math.round(11 * this.scale))}px monospace`;
-            
+
             // Emoji map
             const emojis = { economy: '🚗', premium: '🚙', luxury: '🏎', ultra: '👑', bikes: '🏍', commercial: '🚚' };
             const tagText = `${emojis[this.type]} ID:${this.id} [${this.confidence}%]`;
-            ctx.fillText(tagText, this.x - width/2, this.y - height/2 - 4);
+            ctx.fillText(tagText, this.x - width / 2, this.y - height / 2 - 4);
 
             // 4. Bounding vector trailing line
             ctx.beginPath();
-            ctx.moveTo(this.x, this.y + height/2);
-            ctx.lineTo(this.x, this.y + height/2 + 10 * this.scale);
+            ctx.moveTo(this.x, this.y + height / 2);
+            ctx.lineTo(this.x, this.y + height / 2 + 10 * this.scale);
             ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
             ctx.stroke();
 
@@ -868,7 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i <= canvas.width; i += 40) {
                 ctx.beginPath();
                 ctx.moveTo(i, canvas.height);
-                ctx.lineTo(320 + (i - 320)*0.1, 70); // Horizon focus point
+                ctx.lineTo(320 + (i - 320) * 0.1, 70); // Horizon focus point
                 ctx.stroke();
             }
 
@@ -893,11 +893,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
             ctx.setLineDash([8, 12]);
             ctx.lineWidth = 2;
-            
+
             // Left lane divider
             ctx.beginPath();
             ctx.moveTo(320 - 15, 70);
-            ctx.lineTo( canvas.width / 2 - 120, canvas.height);
+            ctx.lineTo(canvas.width / 2 - 120, canvas.height);
             ctx.stroke();
 
             // Right lane divider
@@ -956,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     vehicle.detected = true;
                     detectionTriggered = true;
                     detectionTriggerTimer = 10; // flash frame count
-                    
+
                     // Trigger global stat increments (disabled locally, driven by SSE realtime)
                     // incrementVehicleCounters(vehicle.type);
                 }
@@ -990,10 +990,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Increment primary counters
         state.stats.totalVehicles++;
         state.stats.estimatedReach += Math.floor(1 + Math.random() * 2); // average 1.5 reach multiplier
-        
+
         // Micro flow-rate adjustments
         state.stats.flowRate = +(84.5 + (Math.random() - 0.5) * 2).toFixed(1);
-        
+
         // Accuracy stays high
         state.stats.accuracy = +(98.5 + Math.random() * 0.4).toFixed(1);
 
@@ -1034,17 +1034,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Every 5 seconds, append a new data point to the Traffic Trend chart to create live scrolling
     setInterval(() => {
         if (!state.charts.trendLine) return;
-        
+
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
+
         const classes = state.stats.classes;
         const trend = state.charts.trendLine;
-        
+
         // Grab current categories
         const seriesData = trend.w.config.series;
         const newCats = [...trend.w.config.xaxis.categories];
-        
+
         newCats.push(timeStr);
         if (newCats.length > 10) newCats.shift();
 
@@ -1088,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUIElements();
     initCctvSimulation();
     initClassifCamera();
-    
+
     // --- Live Supabase Realtime Integration ---
     let sseSource = null;
 
@@ -1096,10 +1096,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sseSource) {
             sseSource.close();
         }
-        
+
         const indicator = document.getElementById('connectionStatusIndicator');
         const statusText = document.getElementById('connectionStatusText');
-        
+
         function setStatus(stateName) {
             if (!indicator || !statusText) return;
             indicator.className = 'status-indicator ' + stateName;
@@ -1111,19 +1111,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText.textContent = 'Disconnected';
             }
         }
-        
+
         setStatus('reconnecting');
-        
+
         sseSource = new EventSource(`http://localhost:8090/traffic/stream?camera_code=${cameraCode}`);
-        
+
         sseSource.onopen = () => {
             setStatus('connected');
         };
-        
+
         sseSource.onerror = () => {
             setStatus('disconnected');
         };
-        
+
         sseSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -1147,14 +1147,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDashboardWithLiveData(data) {
         if (!data) return;
-        
+
         // Map fields
         state.stats.totalVehicles = data.total_vehicles || 0;
         state.stats.avgDwellTime = data.avg_exposure_time || 0.0;
         state.stats.peakHour = data.peak_traffic_hour || 'N/A';
         state.stats.estimatedReach = data.estimated_reach || 0;
         state.stats.flowRate = data.flow_rate || 0.0;
-        
+
         // Vehicle breakdown
         state.stats.classes.economy.count = data.economy || 0;
         state.stats.classes.premium.count = data.premium || 0;
@@ -1162,19 +1162,19 @@ document.addEventListener('DOMContentLoaded', () => {
         state.stats.classes.ultra.count = data.ultra_luxury || 0;
         state.stats.classes.bikes.count = data.bikes || 0;
         state.stats.classes.commercial.count = data.commercial || 0;
-        
+
         // Calculate percentages dynamically from total_vehicles
         const total = data.total_vehicles || 1;
         Object.keys(state.stats.classes).forEach(key => {
             const count = state.stats.classes[key].count;
             state.stats.classes[key].pct = Math.round((count / total) * 100);
         });
-        
+
         if (state.stats.dwellStats) {
             state.stats.dwellStats.avg = data.avg_exposure_time || 0.0;
             state.stats.dwellStats.max = data.max_exposure_time || 0.0;
         }
-        
+
         // Indian Comma Format Helper
         function formatIndianNumber(num) {
             if (num === undefined || num === null) return "0";
@@ -1186,13 +1186,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
         }
-        
+
         elements.kpiVehicles.textContent = formatIndianNumber(state.stats.totalVehicles);
         elements.kpiDwell.textContent = `${state.stats.avgDwellTime.toFixed(1)} sec`;
         elements.kpiReach.textContent = formatIndianNumber(state.stats.estimatedReach);
         elements.kpiFlow.textContent = `${state.stats.flowRate.toFixed(1)} / min`;
         elements.kpiPeak.textContent = state.stats.peakHour;
-        
+
         // Update list values and progress bars
         Object.keys(state.stats.classes).forEach(key => {
             const cData = state.stats.classes[key];
@@ -1206,18 +1206,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.bars[key].style.width = `${cData.pct}%`;
             }
         });
-        
+
         // Update timestamp
         if (elements.lastUpdatedTime) {
             const updatedDate = data.last_updated ? new Date(data.last_updated) : new Date();
             elements.lastUpdatedTime.textContent = `Last updated: ${updatedDate.toLocaleTimeString()}`;
         }
-        
+
         if (elements.hudTime) {
             const updatedDate = data.last_updated ? new Date(data.last_updated) : new Date();
             elements.hudTime.textContent = updatedDate.toISOString().replace('T', ' ').substring(0, 19);
         }
-        
+
         // Refresh charts
         if (state.charts.donut) {
             state.charts.donut.updateSeries([
@@ -1229,17 +1229,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.stats.classes.commercial.count
             ]);
         }
-        
+
         if (state.charts.trendLine) {
             const seriesData = state.charts.trendLine.w.config.series;
             const newCats = [...state.charts.trendLine.w.config.xaxis.categories];
-            
+
             const now = data.last_updated ? new Date(data.last_updated) : new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            
+
             newCats.push(timeStr);
             if (newCats.length > 10) newCats.shift();
-            
+
             const classMapping = {
                 'Economy': state.stats.classes.economy.count,
                 'Premium': state.stats.classes.premium.count,
@@ -1248,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Bikes': state.stats.classes.bikes.count,
                 'Commercial': state.stats.classes.commercial.count
             };
-            
+
             const updatedSeries = seriesData.map(series => {
                 const seriesDataPoints = [...series.data];
                 seriesDataPoints.push(classMapping[series.name] || 0);
@@ -1258,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: seriesDataPoints
                 };
             });
-            
+
             state.charts.trendLine.updateOptions({
                 xaxis: { categories: newCats },
                 series: updatedSeries
@@ -1269,27 +1269,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearDashboardMetrics() {
         const selectedText = document.getElementById('selectedLocationText');
         if (selectedText) selectedText.textContent = "No active cameras";
-        
+
         if (elements.cctvCamId) {
             elements.cctvCamId.textContent = "Camera ID: None";
         }
-        
+
         if (elements.kpiVehicles) elements.kpiVehicles.textContent = "0";
         if (elements.kpiDwell) elements.kpiDwell.textContent = "0.0 sec";
         if (elements.kpiReach) elements.kpiReach.textContent = "0";
         if (elements.kpiFlow) elements.kpiFlow.textContent = "0.0 / min";
         if (elements.kpiPeak) elements.kpiPeak.textContent = "N/A";
-        
+
         Object.keys(state.stats.classes).forEach(key => {
             if (elements.counts && elements.counts[key]) elements.counts[key].textContent = "0";
             if (elements.pcts && elements.pcts[key]) elements.pcts[key].textContent = "0%";
             if (elements.bars && elements.bars[key]) elements.bars[key].style.width = "0%";
         });
-        
+
         if (state.charts && state.charts.donut) {
             state.charts.donut.updateSeries([0, 0, 0, 0, 0, 0]);
         }
-        
+
         if (state.charts && state.charts.trendLine) {
             const seriesData = state.charts.trendLine.w.config.series;
             const updatedSeries = seriesData.map(series => ({
@@ -1308,11 +1308,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('http://localhost:8090/traffic/cameras');
             if (!response.ok) throw new Error("Failed to fetch cameras");
             const cameras = await response.json();
-            
+
             const dropdownMenu = document.getElementById('locationDropdownMenu');
             const hiddenSelect = document.getElementById('headerLocationSelect');
             const filterLocation = document.getElementById('filterLocation');
-            
+
             if (dropdownMenu) {
                 dropdownMenu.innerHTML = '';
                 cameras.forEach((cam, index) => {
@@ -1327,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dropdownMenu.appendChild(item);
                 });
             }
-            
+
             if (hiddenSelect) {
                 hiddenSelect.innerHTML = '';
                 cameras.forEach(cam => {
@@ -1337,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hiddenSelect.appendChild(opt);
                 });
             }
-            
+
             if (filterLocation) {
                 filterLocation.innerHTML = '';
                 cameras.forEach(cam => {
@@ -1347,10 +1347,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     filterLocation.appendChild(opt);
                 });
             }
-            
+
             lucide.createIcons();
             setupDropdownItemListeners();
-            
+
             if (cameras.length > 0) {
                 const firstCam = cameras[0].camera_code;
                 const firstText = `${cameras[0].location_name} (${cameras[0].camera_code})`;
@@ -1371,13 +1371,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const items = dropdown.querySelectorAll('.custom-dropdown-item');
         const selectedText = document.getElementById('selectedLocationText');
         const hiddenSelect = document.getElementById('headerLocationSelect');
-        
+
         items.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const val = item.getAttribute('data-value');
                 const text = item.querySelector('.item-text').textContent;
-                
+
                 items.forEach(i => {
                     i.classList.remove('active');
                     const check = i.querySelector('.item-check');
@@ -1386,14 +1386,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.classList.add('active');
                 const itemCheck = item.querySelector('.item-check');
                 if (itemCheck) itemCheck.style.display = '';
-                
+
                 selectedText.textContent = text;
-                
+
                 if (hiddenSelect) {
                     hiddenSelect.value = val;
                     hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-                
+
                 dropdown.classList.remove('open');
                 document.getElementById('locationDropdownToggle').setAttribute('aria-expanded', 'false');
             });
@@ -1477,7 +1477,7 @@ function initCustomDropdowns() {
     });
 
     // Sync header dropdown text & selection state externally
-    window.syncHeaderDropdown = function(val) {
+    window.syncHeaderDropdown = function (val) {
         items.forEach(i => {
             if (i.getAttribute('data-value') === val) {
                 i.classList.add('active');
@@ -1493,19 +1493,19 @@ function initCustomDropdowns() {
    AI Camera Feed – Classification Panel Simulation
    ============================================================ */
 function initClassifCamera() {
-    const canvas  = document.getElementById('classifyCctvCanvas');
+    const canvas = document.getElementById('classifyCctvCanvas');
     if (!canvas) return;
-    const ctx     = canvas.getContext('2d');
-    const W       = canvas.width;   // 960
-    const H       = canvas.height;  // 420
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;   // 960
+    const H = canvas.height;  // 420
 
     // Class colour palette (hex)
     const classColors = {
-        economy:    '#1E88FF',
-        premium:    '#00C4FF',
-        luxury:     '#8B5CF6',
-        ultra:      '#F59E0B',
-        bikes:      '#10B981',
+        economy: '#1E88FF',
+        premium: '#00C4FF',
+        luxury: '#8B5CF6',
+        ultra: '#F59E0B',
+        bikes: '#10B981',
         commercial: '#F97316'
     };
 
@@ -1517,10 +1517,10 @@ function initClassifCamera() {
     // Weighted spawn probabilities (mirror main simulation)
     function randomClass() {
         const r = Math.random() * 100;
-        if (r < 52)  return 'economy';
-        if (r < 81)  return 'bikes';
-        if (r < 94)  return 'premium';
-        if (r < 99)  return 'commercial';
+        if (r < 52) return 'economy';
+        if (r < 81) return 'bikes';
+        if (r < 94) return 'premium';
+        if (r < 99) return 'commercial';
         if (r < 99.8) return 'luxury';
         return 'ultra';
     }
@@ -1530,16 +1530,16 @@ function initClassifCamera() {
         constructor() { this.reset(true); }
 
         reset(initial = false) {
-            this.lane   = Math.floor(Math.random() * 4);   // 4 lanes
-            this.type   = randomClass();
-            this.color  = classColors[this.type];
-            this.label  = classLabels[this.type];
-            this.id     = 'V' + Math.floor(Math.random() * 9000 + 1000);
-            this.conf   = 96 + Math.floor(Math.random() * 4);
-            this.speed  = 0.6 + Math.random() * 1.4;
+            this.lane = Math.floor(Math.random() * 4);   // 4 lanes
+            this.type = randomClass();
+            this.color = classColors[this.type];
+            this.label = classLabels[this.type];
+            this.id = 'V' + Math.floor(Math.random() * 9000 + 1000);
+            this.conf = 96 + Math.floor(Math.random() * 4);
+            this.speed = 0.6 + Math.random() * 1.4;
             // Width / height in pixels (top-down silhouette)
-            this.bw     = this.type === 'commercial' ? 44 : this.type === 'bikes' ? 16 : 30;
-            this.bh     = this.type === 'commercial' ? 80 : this.type === 'bikes' ? 40 : 54;
+            this.bw = this.type === 'commercial' ? 44 : this.type === 'bikes' ? 16 : 30;
+            this.bh = this.type === 'commercial' ? 80 : this.type === 'bikes' ? 40 : 54;
 
             const laneW = W / 4;
             this.x = laneW * this.lane + laneW / 2;
@@ -1553,13 +1553,13 @@ function initClassifCamera() {
         }
 
         draw(ctx) {
-            const hex   = this.color;
+            const hex = this.color;
             const alpha = this.opacity;
 
             // Parse hex to rgba helper
-            const r = parseInt(hex.slice(1,3),16);
-            const g = parseInt(hex.slice(3,5),16);
-            const b = parseInt(hex.slice(5,7),16);
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
 
             // Vehicle body (rounded rect)
             ctx.save();
@@ -1567,51 +1567,51 @@ function initClassifCamera() {
 
             // Soft glow behind box
             ctx.shadowColor = `rgba(${r},${g},${b},0.6)`;
-            ctx.shadowBlur  = 12;
+            ctx.shadowBlur = 12;
 
             // Body fill
             ctx.fillStyle = `rgba(${r},${g},${b},0.18)`;
-            roundRect(ctx, this.x - this.bw/2, this.y - this.bh/2, this.bw, this.bh, 5);
+            roundRect(ctx, this.x - this.bw / 2, this.y - this.bh / 2, this.bw, this.bh, 5);
             ctx.fill();
 
             // Bounding box border
             ctx.shadowBlur = 0;
             ctx.strokeStyle = `rgba(${r},${g},${b},0.9)`;
             ctx.lineWidth = 1.5;
-            roundRect(ctx, this.x - this.bw/2, this.y - this.bh/2, this.bw, this.bh, 5);
+            roundRect(ctx, this.x - this.bw / 2, this.y - this.bh / 2, this.bw, this.bh, 5);
             ctx.stroke();
 
             // Corner tick marks
             const tk = 6;
             const corners = [
-                [this.x - this.bw/2, this.y - this.bh/2],
-                [this.x + this.bw/2, this.y - this.bh/2],
-                [this.x + this.bw/2, this.y + this.bh/2],
-                [this.x - this.bw/2, this.y + this.bh/2]
+                [this.x - this.bw / 2, this.y - this.bh / 2],
+                [this.x + this.bw / 2, this.y - this.bh / 2],
+                [this.x + this.bw / 2, this.y + this.bh / 2],
+                [this.x - this.bw / 2, this.y + this.bh / 2]
             ];
-            const dirs = [[1,1],[-1,1],[-1,-1],[1,-1]];
+            const dirs = [[1, 1], [-1, 1], [-1, -1], [1, -1]];
             ctx.strokeStyle = hex;
             ctx.lineWidth = 2;
-            corners.forEach(([cx,cy], i) => {
+            corners.forEach(([cx, cy], i) => {
                 const [ddx, ddy] = dirs[i];
                 ctx.beginPath();
-                ctx.moveTo(cx + ddx*tk, cy);
+                ctx.moveTo(cx + ddx * tk, cy);
                 ctx.lineTo(cx, cy);
-                ctx.lineTo(cx, cy + ddy*tk);
+                ctx.lineTo(cx, cy + ddy * tk);
                 ctx.stroke();
             });
 
             // Label above box
             ctx.shadowBlur = 0;
-            ctx.fillStyle  = hex;
-            ctx.font       = `bold 9px 'Courier New', monospace`;
-            ctx.textAlign  = 'center';
-            const tag = `${this.label} [${this.conf}%]`;
-            const tw  = ctx.measureText(tag).width;
-            ctx.fillStyle = `rgba(0,0,0,0.55)`;
-            ctx.fillRect(this.x - tw/2 - 3, this.y - this.bh/2 - 14, tw + 6, 13);
             ctx.fillStyle = hex;
-            ctx.fillText(tag, this.x, this.y - this.bh/2 - 3);
+            ctx.font = `bold 9px 'Courier New', monospace`;
+            ctx.textAlign = 'center';
+            const tag = `${this.label} [${this.conf}%]`;
+            const tw = ctx.measureText(tag).width;
+            ctx.fillStyle = `rgba(0,0,0,0.55)`;
+            ctx.fillRect(this.x - tw / 2 - 3, this.y - this.bh / 2 - 14, tw + 6, 13);
+            ctx.fillStyle = hex;
+            ctx.fillText(tag, this.x, this.y - this.bh / 2 - 3);
 
             ctx.restore();
         }
@@ -1655,7 +1655,7 @@ function initClassifCamera() {
         ctx.strokeStyle = 'rgba(255,255,255,0.25)';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(1, H); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(W-1, 0); ctx.lineTo(W-1, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W - 1, 0); ctx.lineTo(W - 1, H); ctx.stroke();
 
         // Subtle scanline effect
         for (let sy = 0; sy < H; sy += 4) {
@@ -1678,13 +1678,13 @@ function initClassifCamera() {
     let fpsTimer = 0;
 
     // HUD element refs
-    const hudTime    = document.getElementById('classifHudTime');
-    const hudVeh     = document.getElementById('classifHudVehicles');
-    const hudFps     = document.getElementById('classifHudFps');
-    const infoTotal  = document.getElementById('classifTotalVeh');
-    const infoDwell  = document.getElementById('classifDwell');
-    const infoConf   = document.getElementById('classifConf');
-    const infoSpeed  = document.getElementById('classifSpeed');
+    const hudTime = document.getElementById('classifHudTime');
+    const hudVeh = document.getElementById('classifHudVehicles');
+    const hudFps = document.getElementById('classifHudFps');
+    const infoTotal = document.getElementById('classifTotalVeh');
+    const infoDwell = document.getElementById('classifDwell');
+    const infoConf = document.getElementById('classifConf');
+    const infoSpeed = document.getElementById('classifSpeed');
 
     function loop(now) {
         const dt = now - lastTime;
@@ -1727,15 +1727,15 @@ function initClassifCamera() {
         // Timestamp
         if (hudTime) {
             const d = new Date();
-            hudTime.textContent = d.toISOString().replace('T',' ').substring(0,19);
+            hudTime.textContent = d.toISOString().replace('T', ' ').substring(0, 19);
         }
 
         // Sync info-bar with main state (if available)
         if (typeof state !== 'undefined') {
-            if (infoTotal)  infoTotal.textContent  = state.stats.totalVehicles.toLocaleString();
-            if (infoDwell)  infoDwell.textContent   = `${state.stats.avgDwellTime}s`;
+            if (infoTotal) infoTotal.textContent = state.stats.totalVehicles.toLocaleString();
+            if (infoDwell) infoDwell.textContent = `${state.stats.avgDwellTime}s`;
             const avgSpeed = Math.round(38 + Math.random() * 10);
-            if (infoSpeed)  infoSpeed.textContent   = `${avgSpeed} km/h`;
+            if (infoSpeed) infoSpeed.textContent = `${avgSpeed} km/h`;
         }
 
         requestAnimationFrame(loop);
@@ -1749,7 +1749,7 @@ function initClassifCamera() {
         fsBtn.addEventListener('click', () => {
             const wrapper = document.getElementById('classifCamWrapper');
             if (!document.fullscreenElement) {
-                wrapper.requestFullscreen?.().catch(() => {});
+                wrapper.requestFullscreen?.().catch(() => { });
             } else {
                 document.exitFullscreen?.();
             }

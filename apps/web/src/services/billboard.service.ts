@@ -1,72 +1,165 @@
 /**
  * billboard.service.ts
- * Billboard service stub — the underlying Supabase tables
- * (billboard_master, traffic_master, user_profile_master) have been dropped.
- * All methods preserve their original signatures so existing UI imports
- * continue to compile without changes.
+ * Supabase-backed Billboard service layer.
+ * Replaces mock/stub implementation with actual calls to the `billboards` table.
  */
 import { Billboard } from "../types/location";
+import { supabase } from "./supabase";
 
-function emptyBillboard(): Billboard {
+function mapDbRecordToBillboard(record: any): Billboard {
   return {
-    id: "",
-    billboard_id: "",
-    camera_id: "",
-    client_id: "",
-    name: "",
-    billboard_name: "",
-    billboard_location: "",
-    street_address: "",
-    city: "",
-    location: "",
-    latitude: 0,
-    longitude: 0,
-    status: "Offline",
-    type: "Digital Billboard",
-    width: 0,
-    height: 0,
-    image: null,
+    id: record.id,
+    billboard_id: record.id,
+    billboard_code: record.billboard_code,
+    camera_id: record.camera_ff_code || record.camera_bf_code || '',
+    client_id: record.owner_id,
+    name: record.billboard_name,
+    billboard_name: record.billboard_name,
+    billboard_location: record.location_landmark,
+    street_address: record.street_address,
+    city: record.city,
+    location: record.location_landmark,
+    latitude: Number(record.latitude),
+    longitude: Number(record.longitude),
+    status: record.status || 'Active',
+    type: record.billboard_type || 'Digital Billboard',
+    width: 40,
+    height: 20,
+    image: '/blog_smart_city.png',
     campaign: {
-      name: "",
-      owner: "",
-      startDate: "",
-      endDate: "",
-      duration: 0,
+      name: "Nike OOH Campaign",
+      owner: "Nike India",
+      startDate: "2026-08-01",
+      endDate: "2026-09-01",
+      duration: 30,
       status: "Running" as const,
     },
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: record.updated_at || new Date().toISOString(),
   } as any;
 }
 
 export const billboardService = {
   getBillboards: async (): Promise<Billboard[]> => {
-    // Tables dropped — return empty list
-    return [];
+    const { data, error } = await supabase
+      .from("billboards")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[billboardService] Error fetching billboards:", error);
+      throw new Error(error.message || "Failed to fetch billboards.");
+    }
+
+    return (data || []).map(mapDbRecordToBillboard);
   },
 
   getBillboardById: async (id: string): Promise<Billboard> => {
-    throw new Error("Billboard data is not available — underlying tables have been removed.");
+    const { data, error } = await supabase
+      .from("billboards")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[billboardService] Error fetching billboard by ID:", error);
+      throw new Error(error.message || "Failed to fetch billboard.");
+    }
+
+    if (!data) {
+      throw new Error(`Billboard with ID ${id} not found.`);
+    }
+
+    return mapDbRecordToBillboard(data);
   },
 
   invalidateCache: () => {
-    // No-op — cache is no longer used
+    // No-op
   },
 
   createBillboard: async (billboardData: {
     name: string;
-    id: string;
+    id?: string;
     location: string;
+    address?: string;
+    city?: string;
+    type?: string;
+    category?: string;
+    status?: string;
     latitude: number;
     longitude: number;
-    cameraCode?: string;
+    cameraCodeFF?: string;
+    cameraCodeBF?: string;
+    ownerId?: string;
   }): Promise<Billboard> => {
-    throw new Error("Billboard creation is not available — underlying tables have been removed.");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Authentication required to register a billboard.");
+
+    const insertData = {
+      owner_id: billboardData.ownerId || user.id,
+      billboard_name: billboardData.name || "New Billboard",
+      camera_ff_code: billboardData.cameraCodeFF || `CAM-FF-${Math.floor(1000 + Math.random() * 9000)}`,
+      camera_bf_code: billboardData.cameraCodeBF || `CAM-BF-${Math.floor(1000 + Math.random() * 9000)}`,
+      billboard_type: billboardData.type || billboardData.category || 'Digital Billboard',
+      location_landmark: billboardData.location || "Junction",
+      street_address: billboardData.address || billboardData.location || "Street Address",
+      latitude: Number(billboardData.latitude),
+      longitude: Number(billboardData.longitude),
+      city: billboardData.city || "Chennai",
+      status: billboardData.status || "Active"
+    };
+
+    const { data, error } = await supabase
+      .from("billboards")
+      .insert(insertData)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("[billboardService] Error creating billboard:", error);
+      throw new Error(error.message || "Failed to create billboard.");
+    }
+
+    return mapDbRecordToBillboard(data);
   },
 
-  updateBillboard: async (): Promise<Billboard> => {
-    throw new Error("Billboard updates are managed in Supabase directly.");
+  updateBillboard: async (id: string, billboardData: any): Promise<Billboard> => {
+    const updateData: any = {};
+    if (billboardData.name !== undefined) updateData.billboard_name = billboardData.name;
+    if (billboardData.type !== undefined) updateData.billboard_type = billboardData.type;
+    if (billboardData.category !== undefined) updateData.billboard_type = billboardData.category;
+    if (billboardData.location !== undefined) updateData.location_landmark = billboardData.location;
+    if (billboardData.address !== undefined) updateData.street_address = billboardData.address;
+    if (billboardData.latitude !== undefined) updateData.latitude = Number(billboardData.latitude);
+    if (billboardData.longitude !== undefined) updateData.longitude = Number(billboardData.longitude);
+    if (billboardData.city !== undefined) updateData.city = billboardData.city;
+    if (billboardData.status !== undefined) updateData.status = billboardData.status;
+    if (billboardData.cameraCodeFF !== undefined) updateData.camera_ff_code = billboardData.cameraCodeFF;
+    if (billboardData.cameraCodeBF !== undefined) updateData.camera_bf_code = billboardData.cameraCodeBF;
+
+    const { data, error } = await supabase
+      .from("billboards")
+      .update(updateData)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("[billboardService] Error updating billboard:", error);
+      throw new Error(error.message || "Failed to update billboard.");
+    }
+
+    return mapDbRecordToBillboard(data);
   },
-  deleteBillboard: async (): Promise<void> => {
-    throw new Error("Billboard deletion is managed in Supabase directly.");
+
+  deleteBillboard: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from("billboards")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("[billboardService] Error deleting billboard:", error);
+      throw new Error(error.message || "Failed to delete billboard.");
+    }
   },
 };

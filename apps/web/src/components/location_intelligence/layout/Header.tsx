@@ -52,7 +52,7 @@ export default function Header({
     const lng = parseFloat(lngVal);
     if (!isNaN(lat) && !isNaN(lng)) {
       const delayDebounce = setTimeout(() => {
-        axios.get("http://127.0.0.1:8001/api/v1/area/detect", {
+        axios.get("http://127.0.0.1:8000/api/v1/area/detect", {
           params: { latitude: lat, longitude: lng }
         }).then(res => {
           setDetectedArea(res.data.area);
@@ -81,7 +81,7 @@ export default function Header({
     // If a different area search name was typed by the user, geocode it first!
     if (areaSearch && areaSearch !== detectedArea && areaSearch !== area) {
       try {
-        const res = await axios.get("http://127.0.0.1:8001/api/v1/geocode", {
+        const res = await axios.get("http://127.0.0.1:8000/api/v1/geocode", {
           params: { q: areaSearch }
         });
         const { latitude: newLat, longitude: newLng } = res.data;
@@ -113,7 +113,7 @@ export default function Header({
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md px-4 py-2.5 shrink-0 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
-        
+
         {/* Left Side: Logo */}
         <div className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer">
           <div className="flex flex-col">
@@ -190,11 +190,10 @@ export default function Header({
           {/* Map Pin Picker Trigger */}
           <button
             onClick={() => setIsMapPickingActive(!isMapPickingActive)}
-            className={`flex items-center justify-center gap-1 px-2.5 py-1 border rounded-lg text-xs font-bold transition-all duration-200 shrink-0 ${
-              isMapPickingActive
+            className={`flex items-center justify-center gap-1 px-2.5 py-1 border rounded-lg text-xs font-bold transition-all duration-200 shrink-0 ${isMapPickingActive
                 ? "bg-primary border-primary text-primary-foreground animate-pulse"
                 : "border-border bg-background hover:bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
             title="Click and select a point directly on the interactive map"
           >
             <MapPin size={12} className={isMapPickingActive ? "animate-bounce" : ""} />
