@@ -162,4 +162,21 @@ export const billboardService = {
       throw new Error(error.message || "Failed to delete billboard.");
     }
   },
+
+  getTrafficOverview: async (billboardCode: string): Promise<any> => {
+    const { data, error } = await supabase
+      .from("traffic_overview")
+      .select("*")
+      .eq("billboard_code", billboardCode)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[billboardService] Error fetching traffic overview:", error);
+      throw new Error(error.message || "Failed to fetch traffic overview.");
+    }
+
+    return data;
+  },
 };

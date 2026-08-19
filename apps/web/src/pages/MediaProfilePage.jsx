@@ -780,7 +780,7 @@ export default function MediaProfilePage({
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0e1424] via-transparent to-black/40" />
 
                       <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-[10px] font-bold font-mono bg-black/60 backdrop-blur-md text-cyan-400 border border-blue-500/30">
-                        {billboard.id}
+                        {billboard.billboard_code || billboard.id}
                       </span>
 
                       <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-md text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border ${

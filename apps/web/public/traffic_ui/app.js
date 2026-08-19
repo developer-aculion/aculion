@@ -1,45 +1,114 @@
 // ACULION Traffic Intelligence Dashboard Controller
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Global State & Configuration ---
-    const state = {
-        // Master stats seeded with prompt baseline values
-        stats: {
-            totalVehicles: 18350,
-            avgDwellTime: 14.8,
-            peakHour: '6:00 PM – 7:00 PM',
-            estimatedReach: 42500,
-            flowRate: 84.5,
+    function getDbOrPlaceholderStats() {
+        const stored = localStorage.getItem('aculion_traffic_overview');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data && data.total_vehicles !== undefined) {
+                    return {
+                        totalVehicles: data.total_vehicles,
+                        avgDwellTime: Number(data.avg_exposure_time) || 14.8,
+                        peakHour: data.peak_traffic_hour || '6:00 PM – 7:00 PM',
+                        estimatedReach: data.estimated_reach || 42500,
+                        flowRate: Number(data.flow_rate) || 84.5,
+                        accuracy: 98.7,
+                        classes: {
+                            economy: { name: 'Bike', count: data.bikes || 0, pct: Math.round((data.bikes / data.total_vehicles) * 100) || 0, color: '#1E88FF' },
+                            premium: { name: 'Commercial', count: data.commercial || 0, pct: Math.round((data.commercial / data.total_vehicles) * 100) || 0, color: '#00C4FF' },
+                            luxury: { name: 'Economy', count: data.economy || 0, pct: Math.round((data.economy / data.total_vehicles) * 100) || 0, color: '#8B5CF6' },
+                            ultra: { name: 'Premium', count: data.premium || 0, pct: Math.round((data.premium / data.total_vehicles) * 100) || 0, color: '#F59E0B' },
+                            bikes: { name: 'Luxury', count: data.luxury || 0, pct: Math.round((data.luxury / data.total_vehicles) * 100) || 0, color: '#10B981' },
+                            commercial: { name: 'Ultra Luxury', count: data.ultra_luxury || 0, pct: Math.round((data.ultra_luxury / data.total_vehicles) * 100) || 0, color: '#F97316' }
+                        },
+                        dwellStats: {
+                            avg: Number(data.avg_exposure_time) || 14.8,
+                            max: Number(data.max_exposure_time) || 58.2,
+                            min: 1.5,
+                            median: 12.4,
+                            periods: {
+                                morning: 15.2,
+                                afternoon: 11.6,
+                                evening: 17.4,
+                                night: 9.8
+                            }
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error("Error parsing stored traffic overview:", e);
+            }
+        }
+        
+        // No database data available: set database-backed fields to 0 / N/A,
+        // and keep non-database-backed placeholder fields as their static values.
+        return {
+            totalVehicles: 0,
+            avgDwellTime: 0.0,
+            peakHour: 'N/A',
+            estimatedReach: 0,
+            flowRate: 0.0,
             accuracy: 98.7,
-
-            // Vehicle breakdown
             classes: {
-                economy: { name: 'Bike', count: 4760, pct: 29, color: '#1E88FF' },
-                premium: { name: 'Commercial', count: 1980, pct: 12, color: '#00C4FF' },
-                luxury: { name: 'Economy', count: 8420, pct: 52, color: '#8B5CF6' },
-                ultra: { name: 'Premium', count: 2130, pct: 13, color: '#F59E0B' },
-                bikes: { name: 'Luxury', count: 850, pct: 5, color: '#10B981' },
-                commercial: { name: 'Ultra Luxury', count: 210, pct: 1, color: '#F97316' }
+                economy: { name: 'Bike', count: 0, pct: 0, color: '#1E88FF' },
+                premium: { name: 'Commercial', count: 0, pct: 0, color: '#00C4FF' },
+                luxury: { name: 'Economy', count: 0, pct: 0, color: '#8B5CF6' },
+                ultra: { name: 'Premium', count: 0, pct: 0, color: '#F59E0B' },
+                bikes: { name: 'Luxury', count: 0, pct: 0, color: '#10B981' },
+                commercial: { name: 'Ultra Luxury', count: 0, pct: 0, color: '#F97316' }
             },
-
-            // Dwell time breakdown
             dwellStats: {
-                avg: 14.8,
-                max: 58.2,
-                min: 1.5,
-                median: 12.4,
+                avg: 0.0,
+                max: 0.0,
+                min: 1.5, // Placeholder
+                median: 12.4, // Placeholder
                 periods: {
-                    morning: 15.2,
-                    afternoon: 11.6,
-                    evening: 17.4,
-                    night: 9.8
+                    morning: 15.2, // Placeholder
+                    afternoon: 11.6, // Placeholder
+                    evening: 17.4, // Placeholder
+                    night: 9.8 // Placeholder
                 }
             }
+        };
+    }
+
+    function generateSimulatedData(cameraCode) {
+        return {
+            total_vehicles: 0,
+            avg_exposure_time: 0.0,
+            max_exposure_time: 0.0,
+            peak_traffic_hour: 'N/A',
+            estimated_reach: 0,
+            flow_rate: 0.0,
+            economy: 0,
+            premium: 0,
+            luxury: 0,
+            ultra_luxury: 0,
+            bikes: 0,
+            commercial: 0
+        };
+    }
+
+    const initialSimData = getDbOrPlaceholderStats();
+
+    // --- Global State & Configuration ---
+    const state = {
+        // Master stats seeded with dynamic baseline values
+        stats: {
+            totalVehicles: initialSimData.totalVehicles,
+            avgDwellTime: initialSimData.avgDwellTime,
+            peakHour: initialSimData.peakHour,
+            estimatedReach: initialSimData.estimatedReach,
+            flowRate: initialSimData.flowRate,
+            accuracy: initialSimData.accuracy,
+            classes: initialSimData.classes,
+            dwellStats: initialSimData.dwellStats
         },
 
         // Active Filters
         filters: {
-            location: 'broadway-42',
+            location: 'active-cam',
             roadType: 'all',
             dateRange: 'today',
             categories: {
@@ -1089,56 +1158,96 @@ document.addEventListener('DOMContentLoaded', () => {
     initCctvSimulation();
     initClassifCamera();
 
-    // --- Live Supabase Realtime Integration ---
-    let sseSource = null;
+    // --- Live Simulated Realtime Integration ---
+    let sseInterval = null;
 
     function connectToSSE(cameraCode) {
-        if (sseSource) {
-            sseSource.close();
+        if (sseInterval) {
+            clearInterval(sseInterval);
         }
 
         const indicator = document.getElementById('connectionStatusIndicator');
         const statusText = document.getElementById('connectionStatusText');
 
-        function setStatus(stateName) {
+        function setStatus(stateName, isDb = false) {
             if (!indicator || !statusText) return;
-            indicator.className = 'status-indicator ' + stateName;
             if (stateName === 'connected') {
-                statusText.textContent = 'Connected';
+                indicator.className = 'status-indicator status-online';
+                statusText.textContent = isDb ? 'CONNECTED (DATABASE)' : 'CONNECTED (SIMULATED)';
             } else if (stateName === 'reconnecting') {
-                statusText.textContent = 'Reconnecting';
+                indicator.className = 'status-indicator status-connecting';
+                statusText.textContent = 'CONNECTING...';
             } else {
-                statusText.textContent = 'Disconnected';
+                indicator.className = 'status-indicator status-offline';
+                statusText.textContent = 'DISCONNECTED';
             }
         }
 
         setStatus('reconnecting');
 
-        sseSource = new EventSource(`http://localhost:8090/traffic/stream?camera_code=${cameraCode}`);
-
-        sseSource.onopen = () => {
-            setStatus('connected');
-        };
-
-        sseSource.onerror = () => {
-            setStatus('disconnected');
-        };
-
-        sseSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                updateDashboardWithLiveData(data);
-            } catch (err) {
-                console.error("Error parsing SSE data:", err);
+        setTimeout(() => {
+            const stored = localStorage.getItem('aculion_traffic_overview');
+            if (stored) {
+                try {
+                    const dbData = JSON.parse(stored);
+                    if (dbData && dbData.total_vehicles !== undefined) {
+                        setStatus('connected', true);
+                        const parsedData = {
+                            total_vehicles: dbData.total_vehicles,
+                            avg_exposure_time: Number(dbData.avg_exposure_time) || 0.0,
+                            max_exposure_time: Number(dbData.max_exposure_time) || 0.0,
+                            peak_traffic_hour: dbData.peak_traffic_hour || 'N/A',
+                            estimated_reach: dbData.estimated_reach || 0,
+                            flow_rate: Number(dbData.flow_rate) || 0.0,
+                            economy: dbData.bikes || 0,
+                            premium: dbData.commercial || 0,
+                            luxury: dbData.economy || 0,
+                            ultra_luxury: dbData.premium || 0,
+                            bikes: dbData.luxury || 0,
+                            commercial: dbData.ultra_luxury || 0
+                        };
+                        updateDashboardWithLiveData(parsedData);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Error parsing dynamic SSE data:", e);
+                }
             }
-        };
+
+            setStatus('connected', false);
+            let baseData = generateSimulatedData(cameraCode);
+            updateDashboardWithLiveData(baseData);
+        }, 500);
     }
 
     async function fetchLatestData(cameraCode) {
         try {
-            const response = await fetch(`http://localhost:8090/traffic/latest?camera_code=${cameraCode}`);
-            if (!response.ok) throw new Error("Failed to fetch latest traffic record");
-            const data = await response.json();
+            const stored = localStorage.getItem('aculion_traffic_overview');
+            if (stored) {
+                try {
+                    const dbData = JSON.parse(stored);
+                    if (dbData && dbData.total_vehicles !== undefined) {
+                        const parsedData = {
+                            total_vehicles: dbData.total_vehicles,
+                            avg_exposure_time: Number(dbData.avg_exposure_time) || 0.0,
+                            max_exposure_time: Number(dbData.max_exposure_time) || 0.0,
+                            peak_traffic_hour: dbData.peak_traffic_hour || 'N/A',
+                            estimated_reach: dbData.estimated_reach || 0,
+                            flow_rate: Number(dbData.flow_rate) || 0.0,
+                            economy: dbData.bikes || 0,
+                            premium: dbData.commercial || 0,
+                            luxury: dbData.economy || 0,
+                            ultra_luxury: dbData.premium || 0,
+                            bikes: dbData.luxury || 0,
+                            commercial: dbData.ultra_luxury || 0
+                        };
+                        updateDashboardWithLiveData(parsedData);
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            const data = generateSimulatedData(cameraCode);
             updateDashboardWithLiveData(data);
         } catch (e) {
             console.error("Error fetching latest traffic data:", e);
@@ -1305,9 +1414,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function populateCameraDropdown() {
         try {
-            const response = await fetch('http://localhost:8090/traffic/cameras');
-            if (!response.ok) throw new Error("Failed to fetch cameras");
-            const cameras = await response.json();
+            let cameras = [];
+            const stored = localStorage.getItem('aculion_selected_billboard');
+            if (stored) {
+                try {
+                    const bb = JSON.parse(stored);
+                    cameras = [
+                        { camera_code: bb.camera_id || bb.billboard_code || bb.id || 'CAM-01', location_name: bb.name || bb.billboard_name || 'Billboard' }
+                    ];
+                } catch(e) {}
+            }
+            
+            if (cameras.length === 0) {
+                const response = await fetch('http://localhost:8090/traffic/cameras');
+                if (response.ok) {
+                    cameras = await response.json();
+                }
+            }
+
+            if (cameras.length === 0) {
+                cameras = [
+                    { camera_code: 'ACU-AN-001', location_name: 'Anna Nagar – Shanthi Colony Junction' }
+                ];
+            }
 
             const dropdownMenu = document.getElementById('locationDropdownMenu');
             const hiddenSelect = document.getElementById('headerLocationSelect');
@@ -1498,6 +1627,29 @@ function initClassifCamera() {
     const ctx = canvas.getContext('2d');
     const W = canvas.width;   // 960
     const H = canvas.height;  // 420
+
+    let name = "Broadway & 42nd St";
+    let code = "AC-CAM-801";
+    let stored = localStorage.getItem('aculion_selected_billboard');
+    if (stored) {
+        try {
+            const bb = JSON.parse(stored);
+            name = bb.name || bb.billboard_name || 'Broadway & 42nd St';
+            code = bb.camera_id || bb.billboard_code || bb.id || 'AC-CAM-801';
+        } catch(e) {}
+    }
+
+    const camLabel = document.getElementById('classifCamLabel');
+    if (camLabel) {
+        camLabel.textContent = `Camera ID: ${code} • ${name}`;
+    }
+
+    const camSel = document.getElementById('classifCamSelect');
+    if (camSel) {
+        camSel.innerHTML = `
+            <option value="cam-1">${code}</option>
+        `;
+    }
 
     // Class colour palette (hex)
     const classColors = {
@@ -1757,17 +1909,14 @@ function initClassifCamera() {
     }
 
     // --- Camera selector handler ---
-    const camSel = document.getElementById('classifCamSelect');
-    const camLabel = document.getElementById('classifCamLabel');
+    const camSel_elem = document.getElementById('classifCamSelect');
+    const camLabel_elem = document.getElementById('classifCamLabel');
     const camLocations = {
-        '801': 'AC-CAM-801 • Broadway & 42nd St',
-        '802': 'AC-CAM-802 • Times Square Blvd',
-        '803': 'AC-CAM-803 • 5th Ave & Central Pk',
-        '804': 'AC-CAM-804 • Lexington Ave & 59th'
+        'cam-1': `${code} • ${name}`
     };
-    if (camSel) {
-        camSel.addEventListener('change', () => {
-            if (camLabel) camLabel.textContent = 'Camera ID: ' + (camLocations[camSel.value] || camSel.value);
+    if (camSel_elem) {
+        camSel_elem.addEventListener('change', () => {
+            if (camLabel_elem) camLabel_elem.textContent = 'Camera ID: ' + (camLocations[camSel_elem.value] || camSel_elem.value);
         });
     }
 }

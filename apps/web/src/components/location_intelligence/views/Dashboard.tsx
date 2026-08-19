@@ -25,20 +25,35 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-export default function Dashboard() {
+export default function Dashboard({ selectedBillboard }: { selectedBillboard?: any }) {
   const queryClient = useQueryClient();
+
+  const initialLat = selectedBillboard?.latitude ? Number(selectedBillboard.latitude) : 13.0827;
+  const initialLng = selectedBillboard?.longitude ? Number(selectedBillboard.longitude) : 80.2707;
 
   // ── UI State ──
   const [isMapPickingActive, setIsMapPickingActive] = useState(false);
 
   // ── Candidate coordinate ──
-  const [candidateLat, setCandidateLat] = useState(13.0827);
-  const [candidateLng, setCandidateLng] = useState(80.2707);
+  const [candidateLat, setCandidateLat] = useState(initialLat);
+  const [candidateLng, setCandidateLng] = useState(initialLng);
 
   // ── Query parameters ──
-  const [latitude, setLatitude] = useState(13.0827);
-  const [longitude, setLongitude] = useState(80.2707);
+  const [latitude, setLatitude] = useState(initialLat);
+  const [longitude, setLongitude] = useState(initialLng);
   const [radius, setRadius] = useState(1000);
+
+  // Sync coords when selectedBillboard changes
+  useEffect(() => {
+    if (selectedBillboard?.latitude && selectedBillboard?.longitude) {
+      const lat = Number(selectedBillboard.latitude);
+      const lng = Number(selectedBillboard.longitude);
+      setLatitude(lat);
+      setLongitude(lng);
+      setCandidateLat(lat);
+      setCandidateLng(lng);
+    }
+  }, [selectedBillboard]);
 
   // ── Re-validate candidate coordinates when radius changes ──
   useEffect(() => {

@@ -5,7 +5,6 @@ import PrivacyFirstPreview from './components/PrivacyFirstPreview';
 import HeroCityAnalytics from './components/HeroCityAnalytics';
 import SmartCityBackground from './components/SmartCityBackground';
 import BrandPortal from './components/BrandPortal';
-import AdminDashboard from './components/AdminDashboard';
 import MediaOwnerPage from './components/MediaOwnerPage';
 import DemoDashboardPage from './components/DemoDashboardPage';
 import LocationIntelligence from './pages/LocationIntelligence';
@@ -331,11 +330,27 @@ export default function App() {
     }
   }, [isLoggedIn, user?.email]);
 
+  // ── URL helpers ──────────────────────────────────────────
+  // Converts a display name to a URL-safe slug (e.g. "Aculion Dev Admin" → "aculion-dev-admin")
+  const slugify = (str) =>
+    (str || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  // Derive a stable URL slug from the logged-in user (prefers name, falls back to email prefix)
+  const getUserSlug = (u) =>
+    slugify(u?.name || u?.email?.split('@')[0] || 'user');
+
+  // Route pattern matchers
+  const MEDIA_PROFILE_RE = /^\/([^/]+)\/media-profile\/?$/;
+  const DASHBOARD_RE     = /^\/([^/]+)\/([^/]+)\/dashboard(?:\/[^/]*)?$/;
+
   const handleSelectBillboard = (billboard) => {
     setSelectedBillboard(billboard);
     localStorage.setItem('aculion_selected_billboard', JSON.stringify(billboard));
-    window.history.pushState(null, '', '/dashboard');
-    setRoute('/dashboard');
+    const slug   = getUserSlug(user);
+    const bbCode = billboard.billboard_code || billboard.id || 'bb';
+    const path   = `/${slug}/${bbCode}/dashboard/live-view`;
+    window.history.pushState(null, '', path);
+    setRoute(path);
   };
 
   const handleAddBillboard = (newAsset) => {
@@ -344,23 +359,45 @@ export default function App() {
 
   // Auth protection and route redirection effect
   useEffect(() => {
+    const mpMatch   = MEDIA_PROFILE_RE.test(route);
+    const dashMatch = DASHBOARD_RE.test(route);
+
     if (!isLoggedIn) {
-      if (route === '/media-profile' || route === '/dashboard' || route === '/location-intelligence' || route === '/admin-dashboard' || route === '/demo-dashboard') {
+      // Redirect unauthenticated users away from protected routes
+      if (mpMatch || dashMatch || route === '/demo-dashboard' || route === '/location-intelligence') {
         window.history.pushState(null, '', '/sign-in');
         setRoute('/sign-in');
       }
     } else {
-      if (route === '/admin-dashboard' && user?.role !== 'Administrator') {
-        const targetPath = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-        window.history.pushState(null, '', targetPath);
-        setRoute(targetPath);
-      } else if (route === '/sign-in') {
-        const targetPath = user?.role === 'Administrator' ? '/admin-dashboard' : user?.role === 'Brand Advertiser' ? '/demo-dashboard' : '/media-profile';
-        window.history.pushState(null, '', targetPath);
-        setRoute(targetPath);
-      }
-      if ((route === '/dashboard' || route === '/location-intelligence') && !selectedBillboard) {
-        setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
+      const mySlug = getUserSlug(user);
+
+      if (route === '/sign-in' || route === '/media-profile') {
+        // After sign-in, go to the user-scoped media-profile
+        if (user?.role === 'Brand Advertiser') {
+          navigateTo(null, '/demo-dashboard');
+        } else {
+          navigateTo(null, `/${mySlug}/media-profile/`);
+        }
+      } else if (mpMatch) {
+        // Ownership check: wrong user in URL → redirect to correct URL
+        const urlSlug = route.split('/')[1];
+        if (urlSlug !== mySlug) {
+          navigateTo(null, `/${mySlug}/media-profile/`);
+        }
+      } else if (dashMatch) {
+        // Ownership check for dashboard routes
+        const urlSlug = route.split('/')[1];
+        if (urlSlug !== mySlug) {
+          navigateTo(null, `/${mySlug}/media-profile/`);
+        }
+        // Ensure a billboard is selected
+        if (!selectedBillboard) {
+          setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
+        }
+      } else if (route === '/location-intelligence') {
+        if (!selectedBillboard) {
+          setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
+        }
       }
     }
   }, [isLoggedIn, route, user?.role, selectedBillboard, billboards]);
@@ -1120,7 +1157,7 @@ export default function App() {
     password === confirmPassword &&
     agreeTerms;
 
-  if (route === '/media-profile') {
+  if (MEDIA_PROFILE_RE.test(route) || route === '/media-profile') {
     return (
       <MediaProfilePage
         user={user}
@@ -1133,7 +1170,13 @@ export default function App() {
     );
   }
 
-  if (route === '/dashboard' || route === '/location-intelligence') {
+  if (DASHBOARD_RE.test(route) || route === '/location-intelligence' || route === '/dashboard' || route.startsWith('/dashboard/')) {
+    // Build baseDashboardPath from the new scoped URL, e.g. /developer/ACU-BB-1645/dashboard
+    const dashParts = route.split('/');
+    const dashIdx   = dashParts.indexOf('dashboard');
+    const baseDashboardPath = dashIdx > 0
+      ? dashParts.slice(0, dashIdx + 1).join('/')
+      : `/dashboard`;
     return (
       <LiveDashboard
         navigateTo={navigateTo}
@@ -1142,29 +1185,12 @@ export default function App() {
         user={user}
         onSelectBillboard={handleSelectBillboard}
         onAddNewMedia={handleAddBillboard}
-        onBackToProfile={() => navigateTo(null, '/media-profile')}
+        baseDashboardPath={baseDashboardPath}
+        onBackToProfile={() => navigateTo(null, `/${getUserSlug(user)}/media-profile/`)}
       />
     );
   }
 
-  if (route === '/admin-dashboard') {
-    if (!isLoggedIn || user?.role !== 'Administrator') {
-      return (
-        <div className="signin-page-wrapper">
-          <div className="signin-card glass-panel" style={{ textAlign: 'center' }}>
-            <h2 className="signin-title text-danger mb-4" style={{ color: '#ef4444' }}>Access Denied</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
-              You do not have Administrator permissions to access the Admin Console.
-            </p>
-            <button className="btn btn-primary w-full" onClick={(e) => navigateTo(e, '/sign-in')}>
-              Return to Sign In
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return <AdminDashboard user={user} onLogout={handleLogout} />;
-  }
 
   if (route === '/demo-dashboard') {
     return <DemoDashboardPage navigateTo={navigateTo} />;
@@ -1306,9 +1332,6 @@ export default function App() {
       {user?.role === 'Brand Advertiser' ? (
         /* Brand Advertiser Portal */
         <BrandPortal user={user} onLogout={handleLogout} />
-      ) : user?.role === 'Administrator' ? (
-        /* Administrator Dashboard */
-        <AdminDashboard user={user} onLogout={handleLogout} />
       ) : (
         /* Logged Out / Media Owner View */
         <main className="fade-in-content">

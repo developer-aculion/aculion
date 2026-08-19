@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import LocationIntelligence from '../pages/LocationIntelligence';
 import lionLogo from '../assets/aculion_lion_logo.png';
 import transparentLogo from '../assets/aculion_logo_transparent.png';
+import { supabase } from '../services/supabase';
 import { 
   AreaChart, 
   Area, 
@@ -127,15 +128,67 @@ export default function LiveDashboard({
   billboards = [], 
   user, 
   onSelectBillboard, 
-  onAddNewMedia, 
-  onBackToProfile 
+  onAddNewMedia,
+  onBackToProfile,
+  baseDashboardPath = '/dashboard',
 }) {
-  const [activeNav, setActiveNav] = useState('live');
+  // Derive initial active nav from URL path segment.
+  // Works for both old /dashboard/<view> and new /<slug>/<bbCode>/dashboard/<view> patterns.
+  const getNavFromPath = () => {
+    const parts = window.location.pathname.split('/');
+    const dashIdx = parts.indexOf('dashboard');
+    const seg = dashIdx >= 0 ? (parts[dashIdx + 1] || '') : '';
+    const map = {
+      'traffic-overview':     'traffic',
+      'location-overview':    'overview',
+      'corridor-intelligence': 'corridor',
+      'zone-comparison':      'zone',
+      'historical-trends':    'historical',
+      'alerts':               'alerts',
+      'reports':              'reports',
+      'data-export':          'export',
+      'settings':             'settings',
+      'live-view':            'live',
+    };
+    return map[seg] || 'live';
+  };
+  const [activeNav, setActiveNav] = useState(getNavFromPath);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mainMediaView, setMainMediaView] = useState('map');
   const [timeFilter, setTimeFilter] = useState('24H');
   
+  const getSeed = () => {
+    const str = selectedBillboard?.billboard_code || selectedBillboard?.id || 'default';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash);
+  };
+
+  const getCorridors = () => {
+    const loc = selectedBillboard?.location || selectedBillboard?.name || 'Main Junction';
+    const cleanLoc = loc.split('–')[0].split(',')[0].trim();
+    return [
+      { name: `${cleanLoc} Main Ave (Northbound)`, speed: '42 km/h', flow: '680 veh/hr', dwell: '25s', peak: '08:00 AM - 10:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+      { name: `${cleanLoc} Bypass (Eastbound)`, speed: '28 km/h', flow: '942 veh/hr', dwell: '48s', peak: '06:00 PM - 08:00 PM', status: 'Moderate', badge: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' },
+      { name: `${cleanLoc} Connector (Southbound)`, speed: '14 km/h', flow: '1,204 veh/hr', dwell: '84s', peak: '05:30 PM - 07:30 PM', status: 'High', badge: 'bg-red-500/10 text-red-400 border border-red-500/20' },
+      { name: `${cleanLoc} Loop Circle (Rotary)`, speed: '36 km/h', flow: '710 veh/hr', dwell: '15s', peak: '09:00 AM - 11:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' }
+    ];
+  };
+
+  const getZones = () => {
+    const loc = selectedBillboard?.location || selectedBillboard?.name || 'Main Junction';
+    const cleanLoc = loc.split('–')[0].split(',')[0].trim();
+    return {
+      zoneA: `${cleanLoc} Commercial Centre`,
+      zoneB: `${cleanLoc} Retail Row`,
+      zoneC: `${cleanLoc} Transit Junction Hub`
+    };
+  };
+
   // Real-time telemetry state connected to active sensors
+  const [dbTrafficData, setDbTrafficData] = useState(null);
   const [livePeople, setLivePeople] = useState(1246);
   const [liveVehicles, setLiveVehicles] = useState(862);
   const [liveDwell, setLiveDwell] = useState(7.6);
@@ -150,21 +203,78 @@ export default function LiveDashboard({
   ]);
 
   // System status and alerts
-  const [alerts, setAlerts] = useState([
-    { id: 1, type: 'CRITICAL', title: 'Pedestrian density threshold exceeded', target: 'Entrance A', time: '11:42 AM', active: true },
-    { id: 2, type: 'WARNING', title: 'CCTV Node 3 package latency spike (48ms)', target: 'Lane 2', time: '11:38 AM', active: true },
-    { id: 3, type: 'INFO', title: 'Weekly DOOH Occupancy report completed', target: 'Server Node 1', time: '11:05 AM', active: true },
-    { id: 4, type: 'CRITICAL', title: 'Hardware sensor temperature alert (64°C)', target: 'Edge Box AN-01', time: '10:50 AM', active: true }
-  ]);
+  const [alerts, setAlerts] = useState([]);
 
   // Reports configurations
   const [reportType, setReportType] = useState('weekly');
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
-  const [reportsList, setReportsList] = useState([
-    { id: 'REP-0822', name: 'June 2025 Comprehensive Mobility & Reach Report', format: 'PDF', date: '01 Jul 2025', size: '4.2 MB' },
-    { id: 'REP-0821', name: 'Q2 Billboard Inventory Occupancy Summary', format: 'XLSX', date: '30 Jun 2025', size: '1.8 MB' }
-  ]);
+  const [reportsList, setReportsList] = useState([]);
+
+  useEffect(() => {
+    const seed = getSeed();
+    setLivePeople((seed % 300) + 800);
+    setLiveVehicles((seed % 250) + 600);
+    setLiveDwell(parseFloat((4 + (seed % 8) + (seed % 10) / 10).toFixed(1)));
+    
+    const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'BB';
+    setReportsList([
+      { id: `REP-${code}-01`, name: `${selectedBillboard?.name || 'Billboard'} Comprehensive Mobility & Reach Report`, format: 'PDF', date: '01 Jul 2025', size: '4.2 MB' },
+      { id: `REP-${code}-02`, name: `${selectedBillboard?.name || 'Billboard'} Q2 Inventory Occupancy Summary`, format: 'XLSX', date: '30 Jun 2025', size: '1.8 MB' }
+    ]);
+
+    setAlerts([
+      { id: 1, type: 'CRITICAL', title: 'Pedestrian density threshold exceeded', target: `${code} - Zone A`, time: '11:42 AM', active: true },
+      { id: 2, type: 'WARNING', title: 'CCTV Node package latency spike (48ms)', target: `${code} - Camera Feed`, time: '11:38 AM', active: true },
+      { id: 3, type: 'INFO', title: 'Weekly DOOH Occupancy report completed', target: `System Server Node`, time: '11:05 AM', active: true },
+      { id: 4, type: 'CRITICAL', title: 'Hardware sensor temperature alert (64°C)', target: `${selectedBillboard?.name || 'Edge Box'} Processor Unit`, time: '10:50 AM', active: true }
+    ]);
+
+    async function fetchDbTrafficOverview() {
+      if (!selectedBillboard?.billboard_code) {
+        setDbTrafficData(null);
+        localStorage.removeItem('aculion_traffic_overview');
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", selectedBillboard.billboard_code)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("[LiveDashboard] Error fetching traffic overview:", error);
+          setDbTrafficData(null);
+          localStorage.removeItem('aculion_traffic_overview');
+          return;
+        }
+
+        if (data) {
+          setDbTrafficData(data);
+          localStorage.setItem('aculion_traffic_overview', JSON.stringify(data));
+          
+          if (data.total_vehicles !== undefined && data.total_vehicles !== null) {
+            setLiveVehicles(data.total_vehicles);
+          }
+          if (data.avg_exposure_time !== undefined && data.avg_exposure_time !== null) {
+            setLiveDwell(Number(data.avg_exposure_time));
+          }
+        } else {
+          setDbTrafficData(null);
+          localStorage.removeItem('aculion_traffic_overview');
+        }
+      } catch (err) {
+        console.error("[LiveDashboard] fetchDbTrafficOverview exception:", err);
+        setDbTrafficData(null);
+        localStorage.removeItem('aculion_traffic_overview');
+      }
+    }
+
+    fetchDbTrafficOverview();
+  }, [selectedBillboard]);
 
   // Data Export configurations
   const [exportFormat, setExportFormat] = useState('csv');
@@ -192,6 +302,13 @@ export default function LiveDashboard({
     zoneC: false
   });
 
+  // Sync activeNav when user navigates with browser back/forward buttons
+  useEffect(() => {
+    const onPop = () => setActiveNav(getNavFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   // Time update ticker
   useEffect(() => {
     const timer = setInterval(() => {
@@ -207,9 +324,9 @@ export default function LiveDashboard({
     if (settings.refreshInterval === '10s') tickMs = 10000;
 
     const interval = setInterval(() => {
-      setLivePeople(prev => Math.max(1100, Math.min(1450, prev + Math.floor(Math.random() * 9) - 4)));
-      setLiveVehicles(prev => Math.max(780, Math.min(940, prev + Math.floor(Math.random() * 7) - 3)));
-      setLiveDwell(prev => Math.max(32, Math.min(46, prev + Math.floor(Math.random() * 3) - 1)));
+      setLivePeople(prev => Math.max(10, prev + Math.floor(Math.random() * 9) - 4));
+      setLiveVehicles(prev => Math.max(10, prev + Math.floor(Math.random() * 7) - 3));
+      setLiveDwell(prev => Math.max(1.0, parseFloat((prev + (Math.random() * 0.4 - 0.2)).toFixed(1))));
     }, tickMs);
     return () => clearInterval(interval);
   }, [settings.refreshInterval]);
@@ -537,14 +654,18 @@ export default function LiveDashboard({
     : `${(rawImpressionsSum / 1000).toFixed(0)}K`;
 
   // 3. Vehicles Detected (live telemetry state)
-  const formattedVehiclesVal = liveVehicles >= 1000 ? `${(liveVehicles / 10).toFixed(0)}K` : `${liveVehicles}K`;
+  const formattedVehiclesVal = dbTrafficData 
+    ? (dbTrafficData.total_vehicles >= 1000 ? `${(dbTrafficData.total_vehicles / 1000).toFixed(1)}K` : `${dbTrafficData.total_vehicles}`)
+    : '0';
 
   // 4. Premium & Above (% of high tier audience / digital screens)
   const digitalScreensCount = activeBillboards.filter(b => (b.type?.toLowerCase() || '').includes('digital') || (b.type?.toLowerCase() || '').includes('dooh') || b.status === 'Active').length;
   const premiumPctVal = Math.min(100, Math.round((digitalScreensCount / (totalMediasCount || 1)) * 43) || 43);
 
   // 5. Avg. Dwell Time
-  const formattedDwellVal = `${liveDwell} sec`;
+  const formattedDwellVal = dbTrafficData 
+    ? `${dbTrafficData.avg_exposure_time} sec`
+    : '0 sec';
 
   // Dynamic Media Health Breakdown
   const onlineCount = activeBillboards.filter(b => b.status === 'Active' || b.status === 'Online').length;
@@ -654,6 +775,21 @@ export default function LiveDashboard({
                   if (item.id === 'my_medias') {
                     if (onBackToProfile) onBackToProfile();
                   } else {
+                    // Map nav id → URL slug
+                    const slugMap = {
+                      live:      'live-view',
+                      traffic:   'traffic-overview',
+                      overview:  'location-overview',
+                      corridor:  'corridor-intelligence',
+                      zone:      'zone-comparison',
+                      historical: 'historical-trends',
+                      alerts:    'alerts',
+                      reports:   'reports',
+                      export:    'data-export',
+                      settings:  'settings',
+                    };
+                    const viewSlug = slugMap[item.id] || item.id;
+                    window.history.pushState(null, '', `${baseDashboardPath}/${viewSlug}`);
                     setActiveNav(item.id);
                   }
                 }}
@@ -1218,7 +1354,7 @@ export default function LiveDashboard({
                2. LOCATION OVERVIEW
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'overview' && (
-              <LocationIntelligence />
+              <LocationIntelligence selectedBillboard={selectedBillboard} />
             )}
 
             {/* ═══════════════════════════════════════════════════
@@ -1245,12 +1381,7 @@ export default function LiveDashboard({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {[
-                          { name: 'Anna Nagar Main Ave (Northbound)', speed: '42 km/h', flow: '680 veh/hr', dwell: '25s', peak: '08:00 AM - 10:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-                          { name: 'Shanthi Colony Bypass (Eastbound)', speed: '28 km/h', flow: '942 veh/hr', dwell: '48s', peak: '06:00 PM - 08:00 PM', status: 'Moderate', badge: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' },
-                          { name: 'Arya Gowda Connector (Southbound)', speed: '14 km/h', flow: '1,204 veh/hr', dwell: '84s', peak: '05:30 PM - 07:30 PM', status: 'High', badge: 'bg-red-500/10 text-red-400 border border-red-500/20' },
-                          { name: 'Roundtana Loop Circle (Rotary)', speed: '36 km/h', flow: '710 veh/hr', dwell: '15s', peak: '09:00 AM - 11:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' }
-                        ].map((row, idx) => (
+                        {getCorridors().map((row, idx) => (
                           <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
                             <td className="p-3 font-bold text-white/95">{row.name}</td>
                             <td className="p-3 font-mono text-white/80">{row.speed}</td>
@@ -1284,7 +1415,7 @@ export default function LiveDashboard({
 
                   <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex flex-col justify-around shadow-lg">
                     <span className="text-[9.5px] text-purple-400 font-bold uppercase tracking-wider">AI Traffic recommendations</span>
-                    <p className="text-[11.5px] text-white/50 leading-relaxed">Arya Gowda Connector displays severe delays on weekday evening hours. Auto-apply dynamic programmatic DOOH price modifiers to capture longer dwell margins.</p>
+                    <p className="text-[11.5px] text-white/50 leading-relaxed">{getCorridors()[2].name} displays severe delays on weekday evening hours. Auto-apply dynamic programmatic DOOH price modifiers to capture longer dwell margins.</p>
                   </div>
                 </div>
               </div>
@@ -1324,7 +1455,7 @@ export default function LiveDashboard({
                     <div className="bg-[#0f172a]/60 border border-blue-500/30 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
                       <div>
                         <span className="text-[8px] font-bold text-white/40 block">ZONE A</span>
-                        <h4 className="text-sm font-bold text-white mt-1">Anna Nagar Commercial Centre</h4>
+                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneA}</h4>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
                         <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">45,782</strong></div>
@@ -1346,7 +1477,7 @@ export default function LiveDashboard({
                     <div className="bg-[#0f172a]/60 border border-cyan-500/20 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
                       <div>
                         <span className="text-[8px] font-bold text-white/40 block">ZONE B</span>
-                        <h4 className="text-sm font-bold text-white mt-1">Shanthi Colony Retail Row</h4>
+                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneB}</h4>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
                         <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">38,120</strong></div>
@@ -1368,7 +1499,7 @@ export default function LiveDashboard({
                     <div className="bg-[#0f172a]/60 border border-purple-500/20 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
                       <div>
                         <span className="text-[8px] font-bold text-white/40 block">ZONE C</span>
-                        <h4 className="text-sm font-bold text-white mt-1">Metro Transit Junction Hub</h4>
+                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneC}</h4>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
                         <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">62,800</strong></div>
@@ -1676,11 +1807,11 @@ export default function LiveDashboard({
                         </thead>
                         <tbody className="divide-y divide-white/5 text-white/70">
                           {[
-                            { time: '11:44:15 AM', v: 14, p: 28, d: 38 },
-                            { time: '11:44:00 AM', v: 16, p: 32, d: 42 },
-                            { time: '11:43:45 AM', v: 12, p: 25, d: 35 },
-                            { time: '11:43:30 AM', v: 15, p: 30, d: 39 },
-                            { time: '11:43:15 AM', v: 18, p: 34, d: 41 }
+                            { time: '11:44:15 AM', v: Math.round(liveVehicles / 60) || 12, p: Math.round(livePeople / 60) || 20, d: Math.round(liveDwell) },
+                            { time: '11:44:00 AM', v: Math.round(liveVehicles / 60 - 2) || 10, p: Math.round(livePeople / 60 - 3) || 17, d: Math.round(liveDwell + 2) },
+                            { time: '11:43:45 AM', v: Math.round(liveVehicles / 60 + 1) || 13, p: Math.round(livePeople / 60 + 2) || 22, d: Math.round(liveDwell - 1) },
+                            { time: '11:43:30 AM', v: Math.round(liveVehicles / 60 - 1) || 11, p: Math.round(livePeople / 60 - 1) || 19, d: Math.round(liveDwell + 1) },
+                            { time: '11:43:15 AM', v: Math.round(liveVehicles / 60 + 2) || 14, p: Math.round(livePeople / 60 + 4) || 24, d: Math.round(liveDwell - 2) }
                           ].map((row, idx) => (
                             <tr key={idx} className="hover:bg-white/[0.01]">
                               <td className="p-2">{row.time}</td>

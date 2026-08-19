@@ -35,10 +35,7 @@
                 <div class="filter-group">
                     <label for="filterLocation">Location</label>
                     <select id="filterLocation">
-                        <option value="broadway-42">Broadway & 42nd St (AC-801)</option>
-                        <option value="times-square">Times Square Hub (AC-802)</option>
-                        <option value="5th-ave-57">5th Ave & 57th St (AC-803)</option>
-                        <option value="fdr-drive-34">FDR Drive North (AC-804)</option>
+                        <option value="active-cam">Active Billboard (ACU-BB)</option>
                     </select>
                 </div>
 
@@ -146,34 +143,19 @@
                         <div class="custom-dropdown location-dropdown-container" id="locationDropdown">
                             <button type="button" class="selector-box custom-dropdown-toggle" id="locationDropdownToggle" aria-haspopup="listbox" aria-expanded="false">
                                 <i data-lucide="map-pin" class="selector-icon"></i>
-                                <span class="dropdown-selected-text" id="selectedLocationText">Broadway &amp; 42nd St (AC-801)</span>
+                                <span class="dropdown-selected-text" id="selectedLocationText">Active Billboard (ACU-BB)</span>
                                 <i data-lucide="chevron-down" class="dropdown-chevron"></i>
                             </button>
                             
                             <div class="custom-dropdown-menu" id="locationDropdownMenu" role="listbox">
-                                <div class="custom-dropdown-item active" data-value="broadway-42" role="option">
-                                    <span class="item-text">Broadway &amp; 42nd St (AC-801)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="times-square" role="option">
-                                    <span class="item-text">Times Square Hub (AC-802)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="5th-ave-57" role="option">
-                                    <span class="item-text">5th Ave &amp; 57th St (AC-803)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="fdr-drive-34" role="option">
-                                    <span class="item-text">FDR Drive North (AC-804)</span>
+                                <div class="custom-dropdown-item active" data-value="active-cam" role="option">
+                                    <span class="item-text">Active Billboard (ACU-BB)</span>
                                     <i data-lucide="check" class="item-check"></i>
                                 </div>
                             </div>
 
                             <select id="headerLocationSelect" style="display: none;">
-                                <option value="broadway-42" selected>Broadway &amp; 42nd St (AC-801)</option>
-                                <option value="times-square">Times Square Hub (AC-802)</option>
-                                <option value="5th-ave-57">5th Ave &amp; 57th St (AC-803)</option>
-                                <option value="fdr-drive-34">FDR Drive North (AC-804)</option>
+                                <option value="active-cam" selected>Active Billboard (ACU-BB)</option>
                             </select>
                         </div>
                         
@@ -542,14 +524,11 @@
                                     <h2 style="margin:0;">AI Camera Feed</h2>
                                     <span class="badge-live-green">● LIVE</span>
                                 </div>
-                                <p class="card-subtitle" id="classifCamLabel">Camera ID: AC-CAM-801 • Broadway &amp; 42nd St</p>
+                                <p class="card-subtitle" id="classifCamLabel">Camera ID: Loading...</p>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <select id="classifCamSelect" class="cam-select-mini">
-                                    <option value="801">AC-CAM-801</option>
-                                    <option value="802">AC-CAM-802</option>
-                                    <option value="803">AC-CAM-803</option>
-                                    <option value="804">AC-CAM-804</option>
+                                    <option value="cam-1">Active Camera Feed</option>
                                 </select>
                                 <button class="btn-icon-ghost" id="classifFullscreenBtn" title="Full Screen">
                                     <i data-lucide="maximize-2"></i>

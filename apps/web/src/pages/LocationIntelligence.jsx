@@ -6,7 +6,7 @@ import Providers from "../components/location_intelligence/providers";
 import Dashboard from "../components/location_intelligence/views/Dashboard";
 import Billboards from "../components/location_intelligence/views/Billboards";
 
-export default function LocationIntelligence() {
+export default function LocationIntelligence({ selectedBillboard }) {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
@@ -15,7 +15,7 @@ export default function LocationIntelligence() {
         {activeTab === "billboards" ? (
           <Billboards />
         ) : (
-          <Dashboard />
+          <Dashboard selectedBillboard={selectedBillboard} />
         )}
       </div>
     </Providers>

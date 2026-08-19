@@ -35,10 +35,7 @@
                 <div class="filter-group">
                     <label for="filterLocation">Location</label>
                     <select id="filterLocation">
-                        <option value="broadway-42">Broadway & 42nd St (AC-801)</option>
-                        <option value="times-square">Times Square Hub (AC-802)</option>
-                        <option value="5th-ave-57">5th Ave & 57th St (AC-803)</option>
-                        <option value="fdr-drive-34">FDR Drive North (AC-804)</option>
+                        <option value="active-cam">Active Billboard (ACU-BB)</option>
                     </select>
                 </div>
 
@@ -65,12 +62,12 @@
                 <div class="filter-group">
                     <label>Vehicle Category</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" id="catEconomy" checked> Economy</label>
-                        <label><input type="checkbox" id="catPremium" checked> Premium</label>
-                        <label><input type="checkbox" id="catLuxury" checked> Luxury</label>
-                        <label><input type="checkbox" id="catUltra" checked> Ultra Luxury</label>
-                        <label><input type="checkbox" id="catBikes" checked> Bikes</label>
-                        <label><input type="checkbox" id="catCommercial" checked> Commercial</label>
+                        <label><input type="checkbox" id="catEconomy" checked> Bike</label>
+                        <label><input type="checkbox" id="catPremium" checked> Commercial</label>
+                        <label><input type="checkbox" id="catLuxury" checked> Economy</label>
+                        <label><input type="checkbox" id="catUltra" checked> Premium</label>
+                        <label><input type="checkbox" id="catBikes" checked> Luxury</label>
+                        <label><input type="checkbox" id="catCommercial" checked> Ultra Luxury</label>
                     </div>
                 </div>
 
@@ -146,34 +143,19 @@
                         <div class="custom-dropdown location-dropdown-container" id="locationDropdown">
                             <button type="button" class="selector-box custom-dropdown-toggle" id="locationDropdownToggle" aria-haspopup="listbox" aria-expanded="false">
                                 <i data-lucide="map-pin" class="selector-icon"></i>
-                                <span class="dropdown-selected-text" id="selectedLocationText">Broadway &amp; 42nd St (AC-801)</span>
+                                <span class="dropdown-selected-text" id="selectedLocationText">Active Billboard (ACU-BB)</span>
                                 <i data-lucide="chevron-down" class="dropdown-chevron"></i>
                             </button>
                             
                             <div class="custom-dropdown-menu" id="locationDropdownMenu" role="listbox">
-                                <div class="custom-dropdown-item active" data-value="broadway-42" role="option">
-                                    <span class="item-text">Broadway &amp; 42nd St (AC-801)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="times-square" role="option">
-                                    <span class="item-text">Times Square Hub (AC-802)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="5th-ave-57" role="option">
-                                    <span class="item-text">5th Ave &amp; 57th St (AC-803)</span>
-                                    <i data-lucide="check" class="item-check"></i>
-                                </div>
-                                <div class="custom-dropdown-item" data-value="fdr-drive-34" role="option">
-                                    <span class="item-text">FDR Drive North (AC-804)</span>
+                                <div class="custom-dropdown-item active" data-value="active-cam" role="option">
+                                    <span class="item-text">Active Billboard (ACU-BB)</span>
                                     <i data-lucide="check" class="item-check"></i>
                                 </div>
                             </div>
 
                             <select id="headerLocationSelect" style="display: none;">
-                                <option value="broadway-42" selected>Broadway &amp; 42nd St (AC-801)</option>
-                                <option value="times-square">Times Square Hub (AC-802)</option>
-                                <option value="5th-ave-57">5th Ave &amp; 57th St (AC-803)</option>
-                                <option value="fdr-drive-34">FDR Drive North (AC-804)</option>
+                                <option value="active-cam" selected>Active Billboard (ACU-BB)</option>
                             </select>
                         </div>
                         
@@ -301,205 +283,26 @@
 
             <!-- Main Analytics Area: 2 Columns -->
             <section class="analytics-row-main">
-                <!-- Left Column: Classification and Donut -->
+                <!-- Left Column: Traffic Trend, Dwell Time Analytics and Donut -->
                 <div class="analytics-col-left">
-                    <!-- AI Camera Feed – LIVE (top) -->
-                    <div class="glass-panel analytics-card" id="classif-camera-card">
+                    <!-- Traffic Trend Line Chart (top left) -->
+                    <div class="glass-panel analytics-card trend-chart-panel" id="traffic-trend-card">
                         <div class="card-header">
                             <div class="header-info">
-                                <div style="display:flex;align-items:center;gap:10px;">
-                                    <h2 style="margin:0;">AI Camera Feed</h2>
-                                    <span class="badge-live-green">● LIVE</span>
-                                </div>
-                                <p class="card-subtitle" id="classifCamLabel">Camera ID: AC-CAM-801 • Broadway &amp; 42nd St</p>
+                                <h2>Traffic Trend</h2>
+                                <p class="card-subtitle">Historical and real-time vehicle flow rates by category</p>
                             </div>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <select id="classifCamSelect" class="cam-select-mini">
-                                    <option value="801">AC-CAM-801</option>
-                                    <option value="802">AC-CAM-802</option>
-                                    <option value="803">AC-CAM-803</option>
-                                    <option value="804">AC-CAM-804</option>
-                                </select>
-                                <button class="btn-icon-ghost" id="classifFullscreenBtn" title="Full Screen">
-                                    <i data-lucide="maximize-2"></i>
-                                </button>
+                            <div class="chart-controls-simple">
+                                <span class="live-dot-pulse"></span>
+                                <span class="pulse-text">Live Syncing</span>
                             </div>
                         </div>
-
-                        <!-- Canvas feed -->
-                        <div class="classif-cam-wrapper" id="classifCamWrapper">
-                            <div class="cam2-hud">
-                                <div class="hud2-tl"><span class="rec-dot">●</span> REC</div>
-                                <div class="hud2-tr" id="classifHudTime">2026-07-28 12:24:51</div>
-                                <div class="hud2-bl">
-                                    <span id="classifHudVehicles">ACTIVE: 0</span>
-                                    &nbsp;|&nbsp;
-                                    <span id="classifHudFps">FPS: --</span>
-                                </div>
-                                <div class="hud2-br">
-                                    <span class="ai-proc-dot"></span> AI PROCESSING
-                                </div>
-                            </div>
-                            <canvas id="classifyCctvCanvas" width="960" height="420"></canvas>
-                        </div>
-
-                        <!-- Bottom info bar -->
-                        <div class="cam2-info-bar">
-                            <div class="cam2-info-item">
-                                <span class="cam2-info-label">Vehicles Detected</span>
-                                <span class="cam2-info-val" id="classifTotalVeh">17,820</span>
-                            </div>
-                            <div class="cam2-info-item">
-                                <span class="cam2-info-label">Dwell Time</span>
-                                <span class="cam2-info-val" id="classifDwell">14.8s</span>
-                            </div>
-                            <div class="cam2-info-item">
-                                <span class="cam2-info-label">Confidence</span>
-                                <span class="cam2-info-val text-cyan" id="classifConf">98.7%</span>
-                            </div>
-                            <div class="cam2-info-item">
-                                <span class="cam2-info-label">Avg Speed</span>
-                                <span class="cam2-info-val" id="classifSpeed">42 km/h</span>
-                            </div>
-                            <div class="cam2-info-item">
-                                <span class="cam2-info-label">Direction</span>
-                                <span class="cam2-info-val">North ↑</span>
-                            </div>
+                        <div class="trend-chart-container">
+                            <div id="trafficTrendLineChart"></div>
                         </div>
                     </div>
 
-                    <!-- Live Vehicle Classification (below camera) -->
-                    <div class="glass-panel analytics-card" id="classification-card">
-                        <div class="card-header">
-                            <div class="header-info">
-                                <h2>Live Vehicle Classification</h2>
-                                <p class="card-subtitle">Distribution of detected vehicle classes</p>
-                            </div>
-                            <span class="badge badge-pulse">Real-time Stream</span>
-                        </div>
-
-                        <div class="classification-list">
-                            <!-- Economy -->
-                            <div class="class-item" id="class-economy">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚗</span>
-                                        <span class="class-label">Economy</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-economy">8,420</span>
-                                        <span class="class-pct" id="pct-economy">52%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 52%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Premium -->
-                            <div class="class-item" id="class-premium">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚙</span>
-                                        <span class="class-label">Premium</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-premium">2,130</span>
-                                        <span class="class-pct" id="pct-premium">13%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 13%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Luxury -->
-                            <div class="class-item" id="class-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🏎</span>
-                                        <span class="class-label">Luxury</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-luxury">850</span>
-                                        <span class="class-pct" id="pct-luxury">5%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 5%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Ultra Luxury -->
-                            <div class="class-item" id="class-ultra-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">👑</span>
-                                        <span class="class-label">Ultra Luxury</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-ultra">210</span>
-                                        <span class="class-pct" id="pct-ultra">1%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 1%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Bikes -->
-                            <div class="class-item" id="class-bikes">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🏍</span>
-                                        <span class="class-label">Bikes</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-bikes">4,760</span>
-                                        <span class="class-pct" id="pct-bikes">29%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill bikes-bg" id="bar-bikes" style="width: 29%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Commercial -->
-                            <div class="class-item" id="class-commercial">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚚</span>
-                                        <span class="class-label">Commercial Vehicles</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-commercial">1,980</span>
-                                        <span class="class-pct" id="pct-commercial">12%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 12%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!-- end #classification-card -->
-
-                    <!-- Vehicle Distribution Donut Chart -->
-                    <div class="glass-panel analytics-card" id="distribution-chart-card">
-                        <div class="card-header">
-                            <div class="header-info">
-                                <h2>Vehicle Distribution Chart</h2>
-                                <p class="card-subtitle">Comparative classification density mapping</p>
-                            </div>
-                        </div>
-                        <div class="donut-chart-container">
-                            <div id="vehicleDonutChart"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Dwell Time and Heatmap -->
-                <div class="analytics-col-right">
-                    <!-- Dwell Time Analytics Card -->
+                    <!-- Dwell Time Analytics Card (bottom left) -->
                     <div class="glass-panel analytics-card" id="dwell-time-card">
                         <div class="card-header">
                             <div class="header-info">
@@ -562,6 +365,137 @@
                         </div>
                     </div>
 
+                    <!-- Vehicle Distribution Donut Chart -->
+                    <div class="glass-panel analytics-card" id="distribution-chart-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Vehicle Distribution Chart</h2>
+                                <p class="card-subtitle">Comparative classification density mapping</p>
+                            </div>
+                        </div>
+                        <div class="donut-chart-container">
+                            <div id="vehicleDonutChart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Vehicle Classification, Heatmap and AI Camera Feed -->
+                <div class="analytics-col-right">
+                    <!-- Live Vehicle Classification (top right) -->
+                    <div class="glass-panel analytics-card" id="classification-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Live Vehicle Classification</h2>
+                                <p class="card-subtitle">Distribution of detected vehicle classes</p>
+                            </div>
+                            <span class="badge badge-pulse">Real-time Stream</span>
+                        </div>
+
+                        <div class="classification-list">
+                            <!-- Bike -->
+                            <div class="class-item" id="class-economy">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏍</span>
+                                        <span class="class-label">Bike</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-economy">4,760</span>
+                                        <span class="class-pct" id="pct-economy">29%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 29%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Commercial -->
+                            <div class="class-item" id="class-premium">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚚</span>
+                                        <span class="class-label">Commercial</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-premium">1,980</span>
+                                        <span class="class-pct" id="pct-premium">12%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 12%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Economy -->
+                            <div class="class-item" id="class-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚗</span>
+                                        <span class="class-label">Economy</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-luxury">8,420</span>
+                                        <span class="class-pct" id="pct-luxury">52%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 52%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Premium -->
+                            <div class="class-item" id="class-ultra-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚙</span>
+                                        <span class="class-label">Premium</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-ultra">2,130</span>
+                                        <span class="class-pct" id="pct-ultra">13%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 13%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Luxury -->
+                            <div class="class-item" id="class-bikes">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏎</span>
+                                        <span class="class-label">Luxury</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-bikes">850</span>
+                                        <span class="class-pct" id="pct-bikes">5%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill bikes-bg" id="bar-bikes" style="width: 5%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Ultra Luxury -->
+                            <div class="class-item" id="class-commercial">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">👑</span>
+                                        <span class="class-label">Ultra Luxury</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-commercial">210</span>
+                                        <span class="class-pct" id="pct-commercial">1%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 1%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- end #classification-card -->
+
                     <!-- Traffic Density Heat Timeline -->
                     <div class="glass-panel analytics-card" id="density-heatmap-card">
                         <div class="card-header">
@@ -582,20 +516,65 @@
                         </div>
                     </div>
 
-                    <!-- Traffic Trend Line Chart -->
-                    <div class="glass-panel analytics-card trend-chart-panel" id="traffic-trend-card">
+                    <!-- AI Camera Feed – LIVE -->
+                    <div class="glass-panel analytics-card" id="classif-camera-card">
                         <div class="card-header">
                             <div class="header-info">
-                                <h2>Traffic Trend</h2>
-                                <p class="card-subtitle">Historical and real-time vehicle flow rates by category</p>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <h2 style="margin:0;">AI Camera Feed</h2>
+                                    <span class="badge-live-green">● LIVE</span>
+                                </div>
+                                <p class="card-subtitle" id="classifCamLabel">Camera ID: Loading...</p>
                             </div>
-                            <div class="chart-controls-simple">
-                                <span class="live-dot-pulse"></span>
-                                <span class="pulse-text">Live Syncing</span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <select id="classifCamSelect" class="cam-select-mini">
+                                    <option value="cam-1">Active Camera Feed</option>
+                                </select>
+                                <button class="btn-icon-ghost" id="classifFullscreenBtn" title="Full Screen">
+                                    <i data-lucide="maximize-2"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="trend-chart-container">
-                            <div id="trafficTrendLineChart"></div>
+
+                        <!-- Canvas feed -->
+                        <div class="classif-cam-wrapper" id="classifCamWrapper">
+                            <div class="cam2-hud">
+                                <div class="hud2-tl"><span class="rec-dot">●</span> REC</div>
+                                <div class="hud2-tr" id="classifHudTime">2026-07-28 12:24:51</div>
+                                <div class="hud2-bl">
+                                    <span id="classifHudVehicles">ACTIVE: 0</span>
+                                    &nbsp;|&nbsp;
+                                    <span id="classifHudFps">FPS: --</span>
+                                </div>
+                                <div class="hud2-br">
+                                    <span class="ai-proc-dot"></span> AI PROCESSING
+                                </div>
+                            </div>
+                            <canvas id="classifyCctvCanvas" width="960" height="420"></canvas>
+                        </div>
+
+                        <!-- Bottom info bar -->
+                        <div class="cam2-info-bar">
+                            <div class="cam2-info-item">
+                                <span class="cam2-info-label">Vehicles Detected</span>
+                                <span class="cam2-info-val" id="classifTotalVeh">17,820</span>
+                            </div>
+                            <div class="cam2-info-item">
+                                <span class="cam2-info-label">Dwell Time</span>
+                                <span class="cam2-info-val" id="classifDwell">14.8s</span>
+                            </div>
+                            <div class="cam2-info-item">
+                                <span class="cam2-info-label">Confidence</span>
+                                <span class="cam2-info-val text-cyan" id="classifConf">98.7%</span>
+                            </div>
+                            <div class="cam2-info-item">
+                                <span class="cam2-info-label">Avg Speed</span>
+                                <span class="cam2-info-val" id="classifSpeed">42 km/h</span>
+                            </div>
+                            <div class="cam2-info-item">
+                                <span class="cam2-info-label">Direction</span>
+                                <span class="cam2-info-val">North ↑</span>
+                            </div>
                         </div>
                     </div>
                 </div>
