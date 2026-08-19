@@ -61,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
             dwellStats: {
                 avg: 0.0,
                 max: 0.0,
-                min: 1.5, // Placeholder
-                median: 12.4, // Placeholder
+                min: 0.0,
+                median: 0.0,
                 periods: {
-                    morning: 15.2, // Placeholder
-                    afternoon: 11.6, // Placeholder
-                    evening: 17.4, // Placeholder
-                    night: 9.8 // Placeholder
+                    morning: 0.0,
+                    afternoon: 0.0,
+                    evening: 0.0,
+                    night: 0.0
                 }
             }
         };
@@ -291,22 +291,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Adjust simulation parameters based on filters
         // Weather influence: clear skies = high flow, rain = low flow, high dwell
-        if (state.filters.weather === 'rain') {
-            state.spawnChance = 0.02;
-            state.stats.avgDwellTime = 18.2;
-        } else if (state.filters.weather === 'fog') {
-            state.spawnChance = 0.015;
-            state.stats.avgDwellTime = 22.5;
-        } else {
-            state.spawnChance = 0.035;
-            state.stats.avgDwellTime = 14.8;
-        }
+        // Only apply weather/density overrides when backend data exists
+        const hasBackendData = !!localStorage.getItem('aculion_traffic_overview');
+        if (hasBackendData) {
+            if (state.filters.weather === 'rain') {
+                state.spawnChance = 0.02;
+            } else if (state.filters.weather === 'fog') {
+                state.spawnChance = 0.015;
+            } else {
+                state.spawnChance = 0.035;
+            }
 
-        // Density adjustments
-        if (state.filters.density === 'high') {
-            state.spawnChance = 0.07; // spawn cars like crazy
-        } else if (state.filters.density === 'low') {
-            state.spawnChance = 0.01;
+            // Density adjustments
+            if (state.filters.density === 'high') {
+                state.spawnChance = 0.07;
+            } else if (state.filters.density === 'low') {
+                state.spawnChance = 0.01;
+            }
         }
 
         fetchLatestData(state.filters.location);
@@ -1060,8 +1061,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.stats.totalVehicles++;
         state.stats.estimatedReach += Math.floor(1 + Math.random() * 2); // average 1.5 reach multiplier
 
-        // Micro flow-rate adjustments
-        state.stats.flowRate = +(84.5 + (Math.random() - 0.5) * 2).toFixed(1);
+        // Micro flow-rate adjustments — use backend baseline when available
+        const baseFlowRate = state.stats.flowRate || 0;
+        state.stats.flowRate = +(baseFlowRate + (Math.random() - 0.5) * 2).toFixed(1);
 
         // Accuracy stays high
         state.stats.accuracy = +(98.5 + Math.random() * 0.4).toFixed(1);

@@ -189,9 +189,10 @@ export default function LiveDashboard({
 
   // Real-time telemetry state connected to active sensors
   const [dbTrafficData, setDbTrafficData] = useState(null);
-  const [livePeople, setLivePeople] = useState(1246);
-  const [liveVehicles, setLiveVehicles] = useState(862);
-  const [liveDwell, setLiveDwell] = useState(7.6);
+  const [livePeople, setLivePeople] = useState(0);
+  const [liveVehicles, setLiveVehicles] = useState(0);
+  const [liveDwell, setLiveDwell] = useState(0);
+  const [isTrafficLoading, setIsTrafficLoading] = useState(true);
 
   // CCTV dynamic AI bounding boxes
   const [boxes, setBoxes] = useState([
@@ -212,11 +213,12 @@ export default function LiveDashboard({
   const [reportsList, setReportsList] = useState([]);
 
   useEffect(() => {
-    const seed = getSeed();
-    setLivePeople((seed % 300) + 800);
-    setLiveVehicles((seed % 250) + 600);
-    setLiveDwell(parseFloat((4 + (seed % 8) + (seed % 10) / 10).toFixed(1)));
-    
+    // Clear stale database traffic overview synchronously on billboard change
+    localStorage.removeItem('aculion_traffic_overview');
+    setDbTrafficData(null);
+    setLiveVehicles(0);
+    setLiveDwell(0);
+
     const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'BB';
     setReportsList([
       { id: `REP-${code}-01`, name: `${selectedBillboard?.name || 'Billboard'} Comprehensive Mobility & Reach Report`, format: 'PDF', date: '01 Jul 2025', size: '4.2 MB' },
@@ -231,9 +233,11 @@ export default function LiveDashboard({
     ]);
 
     async function fetchDbTrafficOverview() {
+      setIsTrafficLoading(true);
       if (!selectedBillboard?.billboard_code) {
         setDbTrafficData(null);
         localStorage.removeItem('aculion_traffic_overview');
+        setIsTrafficLoading(false);
         return;
       }
       try {
@@ -249,6 +253,7 @@ export default function LiveDashboard({
           console.error("[LiveDashboard] Error fetching traffic overview:", error);
           setDbTrafficData(null);
           localStorage.removeItem('aculion_traffic_overview');
+          setIsTrafficLoading(false);
           return;
         }
 
@@ -270,6 +275,8 @@ export default function LiveDashboard({
         console.error("[LiveDashboard] fetchDbTrafficOverview exception:", err);
         setDbTrafficData(null);
         localStorage.removeItem('aculion_traffic_overview');
+      } finally {
+        setIsTrafficLoading(false);
       }
     }
 
@@ -317,8 +324,10 @@ export default function LiveDashboard({
     return () => clearInterval(timer);
   }, []);
 
-  // Telemetry drift ticker
+  // Telemetry drift ticker — only drift values when backend data exists
   useEffect(() => {
+    if (!dbTrafficData) return; // No drift when no backend data
+
     let tickMs = 5000;
     if (settings.refreshInterval === '1s') tickMs = 1000;
     if (settings.refreshInterval === '10s') tickMs = 10000;
@@ -329,7 +338,7 @@ export default function LiveDashboard({
       setLiveDwell(prev => Math.max(1.0, parseFloat((prev + (Math.random() * 0.4 - 0.2)).toFixed(1))));
     }, tickMs);
     return () => clearInterval(interval);
-  }, [settings.refreshInterval]);
+  }, [settings.refreshInterval, dbTrafficData]);
 
   // CCTV bounding boxes tracker simulation
   useEffect(() => {
@@ -872,7 +881,21 @@ export default function LiveDashboard({
           </header>
 
           {/* Main Views Container */}
-          <main className="flex-grow flex flex-col h-full min-w-0 bg-[#070913] overflow-y-auto">
+          <main className="flex-grow flex flex-col h-full min-w-0 bg-[#070913] overflow-y-auto relative">
+            {isTrafficLoading && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#070913]/95 backdrop-blur-md transition-all duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin shadow-[0_0_15px_rgba(59,130,246,0.3)]"></div>
+                  <div className="absolute w-8 h-8 rounded-full bg-blue-500/20 animate-ping"></div>
+                </div>
+                <h3 className="mt-6 text-sm font-bold text-white tracking-widest uppercase font-heading">
+                  Synchronizing Telemetry
+                </h3>
+                <p className="mt-2 text-xs text-white/40 font-medium font-mono">
+                  Loading real-time database streams...
+                </p>
+              </div>
+            )}
 
             {/* ═══════════════════════════════════════════════════
                1. LIVE VIEW (EXACT TARGET REFERENCE DESIGN 1)
@@ -892,9 +915,8 @@ export default function LiveDashboard({
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-black text-white font-mono">{totalMediasCount}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                        <i className="fa-solid fa-arrow-up text-[8px]" />
-                        <span>12% vs yesterday</span>
+                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
+                        <span>--</span>
                       </div>
                     </div>
                   </div>
@@ -909,9 +931,8 @@ export default function LiveDashboard({
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-black text-white font-mono">{formattedImpressionsVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                        <i className="fa-solid fa-arrow-up text-[8px]" />
-                        <span>18% vs yesterday</span>
+                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
+                        <span>--</span>
                       </div>
                     </div>
                   </div>
@@ -926,9 +947,8 @@ export default function LiveDashboard({
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-black text-white font-mono">{formattedVehiclesVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                        <i className="fa-solid fa-arrow-up text-[8px]" />
-                        <span>15% vs yesterday</span>
+                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
+                        <span>{dbTrafficData ? '+15%' : '--'}</span>
                       </div>
                     </div>
                   </div>
@@ -943,9 +963,8 @@ export default function LiveDashboard({
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-black text-white font-mono">{premiumPctVal}%</span>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                        <i className="fa-solid fa-arrow-up text-[8px]" />
-                        <span>9% vs yesterday</span>
+                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
+                        <span>--</span>
                       </div>
                     </div>
                   </div>
@@ -960,9 +979,8 @@ export default function LiveDashboard({
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-black text-white font-mono">{formattedDwellVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                        <i className="fa-solid fa-arrow-up text-[8px]" />
-                        <span>6% vs yesterday</span>
+                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
+                        <span>{dbTrafficData ? '+6%' : '--'}</span>
                       </div>
                     </div>
                   </div>
@@ -1344,6 +1362,7 @@ export default function LiveDashboard({
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'traffic' && (
               <iframe
+                key={`${selectedBillboard?.billboard_code || selectedBillboard?.id || 'traffic-frame'}-${dbTrafficData ? 'data' : 'nodata'}`}
                 src="/traffic_ui/index.html"
                 title="Traffic Overview"
                 className="w-full h-full border-none"

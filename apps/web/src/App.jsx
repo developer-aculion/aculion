@@ -313,7 +313,13 @@ export default function App() {
         if (rows) {
           setBillboards(rows);
           if (rows.length > 0) {
+            // Find if there is a billboard code in the current URL path
+            const dashMatch = window.location.pathname.match(/^\/([^/]+)\/([^/]+)\/dashboard(?:\/[^/]*)?$/);
+            const urlBbCode = dashMatch ? dashMatch[2] : null;
+            const urlBillboard = urlBbCode ? rows.find(b => (b.billboard_code === urlBbCode || b.id === urlBbCode)) : null;
+
             setSelectedBillboard((prev) => {
+              if (urlBillboard) return urlBillboard;
               const stillExists = prev && rows.find(b => b.id === prev.id);
               return stillExists ? prev : rows[0];
             });
