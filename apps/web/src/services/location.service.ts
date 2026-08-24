@@ -214,6 +214,8 @@ export function generateMockAnalytics(
       competition_level: competitionLevel,
       footfall_potential: footfallPotential,
       ai_confidence: aiConfidence,
+      green_coverage: Math.round(8 + h6 * 14),
+      building_density: buildingDensity,
     },
     kpi_labels: {
       kpi_labels: {

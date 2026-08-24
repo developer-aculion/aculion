@@ -11,6 +11,7 @@ import RoadAnalyticsList from "../charts/RoadAnalyticsList";
 import LocationMap from "../maps/LocationMap";
 import AIRecommendationSidebar from "../layout/AIRecommendationSidebar";
 import { Layers, HelpCircle } from "lucide-react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 // Distance helper using Haversine formula
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -119,10 +120,10 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
   }, [radius]);
 
 
-  // ── Skeleton loader ──
+  // ── Premium Lottie loader ──
   if (isAnalyticsLoading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-background text-foreground w-full">
+      <div className="flex h-screen overflow-hidden bg-[#070913] text-foreground w-full">
         <div className="flex-1 flex flex-col">
           <Header
             latitude={candidateLat} longitude={candidateLng} radius={radius}
@@ -132,15 +133,26 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
             area={(analytics as any)?.area}
             onMenuClick={() => window.dispatchEvent(new CustomEvent("open-sidebar"))}
           />
-          <div className="flex-1 p-6 space-y-5 animate-pulse">
-            <div className="grid grid-cols-7 gap-3">
-              {[...Array(7)].map((_, i) => (
-                <div key={i} className="h-[118px] bg-card/40 border border-border/60 rounded-2xl" />
-              ))}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
+            <div className="relative w-64 h-64 flex items-center justify-center">
+              {/* Premium glowing backdrop glow */}
+              <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+              
+              <DotLottieReact
+                src="/Map_pin_location.lottie"
+                loop
+                autoplay
+                className="w-full h-full z-10"
+              />
             </div>
-            <div className="grid grid-cols-10 gap-5">
-              <div className="col-span-7 h-[520px] bg-card/40 border border-border/60 rounded-2xl" />
-              <div className="col-span-3 h-[520px] bg-card/40 border border-border/60 rounded-2xl" />
+            
+            <div className="text-center space-y-2 z-10">
+              <h3 className="text-lg font-bold tracking-tight text-white animate-pulse">
+                Analyzing Location...
+              </h3>
+              <p className="text-sm text-blue-400/80 font-medium max-w-sm">
+                Scanning radius for POIs, traffic density, and running AI suitability models
+              </p>
             </div>
           </div>
         </div>

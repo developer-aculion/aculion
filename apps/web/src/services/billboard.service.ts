@@ -95,10 +95,11 @@ export const billboardService = {
     if (!user) throw new Error("Authentication required to register a billboard.");
 
     const insertData = {
+      billboard_code: billboardData.id || null,
       owner_id: billboardData.ownerId || user.id,
       billboard_name: billboardData.name || "New Billboard",
-      camera_ff_code: billboardData.cameraCodeFF || `CAM-FF-${Math.floor(1000 + Math.random() * 9000)}`,
-      camera_bf_code: billboardData.cameraCodeBF || `CAM-BF-${Math.floor(1000 + Math.random() * 9000)}`,
+      camera_ff_code: billboardData.cameraCodeFF || null,
+      camera_bf_code: billboardData.cameraCodeBF || null,
       billboard_type: billboardData.type || billboardData.category || 'Digital Billboard',
       location_landmark: billboardData.location || "Junction",
       street_address: billboardData.address || billboardData.location || "Street Address",
