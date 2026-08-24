@@ -131,24 +131,14 @@ export default function LocationMap({
 
     const onClick = (e: any) => {
       if (!isMapPickingActive) return;
-
-      const center = L.latLng(latitude, longitude);
-      const clicked = e.latlng;
-      const distance = center.distanceTo(clicked);
-
-      if (distance <= radius) {
-        onLocationPicked(e.latlng.lat, e.latlng.lng);
-      } else {
-        const radiusText = radius >= 1000 ? `${radius / 1000} km` : `${radius} m`;
-        alert(`Selection must be within ${radiusText} of the billboard`);
-      }
+      onLocationPicked(e.latlng.lat, e.latlng.lng);
     };
 
     map.on("click", onClick);
     return () => {
       map.off("click", onClick);
     };
-  }, [leafletReady, L, isMapPickingActive, latitude, longitude, radius, onLocationPicked]);
+  }, [leafletReady, L, isMapPickingActive, onLocationPicked]);
 
   // ── Force Invalidate Size after leaflet initialization finishes ──
   useEffect(() => {
