@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import LocationIntelligence from '../pages/LocationIntelligence';
+import AudienceIntelligenceView from './location_intelligence/views/AudienceIntelligenceView';
 import lionLogo from '../assets/aculion_lion_logo.png';
 import transparentLogo from '../assets/aculion_logo_transparent.png';
 import { supabase } from '../services/supabase';
@@ -140,6 +141,7 @@ export default function LiveDashboard({
     const seg = dashIdx >= 0 ? (parts[dashIdx + 1] || '') : '';
     const map = {
       'traffic-overview':     'traffic',
+      'audience-intelligence': 'audience',
       'location-overview':    'overview',
       'corridor-intelligence': 'corridor',
       'zone-comparison':      'zone',
@@ -769,6 +771,7 @@ export default function LiveDashboard({
               { id: 'my_medias', icon: 'fa-tv', label: 'My Medias' },
               { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
               { id: 'traffic', icon: 'fa-car', label: 'Traffic Overview' },
+              { id: 'audience', icon: 'fa-users', label: 'Audience Intelligence' },
               { id: 'overview', icon: 'fa-chart-pie', label: 'Location Overview' },
               { id: 'corridor', icon: 'fa-route', label: 'Corridor Intelligence' },
               { id: 'zone', icon: 'fa-chart-simple', label: 'Zone Comparison' },
@@ -788,6 +791,7 @@ export default function LiveDashboard({
                     const slugMap = {
                       live:      'live-view',
                       traffic:   'traffic-overview',
+                      audience:  'audience-intelligence',
                       overview:  'location-overview',
                       corridor:  'corridor-intelligence',
                       zone:      'zone-comparison',
@@ -1845,6 +1849,13 @@ export default function LiveDashboard({
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════
+               AUDIENCE INTELLIGENCE
+            ═══════════════════════════════════════════════════ */}
+            {activeNav === 'audience' && (
+              <AudienceIntelligenceView selectedBillboard={selectedBillboard} />
             )}
 
             {/* ═══════════════════════════════════════════════════
