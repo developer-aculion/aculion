@@ -51,6 +51,8 @@ body {
     color: var(--text-primary);
     font-family: var(--font-body);
     min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
     overflow-x: hidden;
     background-image: 
         radial-gradient(circle at 10% 20%, rgba(30, 136, 255, 0.05) 0%, transparent 40%),
@@ -83,6 +85,10 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: flex;
     min-height: 100vh;
     position: relative;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    min-width: 0;
 }
 
 /* --- Sidebar Filters --- */
@@ -296,6 +302,10 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     flex: 1;
     padding: 20px;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
     transition: var(--transition-smooth);
 }
 
@@ -805,6 +815,9 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     grid-template-columns: 1fr 1.1fr;
     gap: 24px;
     margin-bottom: 32px;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
 }
 
 @media (max-width: 1200px) {
@@ -817,10 +830,16 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
 }
 
 .analytics-card {
     padding: 24px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .card-header {
@@ -1063,12 +1082,18 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
 .heatmap-timeline {
     display: flex;
     gap: 4px;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .heatmap-block {
@@ -1348,31 +1373,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     100% { top: 0%; }
 }
 
-/* --- Responsive Adjustments --- */
-@media (max-width: 768px) {
-    .main-layout {
-        padding: 16px;
-    }
-    
-    .dashboard-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .header-right {
-        align-items: flex-start;
-    }
-    
-    .kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
-@media (max-width: 480px) {
-    .kpi-grid {
-        grid-template-columns: 1fr;
-    }
-}
 
 /* ============================================================
    AI Camera Feed – Classification Stack (camera top, list below)
@@ -1617,15 +1618,21 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 .trend-chart-container {
     min-height: 280px;
     height: 280px;
+.trend-chart-container {
     width: 100%;
     position: relative;
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #trafficTrendLineChart {
     min-height: 280px;
     height: 100%;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .dwell-chart-container {
@@ -1634,12 +1641,17 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     width: 100%;
     position: relative;
     margin-top: 12px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #dwellTimeAreaGraph {
     min-height: 200px;
     height: 100%;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .donut-chart-container {
@@ -1647,12 +1659,24 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     height: 260px;
     width: 100%;
     position: relative;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #vehicleDonutChart {
     min-height: 260px;
     height: 100%;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Constrain ApexCharts elements from stretching parents */
+.apexcharts-canvas,
+.apexcharts-canvas svg,
+.apexcharts-canvas foreignObject {
+    max-width: 100% !important;
 }
 
 /* ===================================================
@@ -1706,58 +1730,160 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 
 @media (max-width: 767px) {
     .main-layout {
-        padding: 12px;
+        padding: 12px 10px;
     }
 
     .dashboard-header {
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         gap: 12px;
     }
 
+    .header-left {
+        gap: 10px;
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .header-titles {
+        min-width: 0;
+        flex: 1;
+    }
+
     .header-titles h1 {
-        font-size: clamp(20px, 5vw, 24px);
+        font-size: 20px;
+        line-height: 1.2;
+        word-break: break-word;
     }
 
     .subtitle {
         font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .header-right {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header-selectors {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .selector-box {
+        width: 100%;
+        max-width: 100%;
+        padding: 10px 12px;
+        box-sizing: border-box;
+    }
+
+    .header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
     }
 
     .kpi-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        margin-bottom: 16px;
+        gap: 8px;
+        margin-bottom: 14px;
     }
 
     .kpi-card {
-        padding: 14px;
-        min-height: 110px;
+        padding: 12px;
+        min-height: 95px;
+        min-width: 0;
+    }
+
+    .kpi-card:last-child {
+        grid-column: span 2;
     }
 
     .kpi-value {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .kpi-value.time-value {
-        font-size: 13px;
+        font-size: 12px;
+    }
+
+    .analytics-row-main {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 20px;
+        width: 100%;
+    }
+
+    .analytics-col-left,
+    .analytics-col-right {
+        gap: 14px;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .analytics-card {
-        padding: 16px;
+        padding: 14px 12px;
         border-radius: 14px;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .card-header {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         flex-wrap: wrap;
         gap: 8px;
     }
 
+    .header-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .header-info h2 {
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
+    .card-subtitle {
+        font-size: 10.5px;
+        line-height: 1.3;
+    }
+
+    .dwell-summary-pill {
+        padding: 4px 8px;
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+
+    .chart-controls-simple {
+        flex-shrink: 0;
+    }
+
     .classification-list {
-        gap: 12px;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
     }
 
     .class-item {
-        gap: 6px;
+        gap: 5px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .class-info {
+        width: 100%;
+        min-width: 0;
     }
 
     .class-label, .class-count {
@@ -1770,17 +1896,60 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 
     .dwell-stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .dwell-stat-box {
+        padding: 8px 10px;
+        min-width: 0;
+        border-radius: 8px;
+    }
+
+    .dwell-stat-label {
+        font-size: 9.5px;
+        margin-bottom: 4px;
+        letter-spacing: 0.2px;
+        line-height: 1.2;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .dwell-stat-value {
+        font-size: 16px;
     }
 
     .day-periods-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        gap: 6px;
+        padding-top: 12px;
+    }
+
+    .period-item {
+        min-width: 0;
+        padding: 6px 4px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+    }
+
+    .period-name {
+        font-size: 11px;
+    }
+
+    .period-sub {
+        font-size: 9.5px;
+        margin-bottom: 4px;
+    }
+
+    .period-value {
+        font-size: 13px;
     }
 
     /* Traffic Density Heat Timeline Mobile Horizontal Scroll */
     .heatmap-outer-wrapper {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         overflow: hidden;
     }
 
@@ -1788,24 +1957,29 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         padding-bottom: 8px;
-        gap: 3px;
+        gap: 4px;
         width: 100%;
+        max-width: 100%;
         scrollbar-width: thin;
         scrollbar-color: rgba(30, 136, 255, 0.4) transparent;
     }
 
     .heatmap-block {
-        min-width: 32px;
-        height: 32px;
+        min-width: 28px;
+        width: 28px;
+        height: 28px;
         flex-shrink: 0;
     }
 
     .heatmap-legend {
         font-size: 9.5px;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .trend-chart-panel {
-        min-height: 300px;
+        min-height: auto;
     }
 
     .trend-chart-container, #trafficTrendLineChart {
@@ -1817,15 +1991,25 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
         min-height: 240px;
         height: 240px;
     }
+
+    .dwell-chart-container, #dwellTimeAreaGraph {
+        min-height: 180px;
+        height: 180px;
+    }
 }
 
 @media (max-width: 480px) {
     .main-layout {
-        padding: 10px;
+        padding: 10px 8px;
     }
 
     .kpi-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .kpi-card:last-child {
+        grid-column: span 1;
     }
 
     .header-left {
@@ -1835,30 +2019,21 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 
     .header-right {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
     .selector-box {
         width: 100%;
     }
 
-    .header-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-
-    .update-timestamp {
-        grid-column: span 2;
-        text-align: center;
-    }
-
     .dwell-stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
     }
 
     .day-periods-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
     }
 }
 

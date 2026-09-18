@@ -1409,7 +1409,7 @@ export default function LiveDashboard({
           </header>
 
           {/* Main Views Container */}
-          <main className="flex-grow flex flex-col h-full min-w-0 bg-[#070913] overflow-y-auto relative">
+          <main className={`flex-grow flex flex-col h-full min-w-0 bg-[#070913] ${activeNav === 'traffic' ? 'overflow-hidden' : 'overflow-y-auto'} relative`}>
             {isTrafficLoading && (
               <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#070913]/95 backdrop-blur-md transition-all duration-300">
                 <div className="relative flex items-center justify-center">

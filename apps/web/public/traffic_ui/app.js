@@ -622,7 +622,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         return `${val.toLocaleString()} (${pct}%) • Trend: ${trends[seriesIndex] || ''}`;
                     }
                 }
-            }
+            },
+            responsive: [
+                {
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 240
+                        },
+                        legend: {
+                            position: 'bottom',
+                            fontSize: '11px',
+                            itemMargin: { horizontal: 6, vertical: 2 }
+                        }
+                    }
+                }
+            ]
         };
 
         const container = document.querySelector("#vehicleDonutChart");
@@ -683,7 +698,28 @@ document.addEventListener('DOMContentLoaded', () => {
             tooltip: {
                 theme: 'dark',
                 x: { show: true }
-            }
+            },
+            responsive: [
+                {
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 180
+                        },
+                        xaxis: {
+                            tickAmount: 4,
+                            labels: {
+                                style: { fontSize: '9px' }
+                            }
+                        },
+                        yaxis: {
+                            labels: {
+                                style: { fontSize: '10px' }
+                            }
+                        }
+                    }
+                }
+            ]
         };
 
         const container = document.querySelector("#dwellTimeAreaGraph");
@@ -759,7 +795,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
                 markers: { radius: 12 }
             },
-            tooltip: { theme: 'dark' }
+            tooltip: { theme: 'dark' },
+            responsive: [
+                {
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 250,
+                            toolbar: { show: false }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            horizontalAlign: 'center',
+                            itemMargin: { horizontal: 6, vertical: 3 },
+                            fontSize: '11px',
+                            offsetY: 0
+                        },
+                        xaxis: {
+                            tickAmount: 4,
+                            labels: {
+                                rotate: -30,
+                                rotateAlways: false,
+                                style: { fontSize: '10px' }
+                            }
+                        },
+                        yaxis: {
+                            title: { text: '' },
+                            labels: {
+                                style: { fontSize: '10px' }
+                            }
+                        }
+                    }
+                }
+            ]
         };
 
         const container = document.querySelector("#trafficTrendLineChart");
