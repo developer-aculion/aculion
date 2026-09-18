@@ -155,9 +155,22 @@ export default function LiveDashboard({
     return map[seg] || 'traffic';
   };
   const [activeNav, setActiveNav] = useState(getNavFromPath);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mainMediaView, setMainMediaView] = useState('map');
   const [timeFilter, setTimeFilter] = useState('24H');
+  
+  // Prevent background scrolling on mobile when sidebar drawer is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
   
   const getSeed = () => {
     const str = selectedBillboard?.billboard_code || selectedBillboard?.id || 'default';
@@ -214,141 +227,153 @@ export default function LiveDashboard({
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportsList, setReportsList] = useState([]);
 
-  useEffect(() => {
-    // Clear stale database traffic overview synchronously on billboard change
-    localStorage.removeItem('aculion_traffic_overview');
-    setDbTrafficData(null);
-    setLiveVehicles(0);
-    setLiveDwell(0);
-
+  const buildLiveAlerts = React.useCallback((telemetry) => {
     const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0004';
     const camCode = selectedBillboard?.camera_ff_code || 'CAM-FF-004';
     const bbName = selectedBillboard?.billboard_name || selectedBillboard?.name || 'Corridor Asset';
     const lat = (selectedBillboard?.latitude || 12.9010).toFixed(4);
     const lng = (selectedBillboard?.longitude || 80.2279).toFixed(4);
+    const flow = telemetry?.flow_rate || 84.5;
+    const peak = telemetry?.peak_traffic_hour || '06:00 PM – 07:00 PM';
+    const total = (telemetry?.total_vehicles || 17820).toLocaleString();
+
+    return [
+      {
+        id: 1,
+        type: 'INFO',
+        title: `Front Camera Stream Active (${camCode})`,
+        target: `${code} • 1080p 30fps Real-Time Stream Online`,
+        time: 'Active Now',
+        active: true
+      },
+      {
+        id: 2,
+        type: flow > 90 ? 'CRITICAL' : flow > 70 ? 'WARNING' : 'INFO',
+        title: `Mobility Flow Rate: ${flow} veh/min logged`,
+        target: `${code} • Real-time junction throughput (Total: ${total} veh)`,
+        time: '2 mins ago',
+        active: true
+      },
+      {
+        id: 3,
+        type: 'INFO',
+        title: `Peak Mobility Window Active (${peak})`,
+        target: `${bbName} • High audience attention & recall period`,
+        time: 'Today',
+        active: true
+      },
+      {
+        id: 4,
+        type: 'INFO',
+        title: `GPS Telemetry Locked (${lat}° N, ${lng}° E)`,
+        target: `${bbName} • Verified asset location on OOH Vector Map`,
+        time: 'Continuous',
+        active: true
+      }
+    ];
+  }, [selectedBillboard]);
+
+  const isFetchingDbRef = React.useRef(false);
+
+  const fetchDbTrafficOverview = React.useCallback(async (isSilent = false) => {
+    if (isFetchingDbRef.current) return;
+    isFetchingDbRef.current = true;
+    if (!isSilent) setIsTrafficLoading(true);
+
+    const targetBbCode = selectedBillboard?.billboard_code || selectedBillboard?.id;
+    const camFfCode = selectedBillboard?.camera_ff_code || '';
+    const camBfCode = selectedBillboard?.camera_bf_code || '';
+
+    try {
+      if (!targetBbCode) {
+        setDbTrafficData(null);
+        setLiveVehicles(0);
+        setLiveDwell(0);
+        return;
+      }
+
+      // STRICT QUERY: Filter exclusively by the selected billboard_code
+      const res = await supabase
+        .from("traffic_overview")
+        .select("*")
+        .eq("billboard_code", targetBbCode)
+        .order("last_updated", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const data = res.data;
+
+      // Strict match check: verify returned record matches target billboard
+      if (data && data.billboard_code === targetBbCode) {
+        setDbTrafficData(data);
+        setAlerts(buildLiveAlerts(data));
+        setLiveVehicles(Number(data.total_vehicles) || 0);
+        setLiveDwell(Number(data.avg_exposure_time) || 0);
+
+        // Broadcast to iframe with exact billboard info
+        document.querySelectorAll('iframe').forEach(frame => {
+          frame.contentWindow?.postMessage({
+            type: 'ACULION_TRAFFIC_DATA_UPDATE',
+            billboard_code: targetBbCode,
+            camera_ff_code: camFfCode,
+            camera_bf_code: camBfCode,
+            data: data
+          }, '*');
+        });
+      } else {
+        // STRICT NO-DATA RULE: Billboard has no database record -> Reset to 0
+        setDbTrafficData(null);
+        setAlerts(buildLiveAlerts(null));
+        setLiveVehicles(0);
+        setLiveDwell(0);
+
+        // Broadcast zero state to iframe
+        document.querySelectorAll('iframe').forEach(frame => {
+          frame.contentWindow?.postMessage({
+            type: 'ACULION_TRAFFIC_DATA_UPDATE',
+            billboard_code: targetBbCode,
+            camera_ff_code: camFfCode,
+            camera_bf_code: camBfCode,
+            data: null
+          }, '*');
+        });
+      }
+    } catch (err) {
+      console.error("[LiveDashboard] fetchDbTrafficOverview error:", err);
+    } finally {
+      isFetchingDbRef.current = false;
+      if (!isSilent) setIsTrafficLoading(false);
+    }
+  }, [selectedBillboard, buildLiveAlerts]);
+
+  useEffect(() => {
+    const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001';
+    const bbName = selectedBillboard?.billboard_name || selectedBillboard?.name || 'Testing Billboard-1';
 
     setReportsList([
       { id: `REP-${code}-01`, name: `${bbName} Comprehensive Mobility & Reach Report`, format: 'PDF', date: new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }), size: '3.4 MB' },
       { id: `REP-${code}-02`, name: `${bbName} Monthly DOOH Audience & Valuation Summary`, format: 'PDF', date: new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }), size: '2.8 MB' }
     ]);
 
-    function buildLiveAlerts(telemetry) {
-      const flow = telemetry?.flow_rate || 84.5;
-      const peak = telemetry?.peak_traffic_hour || '06:00 PM – 07:00 PM';
-      const total = (telemetry?.total_vehicles || 17820).toLocaleString();
-
-      return [
-        {
-          id: 1,
-          type: 'INFO',
-          title: `Front Camera Stream Active (${camCode})`,
-          target: `${code} • 1080p 30fps Real-Time Stream Online`,
-          time: 'Active Now',
-          active: true
-        },
-        {
-          id: 2,
-          type: flow > 90 ? 'CRITICAL' : flow > 70 ? 'WARNING' : 'INFO',
-          title: `Mobility Flow Rate: ${flow} veh/min logged`,
-          target: `${code} • Real-time junction throughput (Total: ${total} veh)`,
-          time: '2 mins ago',
-          active: true
-        },
-        {
-          id: 3,
-          type: 'INFO',
-          title: `Peak Mobility Window Active (${peak})`,
-          target: `${bbName} • High audience attention & recall period`,
-          time: 'Today',
-          active: true
-        },
-        {
-          id: 4,
-          type: 'INFO',
-          title: `GPS Telemetry Locked (${lat}° N, ${lng}° E)`,
-          target: `${bbName} • Verified asset location on OOH Vector Map`,
-          time: 'Continuous',
-          active: true
-        }
-      ];
-    }
-
     setAlerts(buildLiveAlerts(null));
 
-    async function fetchDbTrafficOverview(isSilent = false) {
-      if (!isSilent) setIsTrafficLoading(true);
-      if (!selectedBillboard?.billboard_code) {
-        setDbTrafficData(null);
-        localStorage.removeItem('aculion_traffic_overview');
-        if (!isSilent) setIsTrafficLoading(false);
-        return;
-      }
-      try {
-        // 1. First attempt: match by billboard_code
-        let { data, error } = await supabase
-          .from("traffic_overview")
-          .select("*")
-          .eq("billboard_code", selectedBillboard.billboard_code)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        // 2. Second attempt: match by camera_ff_code if not found
-        if (!data && selectedBillboard.camera_ff_code) {
-          const res = await supabase
-            .from("traffic_overview")
-            .select("*")
-            .eq("camera_ff_code", selectedBillboard.camera_ff_code)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (res.data) data = res.data;
-        }
-
-        // 3. Third attempt: query most recent row with non-zero total_vehicles
-        if (!data || data.total_vehicles === 0) {
-          const res = await supabase
-            .from("traffic_overview")
-            .select("*")
-            .gt("total_vehicles", 0)
-            .order("last_updated", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (res.data) data = res.data;
-        }
-
-        if (data) {
-          setDbTrafficData(data);
-          localStorage.setItem('aculion_traffic_overview', JSON.stringify(data));
-          setAlerts(buildLiveAlerts(data));
-          
-          if (data.total_vehicles !== undefined && data.total_vehicles !== null) {
-            setLiveVehicles(data.total_vehicles);
-          }
-          if (data.avg_exposure_time !== undefined && data.avg_exposure_time !== null) {
-            setLiveDwell(Number(data.avg_exposure_time));
-          }
-        } else {
-          setDbTrafficData(null);
-          localStorage.removeItem('aculion_traffic_overview');
-        }
-      } catch (err) {
-        console.error("[LiveDashboard] fetchDbTrafficOverview exception:", err);
-      } finally {
-        if (!isSilent) setIsTrafficLoading(false);
-      }
-    }
+    // Reset traffic data immediately on billboard change so previous billboard data is never visible
+    setDbTrafficData(null);
+    setLiveVehicles(0);
+    setLiveDwell(0);
 
     fetchDbTrafficOverview(false);
 
+    // Reliable 5-second automatic refresh interval
     const intervalId = setInterval(() => {
       fetchDbTrafficOverview(true);
-    }, 10000);
+    }, 5000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedBillboard]);
+  }, [selectedBillboard, fetchDbTrafficOverview, buildLiveAlerts]);
+
 
 
   // Historical trends granularity
@@ -387,21 +412,6 @@ export default function LiveDashboard({
     return () => clearInterval(timer);
   }, []);
 
-  // Telemetry drift ticker — only drift values when backend data exists
-  useEffect(() => {
-    if (!dbTrafficData) return; // No drift when no backend data
-
-    let tickMs = 5000;
-    if (settings.refreshInterval === '1s') tickMs = 1000;
-    if (settings.refreshInterval === '10s') tickMs = 10000;
-
-    const interval = setInterval(() => {
-      setLivePeople(prev => Math.max(10, prev + Math.floor(Math.random() * 9) - 4));
-      setLiveVehicles(prev => Math.max(10, prev + Math.floor(Math.random() * 7) - 3));
-      setLiveDwell(prev => Math.max(1.0, parseFloat((prev + (Math.random() * 0.4 - 0.2)).toFixed(1))));
-    }, tickMs);
-    return () => clearInterval(interval);
-  }, [settings.refreshInterval, dbTrafficData]);
 
   // CCTV bounding boxes tracker simulation
   useEffect(() => {
@@ -461,16 +471,21 @@ export default function LiveDashboard({
     }
   };
 
-  // Listen for export report messages from iframe (e.g. from Audience Intelligence header button)
+  // Listen for export report and refresh messages from iframe (e.g. from Audience Intelligence header buttons)
   useEffect(() => {
-    const handleReportMsg = (e) => {
-      if (e.data && e.data.type === 'ACULION_GENERATE_REPORT_PDF') {
-        handleGenerateReport();
+    const handleIframeMsg = (e) => {
+      if (e.data) {
+        if (e.data.type === 'ACULION_GENERATE_REPORT_PDF') {
+          handleGenerateReport();
+        } else if (e.data.type === 'ACULION_REFRESH_TRAFFIC_DATA' || e.data.type === 'REQUEST_TRAFFIC_REFRESH') {
+          fetchDbTrafficOverview(false);
+        }
       }
     };
-    window.addEventListener('message', handleReportMsg);
-    return () => window.removeEventListener('message', handleReportMsg);
-  }, [dbTrafficData, selectedBillboard, user, reportType]);
+    window.addEventListener('message', handleIframeMsg);
+    return () => window.removeEventListener('message', handleIframeMsg);
+  }, [fetchDbTrafficOverview, dbTrafficData, selectedBillboard, user, reportType]);
+
 
   // Download restructured spacious 3-page report as high-quality PDF
   const downloadReportAsPDF = async (rep) => {
@@ -1201,35 +1216,62 @@ export default function LiveDashboard({
   const userName = user?.name || user?.fullName || 'Media Owner';
 
   return (
-    <div className="w-screen h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
+    <div className="w-full h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
       
       {/* ═══════════════════════════════════════════════════
          MAIN BODY DECOUPLED COLUMNS
       ═══════════════════════════════════════════════════ */}
       <div className="flex flex-1 overflow-hidden min-h-0 w-full relative">
 
+        {/* Backdrop for Mobile/Tablet Sidebar Drawer */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
         {/* ── SIDEBAR (Left Column - 280px width) ── */}
-        <aside className="w-[280px] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0">
+        <aside className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-[280px] max-w-[85vw] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0 transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
           
           {/* Logo brand section */}
-          <div className="p-6 border-b border-white/10 flex flex-col gap-1.5 flex-shrink-0 cursor-pointer" onClick={(e) => navigateTo && navigateTo(e, '/')}>
-            <div className="flex items-center gap-[12px]">
-              <div style={{ width: '50px', height: '56px', overflow: 'hidden', flexShrink: 0 }}>
+          <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+            <div 
+              className="flex items-center gap-[12px] cursor-pointer" 
+              onClick={(e) => {
+                setSidebarOpen(false);
+                if (navigateTo) navigateTo(e, '/');
+              }}
+            >
+              <div style={{ width: '44px', height: '50px', overflow: 'hidden', flexShrink: 0 }}>
                 <img 
                   src={transparentLogo} 
                   alt="Aculion Symbol" 
-                  style={{ height: '56px', width: 'auto', maxWidth: 'none', display: 'block' }}
+                  style={{ height: '50px', width: 'auto', maxWidth: 'none', display: 'block' }}
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-[20px] font-black tracking-[0.05em] text-white uppercase leading-none font-heading">
+                <span className="text-[18px] sm:text-[20px] font-black tracking-[0.05em] text-white uppercase leading-none font-heading">
                   ACULION
                 </span>
-                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-[4px] leading-none">
+                <span className="text-[8.5px] sm:text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-[4px] leading-none">
                   SEE BEYOND
                 </span>
               </div>
             </div>
+
+            {/* Mobile / Tablet Close Button */}
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 text-white/50 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] rounded-lg border border-white/10 w-8 h-8 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Close navigation"
+            >
+              <i className="fa-solid fa-xmark text-sm" />
+            </button>
           </div>
 
           <div className="flex-1 flex flex-col p-3 gap-1 overflow-y-auto min-h-0">
@@ -1249,6 +1291,7 @@ export default function LiveDashboard({
               <button
                 key={item.id}
                 onClick={() => {
+                  setSidebarOpen(false);
                   if (item.id === 'my_medias') {
                     if (onBackToProfile) onBackToProfile();
                   } else {
@@ -1270,7 +1313,7 @@ export default function LiveDashboard({
                     setActiveNav(item.id);
                   }
                 }}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-[12px] font-semibold transition-all !w-full !border-none !shadow-none cursor-pointer ${
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-[12px] font-semibold transition-all !w-full !border-none !shadow-none cursor-pointer min-h-[40px] ${
                   activeNav === item.id 
                     ? '!bg-blue-600 !text-white shadow-lg shadow-blue-500/20' 
                     : '!bg-transparent hover:!bg-white/[0.04] !text-white/60 hover:!text-white'
@@ -1312,41 +1355,53 @@ export default function LiveDashboard({
           {/* ═══════════════════════════════════════════════════
              TOP BAR (TARGET REFERENCE DESIGN 1)
           ═══════════════════════════════════════════════════ */}
-          <header className="h-[76px] border-b border-white/10 px-8 flex items-center justify-between bg-[#080c16] flex-shrink-0 w-full">
-            {/* Greeting */}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white/60">Welcome back,</span>
+          <header className="min-h-[64px] sm:h-[76px] border-b border-white/10 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-[#080c16] flex-shrink-0 w-full">
+            {/* Left: Hamburger Button & Greeting */}
+            <div className="flex items-center gap-3">
+              {/* Hamburger Button (Visible on Tablet & Mobile) */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 text-white/80 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl flex items-center justify-center w-10 h-10 transition-all cursor-pointer flex-shrink-0"
+                aria-label="Open navigation"
+              >
+                <i className="fa-solid fa-bars text-base" />
+              </button>
+
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-medium text-white/60">Welcome back,</span>
+                </div>
+                <h1 className="text-base sm:text-xl font-bold font-heading text-white tracking-wide leading-tight">
+                  {userName} 👋
+                </h1>
+                <p className="text-[11px] sm:text-xs text-white/40 font-medium leading-none mt-0.5 sm:mt-1 hidden sm:block">
+                  Here's what's happening across your media today.
+                </p>
               </div>
-              <h1 className="text-xl font-bold font-heading text-white tracking-wide leading-tight">
-                {userName} 👋
-              </h1>
-              <p className="text-xs text-white/40 font-medium leading-none mt-1">
-                Here's what's happening across your media today.
-              </p>
             </div>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-[#121829] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white/80 font-medium">
-                <i className="fa-regular fa-calendar text-blue-400 text-xs" />
-                <span className="font-mono">Today, {formattedDate}</span>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-[#121829] border border-white/10 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs text-white/80 font-medium">
+                <i className="fa-regular fa-calendar text-blue-400 text-[11px] sm:text-xs" />
+                <span className="font-mono whitespace-nowrap">Today, {formattedDate}</span>
               </div>
 
               {user?.role === 'Administrator' ? (
                 <button
                   onClick={onAddNewMedia || onBackToProfile}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] sm:text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px]"
                 >
-                  <i className="fa-solid fa-plus text-xs" />
+                  <i className="fa-solid fa-plus text-[10px] sm:text-xs" />
                   <span>Add Media</span>
                 </button>
               ) : (
                 <button
                   onClick={onBackToProfile}
-                  className="px-4 py-2.5 rounded-xl bg-[#121829] hover:bg-[#1a223a] text-cyan-400 text-xs font-semibold shadow-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-[#121829] hover:bg-[#1a223a] text-cyan-400 text-[11px] sm:text-xs font-semibold shadow-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px]"
                 >
-                  <i className="fa-solid fa-headset text-xs text-cyan-400" />
+                  <i className="fa-solid fa-headset text-[10px] sm:text-xs text-cyan-400" />
                   <span>Contact Aculion to Add Media</span>
                 </button>
               )}
@@ -1374,10 +1429,10 @@ export default function LiveDashboard({
                1. LIVE VIEW (EXACT TARGET REFERENCE DESIGN 1)
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'live' && (
-              <div className="flex-1 flex flex-col p-6 gap-6 min-w-0">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 sm:gap-6 min-w-0">
 
                 {/* ── 1. TOP KPI CARDS ROW (5 CARDS) ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                   {/* Card 1: Total Medias */}
                   <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
                     <div className="flex items-center justify-between">
@@ -1847,8 +1902,8 @@ export default function LiveDashboard({
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'traffic' && (
               <iframe
-                key={`${selectedBillboard?.billboard_code || selectedBillboard?.id || 'traffic-frame'}-${dbTrafficData ? 'data' : 'nodata'}`}
-                src={`/traffic_ui/index.html?api=${encodeURIComponent(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080')}`}
+                key={selectedBillboard?.billboard_code || selectedBillboard?.id || 'traffic-frame'}
+                src={`/traffic_ui/index.html?billboard_code=${encodeURIComponent(selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001')}&camera_ff_code=${encodeURIComponent(selectedBillboard?.camera_ff_code || '')}&camera_bf_code=${encodeURIComponent(selectedBillboard?.camera_bf_code || '')}&bb_name=${encodeURIComponent(selectedBillboard?.billboard_name || selectedBillboard?.name || '')}`}
                 title="Audience Intelligence"
                 className="w-full h-full border-none"
               />
@@ -1865,7 +1920,7 @@ export default function LiveDashboard({
                3. CORRIDOR INTELLIGENCE
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'corridor' && (
-              <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <div className="flex items-center justify-between flex-shrink-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Junction Corridor Flow Matrix</h3>
                 </div>
@@ -1905,7 +1960,7 @@ export default function LiveDashboard({
                 </div>
 
                 {/* Speed vs Congestion metrics */}
-                <div className="grid grid-cols-2 gap-4 h-[120px] flex-shrink-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[120px] flex-shrink-0">
                   <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex flex-col justify-around shadow-lg">
                     <span className="text-[9.5px] text-cyan-400 font-bold uppercase tracking-wider">Corridor Congestion Average</span>
                     <div className="flex items-center justify-between text-[11px]">
@@ -1929,12 +1984,12 @@ export default function LiveDashboard({
                4. ZONE COMPARISON
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'zone' && (
-              <div className="flex-grow flex flex-col gap-4 overflow-y-auto pr-1">
-                <div className="flex items-center justify-between flex-shrink-0">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
+                <div className="flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Multi-Zone Dashboard Comparison</h3>
                   
                   {/* Select zone toggles */}
-                  <div className="flex bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
+                  <div className="flex flex-wrap bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
                     {[
                       { key: 'zoneA', label: 'Commercial Zone A' },
                       { key: 'zoneB', label: 'Retail Zone B' },
@@ -1943,7 +1998,7 @@ export default function LiveDashboard({
                       <button
                         key={opt.key}
                         onClick={() => setActiveZoneCompare(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
-                        className={`px-3 py-1 rounded font-semibold transition-all !border-none !shadow-none ${
+                        className={`px-3 py-1 rounded font-semibold transition-all !border-none !shadow-none cursor-pointer ${
                           activeZoneCompare[opt.key] ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'
                         }`}
                       >
@@ -1953,7 +2008,7 @@ export default function LiveDashboard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Commercial Zone */}
                   {activeZoneCompare.zoneA && (
                     <div className="bg-[#0f172a]/60 border border-blue-500/30 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
@@ -2027,17 +2082,17 @@ export default function LiveDashboard({
                5. HISTORICAL TRENDS
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'historical' && (
-              <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                <div className="flex items-center justify-between flex-shrink-0 font-sans">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
+                <div className="flex flex-wrap items-center justify-between gap-2 flex-shrink-0 font-sans">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Historical Trend Analytics</h3>
                   
                   {/* Select Trend Toggles */}
-                  <div className="flex bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
+                  <div className="flex flex-wrap bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
                     {['day', 'week', 'month', 'year'].map(opt => (
                       <button
                         key={opt}
                         onClick={() => setHistoricalFilter(opt)}
-                        className={`px-3 py-1 rounded font-semibold transition-all uppercase !border-none !shadow-none ${
+                        className={`px-3 py-1 rounded font-semibold transition-all uppercase !border-none !shadow-none cursor-pointer ${
                           historicalFilter === opt ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'
                         }`}
                       >
@@ -2047,7 +2102,7 @@ export default function LiveDashboard({
                   </div>
                 </div>
 
-                <div className="flex-1 bg-slate-900/60 border border-white/10 rounded-xl p-4 flex flex-col shadow-lg min-h-0">
+                <div className="flex-1 bg-slate-900/60 border border-white/10 rounded-xl p-3 sm:p-4 flex flex-col shadow-lg min-h-[300px]">
                   <span className="text-[10px] text-white/45 mb-3 block">Impressions vs Billboard Occupancy Trend Matrix</span>
                   <div className="flex-grow w-full relative min-h-0">
                     <ResponsiveContainer width="100%" height="100%">
@@ -2080,11 +2135,11 @@ export default function LiveDashboard({
                6. ALERTS
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'alerts' && (
-              <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Node Status Alerts & Alarms</h3>
 
                 {/* Telemetries */}
-                <div className="grid grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                   {[
                     { title: 'GPU Core Load', val: '74%', desc: 'AI inference pipeline online', color: 'text-blue-400' },
                     { title: 'Edge Temp', val: '58°C', desc: 'Thermal control normal', color: 'text-emerald-400' },
@@ -2143,10 +2198,10 @@ export default function LiveDashboard({
                7. Reports
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'reports' && (
-              <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Campaign Report compiler</h3>
 
-                <div className="grid grid-cols-[1.2fr_1.8fr] gap-4 min-h-[300px]">
+                <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1.8fr] gap-4 min-h-[300px]">
                   {/* Query config panel */}
                   <form onSubmit={handleGenerateReport} className="bg-slate-900/60 border border-white/10 rounded-xl p-4 flex flex-col justify-between shadow-lg h-full">
                     <div className="flex flex-col gap-3">
@@ -2242,13 +2297,13 @@ export default function LiveDashboard({
                SETTINGS
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'settings' && (
-              <form onSubmit={handleSaveSettings} className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+              <form onSubmit={handleSaveSettings} className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex-shrink-0">Settings Dashboard</h3>
 
-                <div className="bg-slate-900/60 border border-white/10 rounded-xl p-5 flex flex-col gap-4 shadow-lg">
+                <div className="bg-slate-900/60 border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col gap-4 shadow-lg">
                   <span className="text-[10px] text-white/45 uppercase font-medium">Dashboard Preferences</span>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-white/50">Telemetry refresh rate</label>
                       <select 
@@ -2319,9 +2374,9 @@ export default function LiveDashboard({
           </main>
 
           {/* ═══════════════════════════════════════════════════
-             FOOTER STATUS BAR (h-[40px])
+             FOOTER STATUS BAR
           ═══════════════════════════════════════════════════ */}
-          <footer className="h-[40px] border-t border-white/10 px-6 flex items-center justify-between bg-[#05070f] text-[10px] text-white/35 flex-shrink-0 w-full">
+          <footer className="min-h-[40px] border-t border-white/10 px-4 sm:px-6 py-2.5 sm:py-0 flex flex-col sm:flex-row items-center justify-between gap-2 bg-[#05070f] text-[10px] text-white/35 flex-shrink-0 w-full text-center sm:text-left">
             <div className="flex items-center gap-1.5 font-semibold text-[#22c55e]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
               All hardware nodes operational
