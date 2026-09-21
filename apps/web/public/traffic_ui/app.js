@@ -534,15 +534,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const block = document.createElement('div');
             block.className = 'heatmap-block';
-            block.style.backgroundColor = `rgba(30, 136, 255, ${densityMult})`;
-            block.style.borderTop = `2px solid rgba(0, 240, 255, ${densityMult * 0.5})`;
+            const bgAlpha = Math.max(0.18, densityMult * 0.75);
+            block.style.background = `linear-gradient(180deg, rgba(30, 136, 255, ${bgAlpha}) 0%, rgba(14, 20, 36, 0.95) 100%)`;
+            block.style.border = `1px solid ${
+                densityMult >= 0.9 ? 'rgba(0, 240, 255, 0.6)' :
+                densityMult >= 0.8 ? 'rgba(30, 136, 255, 0.5)' :
+                'rgba(255, 255, 255, 0.12)'
+            }`;
+            block.style.borderTop = `2.5px solid ${
+                densityMult >= 0.9 ? '#00f0ff' :
+                densityMult >= 0.8 ? '#1e88ff' :
+                'rgba(0, 240, 255, 0.4)'
+            }`;
 
-            if (i % 2 === 0) {
-                const label = document.createElement('span');
-                label.className = 'heatmap-block-label';
-                label.textContent = formattedHour;
-                block.appendChild(label);
-            }
+            const label = document.createElement('span');
+            label.className = 'heatmap-block-label';
+            label.textContent = formattedHour;
+            block.appendChild(label);
+
+            const sub = document.createElement('span');
+            sub.className = 'heatmap-block-sub';
+            sub.textContent = `${scale} v/m`;
+            block.appendChild(sub);
 
             const tooltip = document.createElement('div');
             tooltip.className = 'tooltip';
