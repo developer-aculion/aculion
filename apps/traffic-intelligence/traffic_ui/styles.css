@@ -1021,6 +1021,10 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-bottom: 20px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .dwell-stat-box {
@@ -1031,6 +1035,9 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .dwell-stat-label {
@@ -1788,6 +1795,16 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
         gap: 14px;
         margin-bottom: 20px;
     }
+
+    .dwell-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
 }
 
 @media (max-width: 767px) {
@@ -1957,15 +1974,22 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     }
 
     .dwell-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
         margin-bottom: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .dwell-stat-box {
         padding: 8px 10px;
         min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
         border-radius: 8px;
+        overflow: hidden;
     }
 
     .dwell-stat-label {
@@ -2098,8 +2122,32 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     }
 
     .dwell-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .dwell-stat-box {
+        padding: 8px 8px;
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .dwell-stat-label {
+        font-size: 9px;
+        margin-bottom: 3px;
+        letter-spacing: 0.2px;
+        line-height: 1.2;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .dwell-stat-value {
+        font-size: 15px;
     }
 
     .day-periods-grid {
