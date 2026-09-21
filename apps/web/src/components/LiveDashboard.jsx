@@ -481,7 +481,7 @@ export default function LiveDashboard({
         if (e.data.type === 'ACULION_GENERATE_REPORT_PDF') {
           handleGenerateReport();
         } else if (e.data.type === 'ACULION_REFRESH_TRAFFIC_DATA' || e.data.type === 'REQUEST_TRAFFIC_REFRESH') {
-          fetchDbTrafficOverview(false);
+          fetchDbTrafficOverview(true);
         }
       }
     };
@@ -1413,7 +1413,7 @@ export default function LiveDashboard({
 
           {/* Main Views Container */}
           <main className={`flex-grow flex flex-col h-full min-w-0 bg-[#070913] ${activeNav === 'traffic' ? 'overflow-hidden' : 'overflow-y-auto'} relative`}>
-            {isTrafficLoading && (
+            {isTrafficLoading && activeNav !== 'traffic' && (
               <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#070913]/95 backdrop-blur-md transition-all duration-300">
                 <div className="relative flex items-center justify-center">
                   <div className="w-16 h-16 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin shadow-[0_0_15px_rgba(59,130,246,0.3)]"></div>

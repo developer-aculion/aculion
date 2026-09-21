@@ -368,25 +368,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Refresh trigger handler (used both for auto-refresh interval and manual click)
-    async function triggerAutoRefresh() {
-        try {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ 
-                    type: 'ACULION_REFRESH_TRAFFIC_DATA',
-                    billboard_code: activeBillboardCode 
-                }, '*');
+    async function triggerAutoRefresh(isManual = false) {
+        if (isManual) {
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ 
+                        type: 'ACULION_REFRESH_TRAFFIC_DATA',
+                        billboard_code: activeBillboardCode 
+                    }, '*');
+                }
+            } catch (e) {
+                console.error("Error dispatching refresh request to parent:", e);
             }
-        } catch (e) {
-            console.error("Error dispatching refresh request to parent:", e);
         }
 
-        await fetchFromSupabaseDirectly(activeBillboardCode);
+        await fetchFromSupabaseDirectly(activeBillboardCode, isManual);
     }
 
     if (elements.refreshBtn) {
         elements.refreshBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            triggerAutoRefresh();
+            triggerAutoRefresh(true);
         });
     }
 
@@ -1175,12 +1177,13 @@ document.addEventListener('DOMContentLoaded', () => {
         trend.updateOptions({
             xaxis: { categories: newCats },
             series: updatedSeries
-        });
+        }, false, false);
     }, 5000);
 
     // --- Direct Supabase REST Integration ---
     const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cXRzaGZwdG1xaWVhcWNnaGZ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzkwOTYyMiwiZXhwIjoyMDk5NDg1NjIyfQ.f12uC9oK_BzLzlXgy_5ybUAgdHJTY6N7E5VWXXmgr5Q';
     let isFetchingDirectly = false;
+    let lastRenderedStateKey = null;
 
     // Helper to calculate and update KPI percentage change badges
     function updateKpiBadge(trendElId, wrapperElId, iconElId, currentVal, prevVal) {
@@ -1222,16 +1225,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchFromSupabaseDirectly(overrideCode) {
+    async function fetchFromSupabaseDirectly(overrideCode, isManual = false) {
         if (isFetchingDirectly) return null;
         isFetchingDirectly = true;
 
         const targetCode = overrideCode || activeBillboardCode || 'ACU-BB-0001';
         const cleanCode = (targetCode === 'active-cam') ? (urlParams.get('billboard_code') || 'ACU-BB-0001') : targetCode;
 
-        // Show spinning animation on the refresh icon while the request is running
+        // Show spinning animation on the refresh icon only for manual user click
         const icon = elements.refreshBtn ? elements.refreshBtn.querySelector('svg, .refresh-icon, i, [data-lucide]') : null;
-        if (icon) {
+        if (isManual && icon) {
             icon.classList.add('spin-animation');
         }
 
@@ -1335,6 +1338,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyZeroState(cleanCode) {
+        const stateKey = `${cleanCode}_zero`;
+        const alreadyZero = (lastRenderedStateKey === stateKey);
+
         state.stats = getInitialStats();
         state.stats.peakHour = 'N/A';
         state.spawnChance = 0;
@@ -1349,48 +1355,35 @@ document.addEventListener('DOMContentLoaded', () => {
         updateKpiBadge('kpi-flow-trend', 'kpi-flow-trend-wrapper', 'kpi-flow-trend-icon', 0, 0);
         if (window.lucide) lucide.createIcons();
 
-        // Refresh Donut Chart to 0
-        if (state.charts.donut) {
-            state.charts.donut.updateSeries([0, 0, 0, 0, 0, 0]);
-            state.charts.donut.updateOptions({
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            labels: {
-                                total: {
-                                    formatter: function () {
-                                        return "0";
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        // Refresh charts to 0 cleanly without re-animating/flashing on every tick
+        if (!alreadyZero) {
+            lastRenderedStateKey = stateKey;
 
-        // Refresh Traffic Trend Chart to 0
-        if (state.charts.trendLine) {
-            const seriesData = state.charts.trendLine.w.config.series;
-            const updatedSeries = seriesData.map(series => ({
-                name: series.name,
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            }));
-            state.charts.trendLine.updateSeries(updatedSeries);
-        }
+            if (state.charts.donut) {
+                state.charts.donut.updateSeries([0, 0, 0, 0, 0, 0], false);
+            }
 
-        // Sparklines to 0
-        if (state.charts.sparkVehicles) {
-            state.charts.sparkVehicles.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }]);
-        }
-        if (state.charts.sparkDwell) {
-            state.charts.sparkDwell.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }]);
-        }
-        if (state.charts.sparkReach) {
-            state.charts.sparkReach.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }]);
-        }
-        if (state.charts.sparkFlow) {
-            state.charts.sparkFlow.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }]);
+            if (state.charts.trendLine) {
+                const seriesData = state.charts.trendLine.w.config.series;
+                const updatedSeries = seriesData.map(series => ({
+                    name: series.name,
+                    data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                }));
+                state.charts.trendLine.updateSeries(updatedSeries, false);
+            }
+
+            if (state.charts.sparkVehicles) {
+                state.charts.sparkVehicles.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
+            }
+            if (state.charts.sparkDwell) {
+                state.charts.sparkDwell.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
+            }
+            if (state.charts.sparkReach) {
+                state.charts.sparkReach.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
+            }
+            if (state.charts.sparkFlow) {
+                state.charts.sparkFlow.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
+            }
         }
 
         setStatus('connected', true);
@@ -1417,13 +1410,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const ultraLuxuryCount = Number(data.ultra_luxury) || 0;
         const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + luxuryCount + ultraLuxuryCount;
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
+        const avgDwell = Number(data.avg_exposure_time) || 0.0;
+        const flowRate = Number(data.flow_rate) || 0.0;
+        const peakHour = data.peak_traffic_hour || 'N/A';
+
+        // Check if incoming data actually differs from currently rendered state
+        const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}_${ultraLuxuryCount}`;
+        const hasDataChanged = (lastRenderedStateKey !== stateKey);
 
         // Set stats
         state.stats.totalVehicles = totalVehicles;
-        state.stats.avgDwellTime = Number(data.avg_exposure_time) || 0.0;
-        state.stats.peakHour = data.peak_traffic_hour || 'N/A';
+        state.stats.avgDwellTime = avgDwell;
+        state.stats.peakHour = peakHour;
         state.stats.estimatedReach = Number(data.estimated_reach) || (totalVehicles > 0 ? Math.round(totalVehicles * 2.4) : 0);
-        state.stats.flowRate = Number(data.flow_rate) || 0.0;
+        state.stats.flowRate = flowRate;
 
         state.stats.classes.economy.count = bikeCount;          // Bike
         state.stats.classes.premium.count = commercialCount;     // Commercial
@@ -1440,10 +1440,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (state.stats.dwellStats) {
-            state.stats.dwellStats.avg = Number(data.avg_exposure_time) || 0.0;
+            state.stats.dwellStats.avg = avgDwell;
             state.stats.dwellStats.max = Number(data.max_exposure_time) || 0.0;
             state.stats.dwellStats.min = totalVehicles > 0 ? 1.5 : 0.0;
-            state.stats.dwellStats.median = totalVehicles > 0 ? +(Number(data.avg_exposure_time) * 0.85).toFixed(1) : 0.0;
+            state.stats.dwellStats.median = totalVehicles > 0 ? +(avgDwell * 0.85).toFixed(1) : 0.0;
         }
 
         state.spawnChance = totalVehicles > 0 ? 0.035 : 0;
@@ -1457,69 +1457,54 @@ document.addEventListener('DOMContentLoaded', () => {
         updateKpiBadge('kpi-flow-trend', 'kpi-flow-trend-wrapper', 'kpi-flow-trend-icon', data.flow_rate, yesterdayData?.flow_rate);
         if (window.lucide) lucide.createIcons();
 
-        // Update timestamp to current fetch time
-        if (elements.lastUpdatedTime) {
-            elements.lastUpdatedTime.textContent = formatLastUpdated(new Date());
-        }
-
         if (elements.hudTime) {
             const updatedDate = data.last_updated ? new Date(data.last_updated) : new Date();
             elements.hudTime.textContent = updatedDate.toISOString().replace('T', ' ').substring(0, 19);
         }
 
-        // Refresh Donut Chart and synchronize center label with KPI
-        if (state.charts.donut) {
-            state.charts.donut.updateSeries([
-                state.stats.classes.economy.count,
-                state.stats.classes.premium.count,
-                state.stats.classes.luxury.count,
-                state.stats.classes.ultra.count,
-                state.stats.classes.bikes.count,
-                state.stats.classes.commercial.count
-            ]);
-            state.charts.donut.updateOptions({
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            labels: {
-                                total: {
-                                    formatter: function () {
-                                        return formatIndianNumber(state.stats.totalVehicles);
-                                    }
-                                }
-                            }
-                        }
-                    }
+        // Only update chart series when numbers change, and update smoothly without path collapse animation
+        if (hasDataChanged) {
+            lastRenderedStateKey = stateKey;
+
+            // Refresh Donut Chart without animation flicker
+            if (state.charts.donut) {
+                state.charts.donut.updateSeries([
+                    state.stats.classes.economy.count,
+                    state.stats.classes.premium.count,
+                    state.stats.classes.luxury.count,
+                    state.stats.classes.ultra.count,
+                    state.stats.classes.bikes.count,
+                    state.stats.classes.commercial.count
+                ], false);
+            }
+
+            // Refresh Traffic Trend Chart series scaled to 15-min intervals
+            if (state.charts.trendLine) {
+                if (totalVehicles === 0) {
+                    const seriesData = state.charts.trendLine.w.config.series;
+                    const updatedSeries = seriesData.map(series => ({
+                        name: series.name,
+                        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    }));
+                    state.charts.trendLine.updateSeries(updatedSeries, false);
+                } else {
+                    const bBase = Math.max(1, Math.round(state.stats.classes.economy.count / 45));
+                    const cBase = Math.max(1, Math.round(state.stats.classes.premium.count / 45));
+                    const eBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
+                    const pBase = Math.max(1, Math.round(state.stats.classes.ultra.count / 45));
+                    const lBase = Math.max(1, Math.round(state.stats.classes.bikes.count / 45));
+                    const uBase = Math.max(1, Math.round(state.stats.classes.commercial.count / 45));
+
+                    const updatedSeries = [
+                        { name: 'Bike', data: [bBase*0.6, bBase*0.8, bBase*0.75, bBase*0.9, bBase*1.1, bBase*0.95, bBase*1.2, bBase*1.4, bBase*1.3, bBase].map(Math.round) },
+                        { name: 'Commercial', data: [cBase*0.7, cBase*0.9, cBase*1.0, cBase*0.95, cBase*0.8, cBase*0.75, cBase*0.9, cBase*1.1, cBase*1.0, cBase].map(Math.round) },
+                        { name: 'Economy', data: [eBase*0.6, eBase*0.75, eBase*0.7, eBase*0.85, eBase*0.95, eBase*0.8, eBase*1.05, eBase*1.2, eBase*1.1, eBase].map(Math.round) },
+                        { name: 'Premium', data: [pBase*0.5, pBase*0.6, pBase*0.7, pBase*0.65, pBase*0.85, pBase*0.8, pBase*0.95, pBase*1.15, pBase*1.0, pBase].map(Math.round) },
+                        { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) },
+                        { name: 'Ultra Luxury', data: [uBase*0.4, uBase*0.5, uBase*0.6, uBase*0.5, uBase*0.7, uBase*0.4, uBase*1.0, uBase*1.2, uBase*0.8, uBase].map(Math.round) }
+                    ];
+                    state.charts.trendLine.updateSeries(updatedSeries, false);
                 }
-            });
-        }
-
-        // Refresh Traffic Trend Chart series scaled to 15-min intervals
-        if (state.charts.trendLine) {
-            if (totalVehicles === 0) {
-                const seriesData = state.charts.trendLine.w.config.series;
-                const updatedSeries = seriesData.map(series => ({
-                    name: series.name,
-                    data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                }));
-                state.charts.trendLine.updateSeries(updatedSeries);
-            } else {
-                const bBase = Math.max(1, Math.round(state.stats.classes.economy.count / 45));
-                const cBase = Math.max(1, Math.round(state.stats.classes.premium.count / 45));
-                const eBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
-                const pBase = Math.max(1, Math.round(state.stats.classes.ultra.count / 45));
-                const lBase = Math.max(1, Math.round(state.stats.classes.bikes.count / 45));
-                const uBase = Math.max(1, Math.round(state.stats.classes.commercial.count / 45));
-
-                const updatedSeries = [
-                    { name: 'Bike', data: [bBase*0.6, bBase*0.8, bBase*0.75, bBase*0.9, bBase*1.1, bBase*0.95, bBase*1.2, bBase*1.4, bBase*1.3, bBase].map(Math.round) },
-                    { name: 'Commercial', data: [cBase*0.7, cBase*0.9, cBase*1.0, cBase*0.95, cBase*0.8, cBase*0.75, cBase*0.9, cBase*1.1, cBase*1.0, cBase].map(Math.round) },
-                    { name: 'Economy', data: [eBase*0.6, eBase*0.75, eBase*0.7, eBase*0.85, eBase*0.95, eBase*0.8, eBase*1.05, eBase*1.2, eBase*1.1, eBase].map(Math.round) },
-                    { name: 'Premium', data: [pBase*0.5, pBase*0.6, pBase*0.7, pBase*0.65, pBase*0.85, pBase*0.8, pBase*0.95, pBase*1.15, pBase*1.0, pBase].map(Math.round) },
-                    { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) },
-                    { name: 'Ultra Luxury', data: [uBase*0.4, uBase*0.5, uBase*0.6, uBase*0.5, uBase*0.7, uBase*0.4, uBase*1.0, uBase*1.2, uBase*0.8, uBase].map(Math.round) }
-                ];
-                state.charts.trendLine.updateSeries(updatedSeries);
             }
         }
     }
@@ -1549,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(window.__trafficAutoRefreshInterval);
     }
     window.__trafficAutoRefreshInterval = setInterval(() => {
-        triggerAutoRefresh();
+        triggerAutoRefresh(false);
     }, 5000);
 
     window.addEventListener('beforeunload', () => {
