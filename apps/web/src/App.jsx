@@ -2382,23 +2382,6 @@ export default function App() {
                 <a href="/media-owner" onClick={(e) => navigateTo(e, '/media-owner')}>Media Owner Platform</a>
                 <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')}>Advertiser Solutions</a>
               </div>
-
-              {/* Column 5: Contact */}
-              <div className="footer-links-col footer-contact-col">
-                <h4 className="footer-col-title">CONTACT</h4>
-                <div className="footer-contact-item">
-                  <i className="fa-solid fa-envelope footer-contact-icon"></i>
-                  <a href="mailto:connect@aculion.com" className="footer-contact-link">connect@aculion.com</a>
-                </div>
-                <div className="footer-contact-item">
-                  <i className="fa-solid fa-phone footer-contact-icon"></i>
-                  <a href="tel:+919176590590" className="footer-contact-link">+91 91765 90590</a>
-                </div>
-                <div className="footer-contact-item">
-                  <i className="fa-solid fa-clock footer-contact-icon"></i>
-                  <span className="footer-contact-text">Mon–Fri, 9 AM – 6 PM IST</span>
-                </div>
-              </div>
             </div>
 
             {/* Bottom Footer */}
