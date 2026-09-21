@@ -671,21 +671,20 @@ export default function MediaProfilePage({
         </section>
 
         {/* ── LONG SEARCH BAR FOR PLACE/LOCATION ONLY & DROPDOWN FOR BILLBOARD AND BRAND ONLY ── */}
-        <div style={{
-          backgroundColor: 'rgba(14, 20, 36, 0.8)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '16px',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: '16px',
-          width: '100%'
-        }}>
+        <div
+          className="media-search-card"
+          style={{
+            backgroundColor: 'rgba(14, 20, 36, 0.8)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            padding: '16px',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+            width: '100%'
+          }}
+        >
           {/* LOCATION INPUT FIELD */}
-          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <div className="media-search-input-wrap">
             <i className="fa-solid fa-location-dot" style={{
               position: 'absolute',
               left: '16px',
@@ -718,61 +717,67 @@ export default function MediaProfilePage({
             />
           </div>
 
-          {/* SEARCH LOCATION BUTTON */}
-          <button
-            type="button"
-            onClick={handleSearchSubmit}
-            style={{
-              height: '46px',
-              paddingLeft: '22px',
-              paddingRight: '22px',
-              background: 'linear-gradient(135deg, #0052ff, #00c8ff)',
-              color: '#ffffff',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '600',
-              border: 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px 0 rgba(0, 82, 255, 0.35)',
-              flexShrink: 0
-            }}
-          >
-            <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '12px' }} />
-            <span>Search Location</span>
-          </button>
+          {/* CONTROLS (SEARCH BUTTON & VIEW SELECTOR) */}
+          <div className="media-search-controls">
+            {/* SEARCH LOCATION BUTTON */}
+            <button
+              type="button"
+              onClick={handleSearchSubmit}
+              className="media-search-btn"
+              style={{
+                height: '46px',
+                paddingLeft: '22px',
+                paddingRight: '22px',
+                background: 'linear-gradient(135deg, #0052ff, #00c8ff)',
+                color: '#ffffff',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px 0 rgba(0, 82, 255, 0.35)',
+                flexShrink: 0
+              }}
+            >
+              <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '12px' }} />
+              <span>Search Location</span>
+            </button>
 
-          {/* DROPDOWN SELECTOR (ADMIN ONLY) */}
-          {user?.role === 'Administrator' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600', whiteSpace: 'nowrap' }}>View:</span>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                style={{
-                  width: '160px',
-                  height: '46px',
-                  backgroundColor: '#141d33',
-                  border: '1px solid rgba(0, 240, 255, 0.4)',
-                  borderRadius: '12px',
-                  paddingLeft: '14px',
-                  paddingRight: '14px',
-                  fontSize: '13px',
-                  color: '#ffffff',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                <option value="Billboard">Billboard</option>
-                <option value="Brand">Brand</option>
-              </select>
-            </div>
-          )}
+            {/* DROPDOWN SELECTOR (ADMIN ONLY) */}
+            {user?.role === 'Administrator' && (
+              <div className="media-search-view-wrap">
+                <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600', whiteSpace: 'nowrap' }}>View:</span>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="media-search-select"
+                  style={{
+                    width: '160px',
+                    height: '46px',
+                    backgroundColor: '#141d33',
+                    border: '1px solid rgba(0, 240, 255, 0.4)',
+                    borderRadius: '12px',
+                    paddingLeft: '14px',
+                    paddingRight: '14px',
+                    fontSize: '13px',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="Billboard">Billboard</option>
+                  <option value="Brand">Brand</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
+
 
         {/* ── DISPLAY SELECTED VIEW (BILLBOARD OR BRAND) ── */}
         <section className="flex flex-col gap-8">
