@@ -231,8 +231,8 @@ export default function LiveDashboard({
     const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0004';
     const camCode = selectedBillboard?.camera_ff_code || 'CAM-FF-004';
     const bbName = selectedBillboard?.billboard_name || selectedBillboard?.name || 'Corridor Asset';
-    const lat = (selectedBillboard?.latitude || 12.9010).toFixed(4);
-    const lng = (selectedBillboard?.longitude || 80.2279).toFixed(4);
+    const lat = (Number(selectedBillboard?.latitude) || 12.9010).toFixed(4);
+    const lng = (Number(selectedBillboard?.longitude) || 80.2279).toFixed(4);
     const flow = telemetry?.flow_rate || 84.5;
     const peak = telemetry?.peak_traffic_hour || '06:00 PM – 07:00 PM';
     const total = (telemetry?.total_vehicles || 17820).toLocaleString();
@@ -562,23 +562,46 @@ export default function LiveDashboard({
       const radxaId = liveStats.radxa_code || 'RADXA-04';
 
       const highEndV = premV + luxV + ultraV;
-      const highEndPct = ((highEndV / totalV) * 100).toFixed(1);
+      const highEndPct = totalV > 0 ? ((highEndV / totalV) * 100).toFixed(1) : '0.0';
 
       const categories = [
-        { name: 'Bike', desc: 'Two-Wheelers & Couriers', count: bikesV, pct: +((bikesV / totalV) * 100).toFixed(1), color: '#1E88FF' },
-        { name: 'Commercial', desc: 'Freight, Vans & Logistics', count: commV, pct: +((commV / totalV) * 100).toFixed(1), color: '#00C4FF' },
-        { name: 'Economy', desc: 'Hatchbacks & Mass Commuters', count: econV, pct: +((econV / totalV) * 100).toFixed(1), color: '#8B5CF6' },
-        { name: 'Premium', desc: 'Executive Sedans & Compact SUVs', count: premV, pct: +((premV / totalV) * 100).toFixed(1), color: '#F59E0B' },
-        { name: 'Luxury', desc: 'High-End Sedans & Premium SUVs', count: luxV, pct: +((luxV / totalV) * 100).toFixed(1), color: '#10B981' },
-        { name: 'Ultra Luxury', desc: 'Supercars & Exclusive Flagships', count: ultraV, pct: +((ultraV / totalV) * 100).toFixed(1), color: '#F97316' }
+        { name: 'Bike', desc: 'Two-Wheelers & Couriers', count: bikesV, pct: totalV > 0 ? +((bikesV / totalV) * 100).toFixed(1) : 0, color: '#1E88FF' },
+        { name: 'Commercial', desc: 'Freight, Vans & Logistics', count: commV, pct: totalV > 0 ? +((commV / totalV) * 100).toFixed(1) : 0, color: '#00C4FF' },
+        { name: 'Economy', desc: 'Hatchbacks & Mass Commuters', count: econV, pct: totalV > 0 ? +((econV / totalV) * 100).toFixed(1) : 0, color: '#8B5CF6' },
+        { name: 'Premium', desc: 'Executive Sedans & Compact SUVs', count: premV, pct: totalV > 0 ? +((premV / totalV) * 100).toFixed(1) : 0, color: '#F59E0B' },
+        { name: 'Luxury', desc: 'High-End Sedans & Premium SUVs', count: luxV, pct: totalV > 0 ? +((luxV / totalV) * 100).toFixed(1) : 0, color: '#10B981' },
+        { name: 'Ultra Luxury', desc: 'Supercars & Exclusive Flagships', count: ultraV, pct: totalV > 0 ? +((ultraV / totalV) * 100).toFixed(1) : 0, color: '#F97316' }
       ];
 
       // ── Helper functions ──────────────────────────────────────
       const hex = (h) => {
-        const r = parseInt(h.slice(1, 3), 16);
-        const g = parseInt(h.slice(3, 5), 16);
-        const b = parseInt(h.slice(5, 7), 16);
-        return [r, g, b];
+        if (!h) return [255, 255, 255];
+        if (Array.isArray(h) && h.length >= 3) return [Number(h[0]) || 0, Number(h[1]) || 0, Number(h[2]) || 0];
+        if (typeof h !== 'string') return [255, 255, 255];
+        const str = h.trim();
+        const rgbMatch = str.match(/rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
+        if (rgbMatch) {
+          return [
+            Math.min(255, Math.max(0, Math.round(Number(rgbMatch[1])))),
+            Math.min(255, Math.max(0, Math.round(Number(rgbMatch[2])))),
+            Math.min(255, Math.max(0, Math.round(Number(rgbMatch[3]))))
+          ];
+        }
+        let clean = str.replace(/^#/, '');
+        if (clean.length === 3) {
+          clean = clean.split('').map(c => c + c).join('');
+        }
+        if (clean.length >= 6) {
+          const r = parseInt(clean.slice(0, 2), 16);
+          const g = parseInt(clean.slice(2, 4), 16);
+          const b = parseInt(clean.slice(4, 6), 16);
+          return [
+            isNaN(r) ? 255 : r,
+            isNaN(g) ? 255 : g,
+            isNaN(b) ? 255 : b
+          ];
+        }
+        return [255, 255, 255];
       };
 
       const fillRect = (x, y, w, h, color) => {
@@ -845,7 +868,7 @@ export default function LiveDashboard({
       for (let i = 0; i <= gridSteps; i++) {
         const gy = chartBottom - (i / gridSteps) * plotH;
         const gVal = Math.round((i / gridSteps) * maxLineVal);
-        doc.setDrawColor(...hex('rgba(255, 255, 255, 0.08)'));
+        doc.setDrawColor(...hex('#1e293b'));
         doc.setLineWidth(0.2);
         doc.line(chartLeft, gy, chartRight, gy);
 
@@ -921,7 +944,7 @@ export default function LiveDashboard({
       const maxBarCount = Math.max(...categories.map(c => c.count)) * 1.1 || 1000;
 
       // Baseline
-      doc.setDrawColor(...hex('rgba(255, 255, 255, 0.15)'));
+      doc.setDrawColor(...hex('#334155'));
       doc.setLineWidth(0.4);
       doc.line(vBarLeft, vBarBottom, vBarRight, vBarBottom);
 
@@ -1050,7 +1073,7 @@ export default function LiveDashboard({
       const auditGrid = [
         ['Billboard Asset Code', bbCode, 'Front Camera Node', selectedBillboard?.camera_ff_code || 'CAM-FF-004'],
         ['Edge Processor Unit', `${radxaId} (Radxa Neural Box)`, 'Camera Resolution & FPS', '1080p FHD @ 30 FPS Stream'],
-        ['GPS Geo-Coordinates', `${(selectedBillboard?.latitude || 12.9010).toFixed(4)}° N, ${(selectedBillboard?.longitude || 80.2279).toFixed(4)}° E`, 'Detection Accuracy', '98.7% (Dual Neural Inference)'],
+        ['GPS Geo-Coordinates', `${(Number(selectedBillboard?.latitude) || 12.9010).toFixed(4)}° N, ${(Number(selectedBillboard?.longitude) || 80.2279).toFixed(4)}° E`, 'Detection Accuracy', '98.7% (Dual Neural Inference)'],
         ['Database Sync Timestamp', dateStr, 'Cryptographic Audit Hash', 'SHA-256: 7f8a9c2e4b1d09aa8e45']
       ];
 
