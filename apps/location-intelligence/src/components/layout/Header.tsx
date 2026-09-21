@@ -134,26 +134,26 @@ export default function Header({
         {/* Middle/Main: Map inputs in a prominent row that covers side area */}
         <div className="flex flex-wrap items-center gap-2.5 bg-background/50 p-1.5 border border-border/80 rounded-xl flex-1 w-full">
           {/* Lat Input */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-background/90 border border-border rounded-lg flex-1 sm:flex-initial">
-            <span className="text-xs font-black text-blue-400 tracking-wider uppercase">LAT</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-background/90 border border-border rounded-lg shrink-0">
+            <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
             <input
               type="number"
               step="any"
               value={latVal}
               onChange={(e) => setLatVal(e.target.value)}
-              className="bg-transparent border-none text-sm w-22 focus:outline-none font-mono font-bold text-white p-0"
+              className="bg-transparent border-none text-sm w-[70px] focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
           {/* Lng Input */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-background/90 border border-border rounded-lg flex-1 sm:flex-initial">
-            <span className="text-xs font-black text-blue-400 tracking-wider uppercase">LNG</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-background/90 border border-border rounded-lg shrink-0">
+            <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
             <input
               type="number"
               step="any"
               value={lngVal}
               onChange={(e) => setLngVal(e.target.value)}
-              className="bg-transparent border-none text-sm w-22 focus:outline-none font-mono font-bold text-white p-0"
+              className="bg-transparent border-none text-sm w-[70px] focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
