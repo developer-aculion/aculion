@@ -165,7 +165,7 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-background text-foreground w-full max-w-full flex-col">
+    <div className="flex-1 overflow-y-auto min-h-0 w-full max-w-full overflow-x-hidden bg-background text-foreground flex flex-col">
       <Header
         latitude={candidateLat}
         longitude={candidateLng}
@@ -177,10 +177,9 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
         onMenuClick={() => window.dispatchEvent(new CustomEvent("open-sidebar"))}
       />
 
-      <div className="flex-1 overflow-y-auto min-h-0 w-full max-w-full overflow-x-hidden">
-        <div className="flex flex-col lg:flex-row min-h-full w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row min-h-full w-full max-w-full overflow-x-hidden">
           {/* ── Main Single Dashboard Column (fills remaining horizontal space) ── */}
-          <main className="w-full flex-1 min-w-0 p-5 space-y-5 overflow-x-hidden">
+          <main className="w-full flex-1 min-w-0 p-3.5 sm:p-5 lg:p-6 space-y-5 overflow-x-hidden box-border">
             {/* 1. KPI Cards — dynamic cards */}
             <KPICardsGrid analytics={analytics} />
 
@@ -283,9 +282,6 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
             radius={radius}
           />
         </div>
-      </div>
-
-
     </div>
   );
 }

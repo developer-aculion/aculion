@@ -430,7 +430,7 @@ export default function LocationMap({
   ];
 
   return (
-    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-border shadow-xl group">
+    <div className="relative w-full h-[380px] sm:h-[450px] lg:h-[520px] rounded-2xl overflow-hidden border border-border shadow-xl group">
       <div
         ref={mapContainerRef}
         className={`w-full h-full z-10 ${isMapPickingActive ? "map-pick-mode" : ""}`}

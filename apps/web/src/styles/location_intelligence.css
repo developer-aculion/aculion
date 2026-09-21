@@ -298,3 +298,25 @@ textarea:disabled {
   flex-shrink: 0;
   z-index: 10;
 }
+
+/* ==================================================
+   LOCATION INTELLIGENCE RESPONSIVE ROOT & LAYOUT
+   ================================================== */
+.location-intelligence-root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.location-intelligence-root *,
+.location-intelligence-root *::before,
+.location-intelligence-root *::after {
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .location-intelligence-root {
+    overflow-y: auto !important;
+  }
+}

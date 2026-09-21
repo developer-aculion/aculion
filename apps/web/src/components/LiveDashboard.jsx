@@ -1198,6 +1198,22 @@ export default function LiveDashboard({
   const activeChartData = CHART_DATASETS[timeFilter] || CHART_DATASETS['24H'];
 
   const userName = user?.name || user?.fullName || 'Media Owner';
+  const userEmail = user?.email || 'M0123456';
+  const userInitials = (userName ? userName.split(' ').map(n => n[0]).join('') : 'MO').toUpperCase();
+
+  const navItems = [
+    { id: 'my_medias', icon: 'fa-solid fa-tv', label: 'My Medias' },
+    { id: 'front_camera', icon: 'fa-solid fa-video', label: 'Front Camera' },
+    { id: 'traffic', icon: 'fa-solid fa-users-viewfinder', label: 'Audience Intelligence' },
+    { id: 'overview', icon: 'fa-solid fa-chart-pie', label: 'Location Overview' },
+    { id: 'corridor', icon: 'fa-solid fa-route', label: 'Corridor Intelligence', badge: 'BETA' },
+    { id: 'zone', icon: 'fa-solid fa-chart-simple', label: 'Zone Comparison', badge: 'BETA' },
+    { id: 'historical', icon: 'fa-solid fa-timeline', label: 'Historical Trends', badge: 'BETA' },
+    { id: 'live', icon: 'fa-solid fa-circle-dot', label: 'Live View' },
+    { id: 'alerts', icon: 'fa-solid fa-triangle-exclamation', label: 'Alerts' },
+    { id: 'reports', icon: 'fa-solid fa-file-lines', label: 'Reports' },
+    { id: 'settings', icon: 'fa-solid fa-sliders', label: 'Settings' }
+  ];
 
   return (
     <div className="w-full h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
@@ -1216,8 +1232,8 @@ export default function LiveDashboard({
           />
         )}
 
-        {/* ── SIDEBAR (Left Column - 280px width) ── */}
-        <aside className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-[280px] max-w-[85vw] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0 transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none ${
+        {/* ── SIDEBAR (Left Column - 260px width) ── */}
+        <aside className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-[260px] max-w-[85vw] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0 transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
           
@@ -1258,75 +1274,75 @@ export default function LiveDashboard({
             </button>
           </div>
 
-          <div className="flex-1 flex flex-col p-3 gap-1 overflow-y-auto min-h-0">
-            {[
-              { id: 'my_medias', icon: 'fa-tv', label: 'My Medias' },
-              { id: 'front_camera', icon: 'fa-video', label: 'Front Camera' },
-              { id: 'traffic', icon: 'fa-users-viewfinder', label: 'Audience Intelligence' },
-              { id: 'overview', icon: 'fa-chart-pie', label: 'Location Overview' },
-              { id: 'corridor', icon: 'fa-route', label: 'Corridor Intelligence', beta: true },
-              { id: 'zone', icon: 'fa-chart-simple', label: 'Zone Comparison', beta: true },
-              { id: 'historical', icon: 'fa-timeline', label: 'Historical Trends', beta: true },
-              { id: 'live', icon: 'fa-circle-dot', label: 'Live View' },
-              { id: 'alerts', icon: 'fa-triangle-exclamation', label: 'Alerts' },
-              { id: 'reports', icon: 'fa-file-lines', label: 'Reports' },
-              { id: 'settings', icon: 'fa-sliders', label: 'Settings' }
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setSidebarOpen(false);
-                  if (item.id === 'my_medias') {
-                    if (onBackToProfile) onBackToProfile();
-                  } else {
-                    // Map nav id → URL slug
-                    const slugMap = {
-                      front_camera: 'front-camera',
-                      traffic:      'audience-intelligence',
-                      overview:     'location-overview',
-                      corridor:     'corridor-intelligence',
-                      zone:         'zone-comparison',
-                      historical:   'historical-trends',
-                      live:         'live-view',
-                      alerts:       'alerts',
-                      reports:      'reports',
-                      settings:     'settings',
-                    };
-                    const viewSlug = slugMap[item.id] || item.id;
-                    window.history.pushState(null, '', `${baseDashboardPath}/${viewSlug}`);
-                    setActiveNav(item.id);
-                  }
-                }}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-[12px] font-semibold transition-all !w-full !border-none !shadow-none cursor-pointer min-h-[40px] ${
-                  activeNav === item.id 
-                    ? '!bg-blue-600 !text-white shadow-lg shadow-blue-500/20' 
-                    : '!bg-transparent hover:!bg-white/[0.04] !text-white/60 hover:!text-white'
-                }`}
-              >
-                <i className={`fa-solid ${item.icon} text-[12px] w-4 text-center flex-shrink-0`}></i>
-                <span className="truncate flex-1">{item.label}</span>
-                {item.beta && (
-                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase flex-shrink-0 ${
-                    activeNav === item.id
-                      ? 'bg-white/20 text-white border border-white/30'
-                      : 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
-                  }`}>
-                    BETA
-                  </span>
-                )}
-              </button>
-            ))}
+          {/* Navigation Links Group */}
+          <div className="p-3 sm:p-4 flex-grow flex flex-col gap-1 overflow-y-auto">
+            <span className="text-[9px] sm:text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] px-3 mb-2 block">
+              Core Modules
+            </span>
+
+            {navItems.map((item) => {
+              const isActive = activeNav === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    if (item.id === 'my_medias') {
+                      if (onBackToProfile) onBackToProfile();
+                    } else {
+                      // Map nav id → URL slug
+                      const slugMap = {
+                        front_camera: 'front-camera',
+                        traffic:      'audience-intelligence',
+                        overview:     'location-overview',
+                        corridor:     'corridor-intelligence',
+                        zone:         'zone-comparison',
+                        historical:   'historical-trends',
+                        live:         'live-view',
+                        alerts:       'alerts',
+                        reports:      'reports',
+                        settings:     'settings',
+                      };
+                      const viewSlug = slugMap[item.id] || item.id;
+                      window.history.pushState(null, '', `${baseDashboardPath}/${viewSlug}`);
+                      setActiveNav(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                    isActive 
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                      : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <i className={`${item.icon} text-sm ${isActive ? 'text-white' : 'text-white/40'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Media Owner Profile Pill in Sidebar */}
-          <div className="p-3.5 border-t border-white/10 bg-[#06080e]/70 flex items-center justify-between flex-shrink-0">
+          {/* Bottom user profile card */}
+          <div className="p-3 sm:p-4 border-t border-white/10 flex items-center justify-between bg-white/[0.02] flex-shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 font-bold text-[11px] flex-shrink-0">
-                MO
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-cyan-400 font-bold text-xs flex-shrink-0">
+                {userInitials}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-white truncate font-heading">{userName}</span>
-                <span className="text-[9px] text-white/40 font-mono truncate">{user?.email || 'M0123456'}</span>
+                <span className="text-xs font-bold text-white truncate leading-tight">
+                  {userName}
+                </span>
+                <span className="text-[10px] text-white/40 truncate font-mono mt-0.5">
+                  {userEmail}
+                </span>
               </div>
             </div>
             <i className="fa-solid fa-chevron-down text-[10px] text-white/40 cursor-pointer" />
@@ -1366,7 +1382,7 @@ export default function LiveDashboard({
             </div>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-1.5 sm:gap-2 bg-[#121829] border border-white/10 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs text-white/80 font-medium">
                 <i className="fa-regular fa-calendar text-blue-400 text-[11px] sm:text-xs" />
                 <span className="font-mono whitespace-nowrap">Today, {formattedDate}</span>
@@ -1375,7 +1391,7 @@ export default function LiveDashboard({
               {user?.role === 'Administrator' ? (
                 <button
                   onClick={onAddNewMedia || onBackToProfile}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] sm:text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px]"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] sm:text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px] whitespace-nowrap"
                 >
                   <i className="fa-solid fa-plus text-[10px] sm:text-xs" />
                   <span>Add Media</span>
