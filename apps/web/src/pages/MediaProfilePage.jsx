@@ -780,31 +780,36 @@ export default function MediaProfilePage({
           {/* ── BILLBOARD VIEW ── */}
           {filterType === 'Billboard' && (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-tower-cell text-cyan-400 text-sm" />
-                  <h2 className="text-lg font-bold font-heading text-white">Billboard Inventory Cards</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-blue-500/10 text-cyan-400 border border-blue-500/20 font-mono">
+                  <i className="fa-solid fa-tower-cell text-cyan-400 text-sm flex-shrink-0" />
+                  <h2 className="text-lg font-bold font-heading text-white whitespace-nowrap">Billboard Inventory Cards</h2>
+                  <span className="hidden sm:inline-flex text-xs px-2 py-0.5 rounded-md bg-blue-500/10 text-cyan-400 border border-blue-500/20 font-mono">
                     {filteredBillboards.length} Items
                   </span>
                 </div>
-                {isAdmin ? (
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <i className="fa-solid fa-plus text-[10px]" />
-                    <span>Add Billboard</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => { setShowContactModal(true); setContactSubmitted(false); }}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5 cursor-pointer bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-1.5 rounded-xl transition-all"
-                  >
-                    <i className="fa-solid fa-headset text-xs" />
-                    <span>Contact Aculion to Add Billboard</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-2.5">
+                  <span className="sm:hidden text-xs px-2 py-1 rounded-md bg-blue-500/10 text-cyan-400 border border-blue-500/20 font-mono flex-shrink-0">
+                    {filteredBillboards.length} Items
+                  </span>
+                  {isAdmin ? (
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <i className="fa-solid fa-plus text-[10px]" />
+                      <span>Add Billboard</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setShowContactModal(true); setContactSubmitted(false); }}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5 cursor-pointer bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap"
+                    >
+                      <i className="fa-solid fa-headset text-xs flex-shrink-0" />
+                      <span>Contact Aculion to Add Billboard</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Billboard Cards Grid */}
