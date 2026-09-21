@@ -158,9 +158,6 @@ export default function FrontCameraView({
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
               Front Camera
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/30 uppercase">
-              Radxa Edge HD
-            </span>
           </div>
           <p className="text-xs text-white/50 font-medium mt-1">
             View the latest recorded billboard footage uploaded by the front-facing camera.
