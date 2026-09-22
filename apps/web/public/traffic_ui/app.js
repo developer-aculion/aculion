@@ -1298,8 +1298,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const data = await response.json();
-                if (data && Array.isArray(data) && data.length > 0 && data[0].billboard_code === cleanCode) {
-                    const row = data[0];
+                let row = (data && Array.isArray(data) && data.length > 0 && data[0].billboard_code === cleanCode) ? data[0] : null;
+
+                // Fallback: If querying today and no exact stat_date match, check if there's an active/live record updated today
+                if (!row && selectedDate === getTodayIST()) {
+                    try {
+                        const fallbackUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=last_updated.desc&limit=1&_nocache=${Date.now()}`;
+                        const fbRes = await fetch(fallbackUrl, {
+                            cache: 'no-store',
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (fbRes.ok) {
+                            const fbData = await fbRes.json();
+                            if (fbData && Array.isArray(fbData) && fbData.length > 0 && fbData[0].billboard_code === cleanCode) {
+                                const fbRow = fbData[0];
+                                const lastUpdatedDay = fbRow.last_updated ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(fbRow.last_updated)) : '';
+                                if (fbRow.is_live || lastUpdatedDay === selectedDate) {
+                                    row = fbRow;
+                                    // Auto-heal stat_date in database if mismatched
+                                    if (fbRow.id && fbRow.stat_date !== selectedDate) {
+                                        fetch(`https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?id=eq.${encodeURIComponent(fbRow.id)}`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                                'apikey': SUPABASE_SERVICE_KEY,
+                                                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ stat_date: selectedDate, is_legacy: false })
+                                        }).catch(() => null);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (fbErr) {
+                        console.warn("Fallback query exception:", fbErr);
+                    }
+                }
+
+                if (row) {
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow);
                     
                     // Offline detection: if last_updated is older than 60s or is_live is false

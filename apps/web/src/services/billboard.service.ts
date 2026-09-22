@@ -165,8 +165,9 @@ export const billboardService = {
   },
 
   getTrafficOverview: async (billboardCode: string, statDate?: string): Promise<any> => {
-    const targetDate = statDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-    const { data, error } = await supabase
+    const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    const targetDate = statDate || todayIST;
+    let { data, error } = await supabase
       .from("traffic_overview")
       .select("*")
       .eq("billboard_code", billboardCode)
@@ -178,6 +179,23 @@ export const billboardService = {
     if (error) {
       console.error("[billboardService] Error fetching traffic overview:", error);
       throw new Error(error.message || "Failed to fetch traffic overview.");
+    }
+
+    if (!data && targetDate === todayIST) {
+      try {
+        const fallbackRes = await supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .order("last_updated", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (fallbackRes.data) {
+          data = fallbackRes.data;
+        }
+      } catch (fbErr) {
+        console.warn("[billboardService] Fallback query notice:", fbErr);
+      }
     }
 
     return data;

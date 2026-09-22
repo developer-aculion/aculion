@@ -295,7 +295,7 @@ export default function LiveDashboard({
       const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
       // STRICT QUERY: Filter exclusively by the selected billboard_code and stat_date
-      const res = await supabase
+      let res = await supabase
         .from("traffic_overview")
         .select("*")
         .eq("billboard_code", targetBbCode)
@@ -304,7 +304,34 @@ export default function LiveDashboard({
         .limit(1)
         .maybeSingle();
 
-      const data = res.data;
+      let data = res.data;
+
+      // Fallback: If no record found for today's stat_date, check if there's a live record updated today
+      if (!data) {
+        try {
+          const fallbackRes = await supabase
+            .from("traffic_overview")
+            .select("*")
+            .eq("billboard_code", targetBbCode)
+            .order("last_updated", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (fallbackRes.data && fallbackRes.data.billboard_code === targetBbCode) {
+            const row = fallbackRes.data;
+            const lastUpdatedStr = row.last_updated ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(row.last_updated)) : '';
+            if (row.is_live || lastUpdatedStr === todayIST) {
+              data = row;
+              // Auto-heal stat_date in background
+              if (row.id && row.stat_date !== todayIST) {
+                supabase.from("traffic_overview").update({ stat_date: todayIST, is_legacy: false }).eq("id", row.id).then();
+              }
+            }
+          }
+        } catch (fbErr) {
+          console.warn("[fetchLatestTrafficData] Fallback query notice:", fbErr);
+        }
+      }
 
       // Strict match check: verify returned record matches target billboard
       if (data && data.billboard_code === targetBbCode) {
