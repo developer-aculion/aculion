@@ -83,6 +83,28 @@ export const SEO_ROUTES = {
     ogType: 'article',
     twitterCard: 'summary_large_image',
     robots: 'index, follow'
+  },
+  '/privacy-policy': {
+    title: 'Privacy Policy | Edge AI & Data Protection | Aculion',
+    description: 'Learn how Aculion safeguards privacy through on-device edge computing, automatic face blurring, and anonymous audience intelligence in compliance with GDPR and CCPA.',
+    canonical: `${SITE_ORIGIN}/privacy-policy`,
+    ogTitle: 'Privacy Policy | Aculion Intelligence',
+    ogDescription: 'Aculion\'s Privacy-by-Design approach to Out-of-Home analytics and enterprise web platform data protection.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: 'website',
+    twitterCard: 'summary',
+    robots: 'index, follow'
+  },
+  '/terms-of-service': {
+    title: 'Terms of Service | Aculion Platform Agreement',
+    description: 'Read the terms and conditions governing the use of Aculion AI Out-of-Home intelligence services, hardware node integrations, and enterprise client dashboards.',
+    canonical: `${SITE_ORIGIN}/terms-of-service`,
+    ogTitle: 'Terms of Service | Aculion Platform',
+    ogDescription: 'Terms and conditions governing access to Aculion analytics, software portals, and telemetry services.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: 'website',
+    twitterCard: 'summary',
+    robots: 'index, follow'
   }
 };
 

@@ -17,6 +17,8 @@ import BookDemoModal from './components/BookDemoModal';
 import { billboardService } from './services/billboard.service';
 import SEOHead from './components/SEOHead';
 import InsightsPage from './components/InsightsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 
 const INITIAL_BILLBOARDS = [
   {
@@ -1395,6 +1397,10 @@ export default function App() {
                 </button>
               </div>
             </div>
+          ) : route === '/privacy-policy' ? (
+            <PrivacyPolicyPage navigateTo={navigateTo} />
+          ) : route === '/terms-of-service' ? (
+            <TermsOfServicePage navigateTo={navigateTo} />
           ) : (route === '/insights' || route.startsWith('/insights/')) ? (
             <InsightsPage
               navigateTo={navigateTo}
@@ -2405,8 +2411,8 @@ export default function App() {
                 <h4 className="footer-col-title">COMPANY</h4>
                 <a href="#about" onClick={(e) => handleNavLinkClick(e, '/', 'about')}>About Us</a>
                 <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')}>Contact</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
+                <a href="/privacy-policy" onClick={(e) => navigateTo(e, '/privacy-policy')}>Privacy Policy</a>
+                <a href="/terms-of-service" onClick={(e) => navigateTo(e, '/terms-of-service')}>Terms of Service</a>
               </div>
 
               {/* Column 4: Services */}
@@ -2427,9 +2433,9 @@ export default function App() {
                   <span className="footer-tagline-pill">AI-Powered Out-of-Home Intelligence</span>
                 </div>
                 <div className="footer-legal-links">
-                  <a href="#">Privacy Policy</a>
+                  <a href="/privacy-policy" onClick={(e) => navigateTo(e, '/privacy-policy')}>Privacy Policy</a>
                   <span className="footer-link-divider">•</span>
-                  <a href="#">Terms of Service</a>
+                  <a href="/terms-of-service" onClick={(e) => navigateTo(e, '/terms-of-service')}>Terms of Service</a>
                   <span className="footer-link-divider">•</span>
                   <a href="#contact-section" onClick={(e) => handleNavLinkClick(e, route, 'contact-section')}>Contact</a>
                 </div>
