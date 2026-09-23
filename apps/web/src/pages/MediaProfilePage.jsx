@@ -361,12 +361,19 @@ export default function MediaProfilePage({
   const currentQuery = (activeSearch || searchQuery).toLowerCase().trim();
 
   const filteredBillboards = billboards.filter(b => {
+    if (!b || (!b.name && !b.billboard_name && !b.billboard_code && !b.id)) return false;
+    if (b.name === 'undefined' || b.id === 'undefined' || b.billboard_code === 'undefined') return false;
+    // Discard entries where all descriptive fields are completely empty or undefined
+    const displayName = (b.name || b.billboard_name || '').trim();
+    const displayCode = (b.billboard_code || b.id || '').trim();
+    if (!displayName && !displayCode) return false;
+
     if (!currentQuery) return true;
-    const loc = (b.location || '').toLowerCase();
-    const addr = (b.address || '').toLowerCase();
+    const loc = (b.location || b.street_address || '').toLowerCase();
+    const addr = (b.address || b.street_address || '').toLowerCase();
     const city = (b.city || '').toLowerCase();
-    const name = (b.name || '').toLowerCase();
-    const id = (b.id || '').toLowerCase();
+    const name = displayName.toLowerCase();
+    const id = displayCode.toLowerCase();
     return loc.includes(currentQuery) || addr.includes(currentQuery) || city.includes(currentQuery) || name.includes(currentQuery) || id.includes(currentQuery);
   });
 
@@ -856,23 +863,28 @@ export default function MediaProfilePage({
                     <div className="p-5 flex flex-col flex-1 justify-between gap-4">
                       <div className="flex flex-col gap-2">
                         <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading leading-snug">
-                          {billboard.name}
+                          {billboard.name || billboard.billboard_name || 'Billboard Asset'}
                         </h3>
                         <p className="text-xs text-white/50 flex items-start gap-1.5 leading-normal">
                           <i className="fa-solid fa-location-dot text-cyan-400 text-xs mt-0.5 flex-shrink-0" />
-                          <span>{billboard.location}, {billboard.city}</span>
+                          <span>
+                            {billboard.location || billboard.street_address || 'Chennai'}
+                            {billboard.city && billboard.city !== billboard.location ? `, ${billboard.city}` : ''}
+                          </span>
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
                         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex flex-col">
                           <span className="text-[9px] text-white/40 uppercase font-semibold">Size</span>
-                          <span className="font-bold text-white mt-0.5 font-mono">{billboard.size || `${billboard.width} × ${billboard.height}`}</span>
+                          <span className="font-bold text-white mt-0.5 font-mono">
+                            {billboard.size || (billboard.width && billboard.height && !String(billboard.width).includes('undefined') ? `${billboard.width} × ${billboard.height}` : '40 ft × 20 ft')}
+                          </span>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex flex-col">
                           <span className="text-[9px] text-white/40 uppercase font-semibold">Type</span>
                           <span className="font-bold text-cyan-300 mt-0.5 truncate">
-                            {['ACU-AN-001', 'ACU-TN-002', 'ACU-VL-003', 'ACU-OMR-004'].includes(billboard.id) ? 'Static Billboard' : (billboard.type || 'Static Billboard')}
+                            {(billboard.type && billboard.type !== 'click' && !billboard.type.includes('undefined')) ? billboard.type : (billboard.billboard_type || 'Digital Billboard')}
                           </span>
                         </div>
                       </div>

@@ -415,6 +415,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
     }
 
+    // Peak Hour 12-Hour Window Formatter Helper
+    function formatPeakHourWindow(hour) {
+        if (hour === null || hour === undefined || hour === '' || isNaN(Number(hour))) return '—';
+        const startH = Number(hour);
+        const endH = (startH + 1) % 24;
+        const format12h = (h) => {
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 === 0 ? 12 : h % 12;
+            return `${String(h12).padStart(2, '0')}:00 ${period}`;
+        };
+        return `${format12h(startH)} – ${format12h(endH)}`;
+    }
+
     // --- UI Values Update Binders ---
     function updateUIElements() {
         // Format KPI numbers
@@ -502,11 +515,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Heat Timeline Generation ---
-    function renderHeatTimeline() {
+    function renderHeatTimeline(hourlyRecords = null, peakHourVal = null) {
         if (!elements.densityHeatmap) return;
         elements.densityHeatmap.innerHTML = '';
 
-        const totalSlots = 17;
+        const totalSlots = 17; // 6 AM to 10 PM
+        const recordsMap = {};
+        let maxHourlyVehicles = 0;
+
+        if (Array.isArray(hourlyRecords) && hourlyRecords.length > 0) {
+            hourlyRecords.forEach(r => {
+                const h = Number(r.hour);
+                const count = Number(r.total_vehicles) || 0;
+                recordsMap[h] = r;
+                if (count > maxHourlyVehicles) {
+                    maxHourlyVehicles = count;
+                }
+            });
+        }
+
         for (let i = 0; i < totalSlots; i++) {
             const hourVal = 6 + i;
             let formattedHour = '';
@@ -516,21 +543,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let densityMult = 0.25;
             let status = 'Low Density';
-            if (hourVal >= 8 && hourVal <= 9) {
-                densityMult = 0.85;
-                status = 'High Density';
-            } else if (hourVal >= 17 && hourVal <= 19) {
-                densityMult = 0.98;
-                status = 'Peak Intensity';
-            } else if (hourVal >= 10 && hourVal <= 16) {
-                densityMult = 0.55;
-                status = 'Moderate Traffic';
-            } else if (hourVal >= 20) {
-                densityMult = 0.40;
-                status = 'Declining Flow';
-            }
+            let scale = 0;
 
-            const scale = Math.round(densityMult * 120 + Math.random() * 20);
+            const rec = recordsMap[hourVal];
+            if (rec && maxHourlyVehicles > 0) {
+                const count = Number(rec.total_vehicles) || 0;
+                densityMult = Math.min(1.0, Math.max(0.1, count / maxHourlyVehicles));
+                scale = Number(rec.flow_rate) || Math.round(count / 60);
+
+                if (count === maxHourlyVehicles || (peakHourVal !== null && hourVal === peakHourVal)) {
+                    densityMult = 1.0;
+                    status = 'Peak Intensity';
+                } else if (densityMult >= 0.75) {
+                    status = 'High Density';
+                } else if (densityMult >= 0.45) {
+                    status = 'Moderate Traffic';
+                } else {
+                    status = 'Low Flow';
+                }
+            } else if (state.stats.totalVehicles === 0) {
+                densityMult = 0.05;
+                status = 'Idle Sensor';
+                scale = 0;
+            } else {
+                if (hourVal >= 8 && hourVal <= 9) {
+                    densityMult = 0.85;
+                    status = 'High Density';
+                } else if (hourVal >= 17 && hourVal <= 19) {
+                    densityMult = 0.98;
+                    status = 'Peak Intensity';
+                } else if (hourVal >= 10 && hourVal <= 16) {
+                    densityMult = 0.55;
+                    status = 'Moderate Traffic';
+                } else if (hourVal >= 20) {
+                    densityMult = 0.40;
+                    status = 'Declining Flow';
+                }
+                scale = Math.round(densityMult * 120 + Math.random() * 20);
+            }
 
             const block = document.createElement('div');
             block.className = 'heatmap-block';
@@ -1269,7 +1319,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const yesterdayDate = getYesterdayIST(selectedDate);
             const yesterdayQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${yesterdayDate}&limit=1`;
 
-            const [response, yesterdayResponse] = await Promise.all([
+            // Query hourly aggregated records for the active billboard from traffic_hour
+            const hourlyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&or=(date.eq.${selectedDate},stat_date.eq.${selectedDate})&order=hour.asc`;
+
+            const [response, yesterdayResponse, hourlyResponse] = await Promise.all([
                 fetch(queryUrl, {
                     cache: 'no-store',
                     headers: {
@@ -1285,8 +1338,72 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
                         'Content-Type': 'application/json'
                     }
+                }).catch(() => null),
+                fetch(hourlyQueryUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
                 }).catch(() => null)
             ]);
+
+            let calculatedPeakHour = null;
+            let hourlyDataList = [];
+            if (hourlyResponse && hourlyResponse.ok) {
+                const hData = await hourlyResponse.json();
+                if (Array.isArray(hData) && hData.length > 0) {
+                    hourlyDataList = hData;
+                    let maxV = 0;
+                    let bestHourRow = null;
+                    for (const hRow of hData) {
+                        const vCount = Number(hRow.total_vehicles) || 0;
+                        if (vCount > maxV) {
+                            maxV = vCount;
+                            bestHourRow = hRow;
+                        }
+                    }
+                    if (bestHourRow && maxV > 0) {
+                        calculatedPeakHour = formatPeakHourWindow(bestHourRow.hour);
+                    }
+                }
+            }
+
+            // Fallback: If traffic_hour was empty, check traffic_overview_history
+            if (!calculatedPeakHour) {
+                try {
+                    const histUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=hour,total_vehicles,flow_rate&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${selectedDate}&order=hour.asc`;
+                    const histRes = await fetch(histUrl, {
+                        cache: 'no-store',
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (histRes.ok) {
+                        const histData = await histRes.json();
+                        if (Array.isArray(histData) && histData.length > 0) {
+                            if (hourlyDataList.length === 0) hourlyDataList = histData;
+                            let maxV = 0;
+                            let bestH = null;
+                            for (const hRow of histData) {
+                                const vCount = Number(hRow.total_vehicles) || 0;
+                                if (vCount > maxV) {
+                                    maxV = vCount;
+                                    bestH = hRow;
+                                }
+                            }
+                            if (bestH && maxV > 0) {
+                                calculatedPeakHour = formatPeakHourWindow(bestH.hour);
+                            }
+                        }
+                    }
+                } catch (histErr) {
+                    console.warn("History peak fallback query notice:", histErr);
+                }
+            }
 
             let yesterdayRow = null;
             if (yesterdayResponse && yesterdayResponse.ok) {
@@ -1340,7 +1457,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (row) {
-                    updateDashboardWithLiveData(row, cleanCode, yesterdayRow);
+                    if (calculatedPeakHour) {
+                        row.peak_traffic_hour = calculatedPeakHour;
+                    } else if (Number(row.total_vehicles) === 0) {
+                        row.peak_traffic_hour = '—';
+                    }
+                    updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
                     
                     // Offline detection: if last_updated is older than 60s or is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
@@ -1442,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus('connected', true);
     }
 
-    function updateDashboardWithLiveData(data, targetBillboard, yesterdayData = null) {
+    function updateDashboardWithLiveData(data, targetBillboard, yesterdayData = null, hourlyDataList = null) {
         if (!data) {
             applyZeroState(targetBillboard || activeBillboardCode);
             return;
@@ -1465,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
         const avgDwell = Number(data.avg_exposure_time) || 0.0;
         const flowRate = Number(data.flow_rate) || 0.0;
-        const peakHour = data.peak_traffic_hour || 'N/A';
+        const peakHour = (totalVehicles === 0 && (!data.peak_traffic_hour || data.peak_traffic_hour === 'N/A')) ? '—' : (data.peak_traffic_hour || '—');
 
         // Check if incoming data actually differs from currently rendered state
         const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}_${ultraLuxuryCount}`;
@@ -1502,6 +1624,12 @@ document.addEventListener('DOMContentLoaded', () => {
         state.spawnChance = totalVehicles > 0 ? 0.035 : 0;
 
         updateUIElements();
+
+        if (hourlyDataList && hourlyDataList.length > 0) {
+            renderHeatTimeline(hourlyDataList);
+        } else if (totalVehicles === 0) {
+            renderHeatTimeline([]);
+        }
 
         // Update comparison badges against yesterday
         updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', totalVehicles, yesterdayData?.total_vehicles);

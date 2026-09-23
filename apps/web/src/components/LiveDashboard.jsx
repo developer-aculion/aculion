@@ -5,6 +5,7 @@ import FrontCameraView from './FrontCameraView';
 import lionLogo from '../assets/aculion_lion_logo.png';
 import transparentLogo from '../assets/aculion_logo_transparent.png';
 import { supabase } from '../services/supabase';
+import { billboardService } from '../services/billboard.service';
 import { 
   AreaChart, 
   Area, 
@@ -181,27 +182,6 @@ export default function LiveDashboard({
     return Math.abs(hash);
   };
 
-  const getCorridors = () => {
-    const loc = selectedBillboard?.location || selectedBillboard?.name || 'Main Junction';
-    const cleanLoc = loc.split('–')[0].split(',')[0].trim();
-    return [
-      { name: `${cleanLoc} Main Ave (Northbound)`, speed: '42 km/h', flow: '680 veh/hr', dwell: '25s', peak: '08:00 AM - 10:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-      { name: `${cleanLoc} Bypass (Eastbound)`, speed: '28 km/h', flow: '942 veh/hr', dwell: '48s', peak: '06:00 PM - 08:00 PM', status: 'Moderate', badge: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' },
-      { name: `${cleanLoc} Connector (Southbound)`, speed: '14 km/h', flow: '1,204 veh/hr', dwell: '84s', peak: '05:30 PM - 07:30 PM', status: 'High', badge: 'bg-red-500/10 text-red-400 border border-red-500/20' },
-      { name: `${cleanLoc} Loop Circle (Rotary)`, speed: '36 km/h', flow: '710 veh/hr', dwell: '15s', peak: '09:00 AM - 11:00 AM', status: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' }
-    ];
-  };
-
-  const getZones = () => {
-    const loc = selectedBillboard?.location || selectedBillboard?.name || 'Main Junction';
-    const cleanLoc = loc.split('–')[0].split(',')[0].trim();
-    return {
-      zoneA: `${cleanLoc} Commercial Centre`,
-      zoneB: `${cleanLoc} Retail Row`,
-      zoneC: `${cleanLoc} Transit Junction Hub`
-    };
-  };
-
   // Real-time telemetry state connected to active sensors
   const [dbTrafficData, setDbTrafficData] = useState(null);
   const [livePeople, setLivePeople] = useState(0);
@@ -295,14 +275,17 @@ export default function LiveDashboard({
       const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
       // STRICT QUERY: Filter exclusively by the selected billboard_code and stat_date
-      let res = await supabase
-        .from("traffic_overview")
-        .select("*")
-        .eq("billboard_code", targetBbCode)
-        .eq("stat_date", todayIST)
-        .order("last_updated", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [res, peakResult] = await Promise.all([
+        supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", targetBbCode)
+          .eq("stat_date", todayIST)
+          .order("last_updated", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        billboardService.getPeakTrafficHour(targetBbCode, todayIST)
+      ]);
 
       let data = res.data;
 
@@ -335,6 +318,13 @@ export default function LiveDashboard({
 
       // Strict match check: verify returned record matches target billboard
       if (data && data.billboard_code === targetBbCode) {
+        // Integrate calculated peak traffic hour from traffic_hour table
+        if (peakResult && peakResult.peakHourStr && peakResult.peakHourStr !== '—') {
+          data.peak_traffic_hour = peakResult.peakHourStr;
+        } else if (Number(data.total_vehicles) === 0) {
+          data.peak_traffic_hour = '—';
+        }
+
         setDbTrafficData(data);
         setAlerts(buildLiveAlerts(data));
         setLiveVehicles(Number(data.total_vehicles) || 0);
@@ -419,13 +409,6 @@ export default function LiveDashboard({
     timezone: 'Asia/Kolkata (IST)'
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  // Zone Comparison active zones
-  const [activeZoneCompare, setActiveZoneCompare] = useState({
-    zoneA: true,
-    zoneB: true,
-    zoneC: false
-  });
 
   // Sync activeNav when user navigates with browser back/forward buttons
   useEffect(() => {
@@ -547,17 +530,19 @@ export default function LiveDashboard({
         }
       }
 
-      // Fetch hourly trend history rows from database
+      // Fetch hourly trend history rows and calculate peak hour from traffic_hour
       let historyRows = [];
+      let peakHourStr = liveStats?.peak_traffic_hour || (totalV > 0 ? 'Peak Window' : '—');
       try {
-        const { data: hData } = await supabase
-          .from("traffic_overview_history")
-          .select("hour, total_vehicles, flow_rate, last_updated")
-          .eq("billboard_code", bbCode)
-          .eq("stat_date", todayIST)
-          .order("hour", { ascending: true });
-        if (hData && Array.isArray(hData)) {
+        const [hData, peakRes] = await Promise.all([
+          billboardService.getHourlyTraffic(bbCode, todayIST),
+          billboardService.getPeakTrafficHour(bbCode, todayIST)
+        ]);
+        if (hData && Array.isArray(hData) && hData.length > 0) {
           historyRows = hData;
+        }
+        if (peakRes && peakRes.peakHourStr && peakRes.peakHourStr !== '—') {
+          peakHourStr = peakRes.peakHourStr;
         }
       } catch (hErr) {
         console.warn("[downloadReportAsPDF] Notice reading hourly history from Supabase:", hErr);
@@ -579,7 +564,7 @@ export default function LiveDashboard({
       const dwellV = Number(liveStats?.avg_exposure_time) || 0;
       const maxDwellV = Number(liveStats?.max_exposure_time) || 0;
       const flowV = Number(liveStats?.flow_rate) || 0;
-      const peakHourStr = liveStats?.peak_traffic_hour || (totalV > 0 ? 'Peak Window' : '—');
+      if (!peakHourStr && totalV === 0) peakHourStr = '—';
 
       const highEndV = premV + luxV + ultraV;
       const highEndPct = divisorV > 0 ? ((highEndV / divisorV) * 100).toFixed(1) : '0.0';
@@ -1949,59 +1934,30 @@ export default function LiveDashboard({
             {activeNav === 'corridor' && (
               <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <div className="flex items-center justify-between flex-shrink-0">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Junction Corridor Flow Matrix</h3>
-                </div>
-
-                {/* Corridor Comparison Table */}
-                <div className="flex-grow bg-slate-900/60 border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-lg">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[11px] text-left">
-                      <thead className="bg-[#080b15] text-white/45 border-b border-white/10 uppercase font-semibold text-[9.5px]">
-                        <tr>
-                          <th className="p-3">Corridor Description</th>
-                          <th className="p-3">Average Speed</th>
-                          <th className="p-3">Traffic Density</th>
-                          <th className="p-3">Avg Dwell time</th>
-                          <th className="p-3 font-mono">Busiest Hour</th>
-                          <th className="p-3">Congestion Level</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {getCorridors().map((row, idx) => (
-                          <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="p-3 font-bold text-white/95">{row.name}</td>
-                            <td className="p-3 font-mono text-white/80">{row.speed}</td>
-                            <td className="p-3 font-mono text-white/80">{row.flow}</td>
-                            <td className="p-3 font-mono text-white/80">{row.dwell}</td>
-                            <td className="p-3 font-mono text-white/60">{row.peak}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${row.badge}`}>
-                                {row.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Junction Corridor Flow Matrix</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">BETA</span>
                   </div>
                 </div>
 
-                {/* Speed vs Congestion metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[120px] flex-shrink-0">
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex flex-col justify-around shadow-lg">
-                    <span className="text-[9.5px] text-cyan-400 font-bold uppercase tracking-wider">Corridor Congestion Average</span>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span>Mean Vehicular Speed: <strong className="text-white font-mono">30 km/h</strong></span>
-                      <span>Average Delay Index: <strong className="text-yellow-400 font-mono">+12.4% vs last week</strong></span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div className="bg-yellow-500 h-full rounded-full" style={{ width: '45%' }} />
-                    </div>
+                {/* Empty State when no corridor sensors configured */}
+                <div className="flex-grow bg-[#0c1220]/80 border border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl min-h-[360px]">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-2xl mb-4 shadow-lg shadow-blue-500/10">
+                    <i className="fa-solid fa-route" />
                   </div>
-
-                  <div className="bg-[#0f172a]/60 border border-white/10 rounded-xl p-3 flex flex-col justify-around shadow-lg">
-                    <span className="text-[9.5px] text-purple-400 font-bold uppercase tracking-wider">AI Traffic recommendations</span>
-                    <p className="text-[11.5px] text-white/50 leading-relaxed">{getCorridors()[2].name} displays severe delays on weekday evening hours. Auto-apply dynamic programmatic DOOH price modifiers to capture longer dwell margins.</p>
+                  <h4 className="text-base font-bold text-white mb-2 font-heading">No Active Corridor Streams</h4>
+                  <p className="text-xs text-white/50 max-w-md leading-relaxed mb-6">
+                    Corridor Intelligence analyzes directional approach flows, junction delay indices, and corridor dwell times when multiple roadside sensors are mapped along an arterial route.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <span className="text-[10px] font-mono px-3 py-1 rounded-lg bg-white/[0.03] text-white/60 border border-white/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                      Asset: <strong className="text-white">{selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001'}</strong>
+                    </span>
+                    <span className="text-[10px] font-mono px-3 py-1 rounded-lg bg-white/[0.03] text-white/60 border border-white/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Corridor Streams: <strong className="text-amber-400">0 Active</strong>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2012,95 +1968,32 @@ export default function LiveDashboard({
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'zone' && (
               <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
-                <div className="flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Multi-Zone Dashboard Comparison</h3>
-                  
-                  {/* Select zone toggles */}
-                  <div className="flex flex-wrap bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
-                    {[
-                      { key: 'zoneA', label: 'Commercial Zone A' },
-                      { key: 'zoneB', label: 'Retail Zone B' },
-                      { key: 'zoneC', label: 'Transit Zone C' }
-                    ].map(opt => (
-                      <button
-                        key={opt.key}
-                        onClick={() => setActiveZoneCompare(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
-                        className={`px-3 py-1 rounded font-semibold transition-all !border-none !shadow-none cursor-pointer ${
-                          activeZoneCompare[opt.key] ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                <div className="flex items-center justify-between flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Multi-Zone Dashboard Comparison</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">BETA</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Commercial Zone */}
-                  {activeZoneCompare.zoneA && (
-                    <div className="bg-[#0f172a]/60 border border-blue-500/30 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
-                      <div>
-                        <span className="text-[8px] font-bold text-white/40 block">ZONE A</span>
-                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneA}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
-                        <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">45,782</strong></div>
-                        <div><span className="text-white/45 block">Vehicles count:</span> <strong className="font-mono text-white/90">32,605</strong></div>
-                        <div><span className="text-white/45 block">Avg Dwell time:</span> <strong className="font-mono text-white/90">38 sec</strong></div>
-                        <div><span className="text-white/45 block">Occupancy:</span> <strong className="font-mono text-white/90 text-emerald-400">92%</strong></div>
-                        <div><span className="text-white/45 block">Campaign Reach:</span> <strong className="font-mono text-white/90">86.2K</strong></div>
-                        <div><span className="text-white/45 block">Engagement:</span> <strong className="font-mono text-white/90 text-purple-400">89%</strong></div>
-                      </div>
-                      <div className="flex justify-between items-center border-t border-white/5 pt-3">
-                        <span className="text-[10px] text-white/50">Performance ROI Yield:</span>
-                        <strong className="text-sm text-blue-400 font-mono">2.4x</strong>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Retail Zone */}
-                  {activeZoneCompare.zoneB && (
-                    <div className="bg-[#0f172a]/60 border border-cyan-500/20 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
-                      <div>
-                        <span className="text-[8px] font-bold text-white/40 block">ZONE B</span>
-                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneB}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
-                        <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">38,120</strong></div>
-                        <div><span className="text-white/45 block">Vehicles count:</span> <strong className="font-mono text-white/90">41,500</strong></div>
-                        <div><span className="text-white/45 block">Avg Dwell time:</span> <strong className="font-mono text-white/90">52 sec</strong></div>
-                        <div><span className="text-white/45 block">Occupancy:</span> <strong className="font-mono text-white/90 text-emerald-400">85%</strong></div>
-                        <div><span className="text-white/45 block">Campaign Reach:</span> <strong className="font-mono text-white/90">72.4K</strong></div>
-                        <div><span className="text-white/45 block">Engagement:</span> <strong className="font-mono text-white/90 text-purple-400">76%</strong></div>
-                      </div>
-                      <div className="flex justify-between items-center border-t border-white/5 pt-3">
-                        <span className="text-[10px] text-white/50">Performance ROI Yield:</span>
-                        <strong className="text-sm text-cyan-400 font-mono">1.9x</strong>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Transit Zone */}
-                  {activeZoneCompare.zoneC && (
-                    <div className="bg-[#0f172a]/60 border border-purple-500/20 rounded-xl p-4 flex flex-col justify-between shadow-lg h-[260px]">
-                      <div>
-                        <span className="text-[8px] font-bold text-white/40 block">ZONE C</span>
-                        <h4 className="text-sm font-bold text-white mt-1">{getZones().zoneC}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-[11px] border-t border-white/5 pt-3 my-2 flex-grow font-sans">
-                        <div><span className="text-white/45 block">Daily Footfall:</span> <strong className="font-mono text-white/90">62,800</strong></div>
-                        <div><span className="text-white/45 block">Vehicles count:</span> <strong className="font-mono text-white/90">14,200</strong></div>
-                        <div><span className="text-white/45 block">Avg Dwell time:</span> <strong className="font-mono text-white/90">15 sec</strong></div>
-                        <div><span className="text-white/45 block">Occupancy:</span> <strong className="font-mono text-white/90 text-emerald-400">74%</strong></div>
-                        <div><span className="text-white/45 block">Campaign Reach:</span> <strong className="font-mono text-white/90">98.1K</strong></div>
-                        <div><span className="text-white/45 block">Engagement:</span> <strong className="font-mono text-white/90 text-purple-400">62%</strong></div>
-                      </div>
-                      <div className="flex justify-between items-center border-t border-white/5 pt-3">
-                        <span className="text-[10px] text-white/50">Performance ROI Yield:</span>
-                        <strong className="text-sm text-purple-400 font-mono">1.4x</strong>
-                      </div>
-                    </div>
-                  )}
+                {/* Empty State when no zone comparison sensors configured */}
+                <div className="flex-grow bg-[#0c1220]/80 border border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl min-h-[360px]">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl mb-4 shadow-lg shadow-cyan-500/10">
+                    <i className="fa-solid fa-chart-simple" />
+                  </div>
+                  <h4 className="text-base font-bold text-white mb-2 font-heading">No Multi-Zone Comparison Data</h4>
+                  <p className="text-xs text-white/50 max-w-md leading-relaxed mb-6">
+                    Multi-Zone Comparison evaluates audience demographics, exposure duration, and ROI yields across adjacent retail, commercial, and transit zones once zone sensors are paired.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <span className="text-[10px] font-mono px-3 py-1 rounded-lg bg-white/[0.03] text-white/60 border border-white/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                      Location: <strong className="text-white">{selectedBillboard?.location || selectedBillboard?.billboard_name || 'Main Location'}</strong>
+                    </span>
+                    <span className="text-[10px] font-mono px-3 py-1 rounded-lg bg-white/[0.03] text-white/60 border border-white/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Comparison Zones: <strong className="text-amber-400">None Configured</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

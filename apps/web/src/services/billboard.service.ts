@@ -7,25 +7,36 @@ import { Billboard } from "../types/location";
 import { supabase } from "./supabase";
 
 function mapDbRecordToBillboard(record: any): Billboard {
+  const code = record.billboard_code || record.id || 'ACU-BB-0001';
+  const imgMap: Record<string, string> = {
+    'ACU-BB-0001': '/anna_nagar_location.png',
+    'ACU-BB-0002': '/blog_attention_metrics.png',
+    'ACU-BB-0003': '/blog_billboard_roi.png',
+    'ACU-BB-0004': '/blog_smart_city.png',
+  };
+
   return {
-    id: record.id,
+    id: record.billboard_code || record.id,
     billboard_id: record.id,
-    billboard_code: record.billboard_code,
+    billboard_code: record.billboard_code || record.id,
     camera_id: record.camera_ff_code || record.camera_bf_code || '',
+    camera_ff_code: record.camera_ff_code || '',
+    camera_bf_code: record.camera_bf_code || '',
     client_id: record.owner_id,
-    name: record.billboard_name,
-    billboard_name: record.billboard_name,
-    billboard_location: record.location_landmark,
-    street_address: record.street_address,
-    city: record.city,
-    location: record.location_landmark,
-    latitude: Number(record.latitude),
-    longitude: Number(record.longitude),
+    name: record.billboard_name || 'Billboard Asset',
+    billboard_name: record.billboard_name || 'Billboard Asset',
+    billboard_location: record.location_landmark || record.street_address || 'Chennai',
+    street_address: record.street_address || '',
+    city: record.city || 'Chennai',
+    location: record.location_landmark || record.street_address || 'Chennai',
+    latitude: Number(record.latitude) || 13.0827,
+    longitude: Number(record.longitude) || 80.2707,
     status: record.status || 'Active',
     type: record.billboard_type || 'Digital Billboard',
-    width: 40,
-    height: 20,
-    image: '/blog_smart_city.png',
+    size: '40 ft × 20 ft',
+    width: '40 ft',
+    height: '20 ft',
+    image: imgMap[code] || '/anna_nagar_location.png',
     campaign: {
       name: "Nike OOH Campaign",
       owner: "Nike India",
@@ -199,6 +210,104 @@ export const billboardService = {
     }
 
     return data;
+  },
+
+  /**
+   * Helper to format an hour (0-23) into standard 12-hour window string (e.g. 18 -> '06:00 PM – 07:00 PM')
+   */
+  formatPeakHourWindow: (hour: number | string | null | undefined): string => {
+    if (hour === null || hour === undefined || hour === '' || isNaN(Number(hour))) return '—';
+    const startH = Number(hour);
+    const endH = (startH + 1) % 24;
+    const format12h = (h: number) => {
+      const period = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${String(h12).padStart(2, '0')}:00 ${period}`;
+    };
+    return `${format12h(startH)} – ${format12h(endH)}`;
+  },
+
+  /**
+   * Fetch all 24-hour aggregated records from 'traffic_hour' for a specific billboard and day.
+   */
+  getHourlyTraffic: async (billboardCode: string, statDate?: string): Promise<any[]> => {
+    if (!billboardCode) return [];
+    const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    const targetDate = statDate || todayIST;
+
+    try {
+      // 1. Try querying traffic_hour matching billboard_code and stat_date / date
+      const { data, error } = await supabase
+        .from("traffic_hour")
+        .select("*")
+        .eq("billboard_code", billboardCode)
+        .or(`date.eq.${targetDate},stat_date.eq.${targetDate}`)
+        .order("hour", { ascending: true });
+
+      if (error) {
+        console.warn("[billboardService] Notice querying traffic_hour:", error);
+      } else if (data && data.length > 0) {
+        return data;
+      }
+
+      // 2. Fallback: Check traffic_overview_history if traffic_hour cron hasn't aggregated yet
+      const { data: histData, error: histError } = await supabase
+        .from("traffic_overview_history")
+        .select("*")
+        .eq("billboard_code", billboardCode)
+        .eq("stat_date", targetDate)
+        .order("hour", { ascending: true });
+
+      if (!histError && histData && histData.length > 0) {
+        return histData;
+      }
+
+      return [];
+    } catch (err) {
+      console.error("[billboardService] Error in getHourlyTraffic:", err);
+      return [];
+    }
+  },
+
+  /**
+   * Calculates the Peak Traffic Hour specifically for a billboard and day from 'traffic_hour'.
+   */
+  getPeakTrafficHour: async (billboardCode: string, statDate?: string): Promise<{
+    peakHourStr: string;
+    peakHour: number | null;
+    peakCount: number;
+    hourlyData: any[];
+  }> => {
+    if (!billboardCode) {
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData: [] };
+    }
+
+    const hourlyData = await billboardService.getHourlyTraffic(billboardCode, statDate);
+    if (!hourlyData || hourlyData.length === 0) {
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData: [] };
+    }
+
+    let peakRecord: any = null;
+    let maxVehicles = 0;
+
+    for (const record of hourlyData) {
+      const count = Number(record.total_vehicles) || 0;
+      if (count > maxVehicles) {
+        maxVehicles = count;
+        peakRecord = record;
+      }
+    }
+
+    if (!peakRecord || maxVehicles <= 0) {
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData };
+    }
+
+    return {
+      peakHourStr: billboardService.formatPeakHourWindow(peakRecord.hour),
+      peakHour: Number(peakRecord.hour),
+      peakCount: maxVehicles,
+      hourlyData
+    };
   },
 
   /**
