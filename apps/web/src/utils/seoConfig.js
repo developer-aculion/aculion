@@ -122,12 +122,14 @@ export function getSEOMetadata(pathname) {
     return SEO_ROUTES[normalized];
   }
 
-  // Check if it's a private or auth route
+  // Check if it's a private, dashboard, demo, or auth route
   const isPrivate = 
     normalized.startsWith('/sign-in') ||
     normalized.startsWith('/forgot-password') ||
     normalized.includes('/dashboard') ||
-    normalized.includes('/media-profile');
+    normalized.includes('/media-profile') ||
+    normalized.startsWith('/demo-dashboard') ||
+    normalized.startsWith('/location-intelligence');
 
   if (isPrivate) {
     return {
@@ -143,7 +145,7 @@ export function getSEOMetadata(pathname) {
     };
   }
 
-  // Default fallback for any unmatched public page
+  // Strict Fallback: Any unknown, arbitrary, or unlisted dynamic path defaults to noindex
   return {
     title: 'Aculion | AI-Powered Out-of-Home Intelligence',
     description: 'Aculion delivers real-time computer vision analytics for outdoor advertising.',
@@ -152,7 +154,8 @@ export function getSEOMetadata(pathname) {
     ogDescription: 'Aculion delivers real-time computer vision analytics for outdoor advertising.',
     ogImage: DEFAULT_OG_IMAGE,
     ogType: 'website',
-    twitterCard: 'summary_large_image',
-    robots: 'index, follow'
+    twitterCard: 'summary',
+    robots: 'noindex, nofollow'
   };
 }
+

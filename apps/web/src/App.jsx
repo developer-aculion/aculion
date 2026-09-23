@@ -1176,14 +1176,17 @@ export default function App() {
 
   if (MEDIA_PROFILE_RE.test(route) || route === '/media-profile') {
     return (
-      <MediaProfilePage
-        user={user}
-        billboards={billboards}
-        onSelectBillboard={handleSelectBillboard}
-        onAddBillboard={handleAddBillboard}
-        onLogout={handleLogout}
-        navigateTo={navigateTo}
-      />
+      <>
+        <SEOHead route={route} />
+        <MediaProfilePage
+          user={user}
+          billboards={billboards}
+          onSelectBillboard={handleSelectBillboard}
+          onAddBillboard={handleAddBillboard}
+          onLogout={handleLogout}
+          navigateTo={navigateTo}
+        />
+      </>
     );
   }
 
@@ -1195,22 +1198,29 @@ export default function App() {
       ? dashParts.slice(0, dashIdx + 1).join('/')
       : `/dashboard`;
     return (
-      <LiveDashboard
-        navigateTo={navigateTo}
-        selectedBillboard={selectedBillboard}
-        billboards={billboards}
-        user={user}
-        onSelectBillboard={handleSelectBillboard}
-        onAddNewMedia={handleAddBillboard}
-        baseDashboardPath={baseDashboardPath}
-        onBackToProfile={() => navigateTo(null, `/${getUserSlug(user)}/media-profile/`)}
-      />
+      <>
+        <SEOHead route={route} />
+        <LiveDashboard
+          navigateTo={navigateTo}
+          selectedBillboard={selectedBillboard}
+          billboards={billboards}
+          user={user}
+          onSelectBillboard={handleSelectBillboard}
+          onAddNewMedia={handleAddBillboard}
+          baseDashboardPath={baseDashboardPath}
+          onBackToProfile={() => navigateTo(null, `/${getUserSlug(user)}/media-profile/`)}
+        />
+      </>
     );
   }
 
-
   if (route === '/demo-dashboard') {
-    return <DemoDashboardPage navigateTo={navigateTo} />;
+    return (
+      <>
+        <SEOHead route={route} />
+        <DemoDashboardPage navigateTo={navigateTo} />
+      </>
+    );
   }
 
   return (

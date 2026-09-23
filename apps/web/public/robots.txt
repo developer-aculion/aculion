@@ -2,6 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /sign-in
 Disallow: /forgot-password
+Disallow: /demo-dashboard
+Disallow: /location-intelligence
 Disallow: /*/dashboard/*
 Disallow: /*/media-profile/*
 
