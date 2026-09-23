@@ -22,11 +22,11 @@ const SCORE_GRADIENTS = [
 ];
 
 const CARD_BORDER_GLOWS = [
-  "hover:border-indigo-500/30 hover:shadow-indigo-500/5",
-  "hover:border-emerald-500/30 hover:shadow-emerald-500/5",
-  "hover:border-violet-500/30 hover:shadow-violet-500/5",
-  "hover:border-pink-500/30 hover:shadow-pink-500/5",
-  "hover:border-amber-500/30 hover:shadow-amber-500/5"
+  "hover:border-indigo-500/40 hover:shadow-indigo-500/10",
+  "hover:border-emerald-500/40 hover:shadow-emerald-500/10",
+  "hover:border-violet-500/40 hover:shadow-violet-500/10",
+  "hover:border-pink-500/40 hover:shadow-pink-500/10",
+  "hover:border-amber-500/40 hover:shadow-amber-500/10"
 ];
 
 function sanitizeNumbers(text: string): string {
@@ -69,59 +69,59 @@ export default function AIRecommendationSidebar({
 
   const hasDomains = llmRec.best_advertising_domains && llmRec.best_advertising_domains.length > 0;
 
-
-
   return (
-    <div className="w-full border-t lg:border-t-0 lg:border-l border-white/10 bg-[#090e1c]/80 p-4 sm:p-5 lg:p-6 flex flex-col space-y-6 lg:min-h-full text-white shrink-0 min-w-0 box-border">
+    <div className="w-full border-t lg:border-t-0 lg:border-l border-white/10 bg-[#090e1c]/90 p-5 sm:p-6 flex flex-col space-y-6 lg:min-h-full text-white shrink-0 min-w-0 box-border">
       
-
-      {/* HEADER */}
-      <div className="flex items-center gap-3 border-b border-border/40 pb-4">
-        <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-          <Bot size={18} className="animate-pulse" />
+      {/* 1. HEADER */}
+      <div className="flex items-center gap-3.5 border-b border-white/10 pb-4">
+        <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400">
+          <Bot size={22} className="animate-pulse" />
         </div>
         <div>
-          <h2 className="text-xs font-black uppercase tracking-widest text-primary leading-none">Media Strategy Agent</h2>
-          <span className="text-[9px] text-muted-foreground font-bold uppercase mt-1 inline-block">LLM-Reasoned Assessment</span>
+          <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-blue-400 leading-tight">
+            Media Strategy Agent
+          </h2>
+          <span className="text-[11px] text-white/50 font-bold uppercase tracking-wider mt-0.5 inline-block">
+            LLM-Reasoned Assessment
+          </span>
         </div>
       </div>
 
-
-
-
-      {/* 3. BEST ADVERTISING DOMAINS */}
-      <div className="glassmorphism p-5 rounded-2xl border border-border space-y-4">
-        <div className="flex items-center gap-2">
-          <Award size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Best Advertising Domains</h3>
+      {/* 2. BEST ADVERTISING DOMAINS */}
+      <div className="glassmorphism p-5 sm:p-6 rounded-2xl border border-white/10 space-y-4 shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <Award size={18} className="text-blue-400" />
+          <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+            Best Advertising Domains
+          </h3>
         </div>
         
         {hasDomains ? (
-          <div className="space-y-3">
+          <div className="space-y-4 pt-1">
             {llmRec.best_advertising_domains.map((dom, idx) => {
               const gradient = SCORE_GRADIENTS[idx % SCORE_GRADIENTS.length];
               const borderGlow = CARD_BORDER_GLOWS[idx % CARD_BORDER_GLOWS.length];
               return (
-                <div key={dom.category} className={`bg-background/40 border border-border/60 p-3.5 rounded-xl space-y-2.5 transition-all duration-200 ${borderGlow}`}>
+                <div key={dom.category} className={`bg-[#0d1424]/90 border border-white/10 p-4 rounded-xl space-y-3 transition-all duration-200 ${borderGlow}`}>
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-foreground">{dom.category}</span>
-                    </div>
+                    <span className="text-sm sm:text-base font-black text-white leading-snug">
+                      {dom.category}
+                    </span>
                     <div className="text-right shrink-0">
-                      <span className="text-xs font-black font-mono text-primary">{dom.score}%</span>
-                      <span className="text-[9px] text-muted-foreground block font-bold uppercase tracking-wider">Suitability</span>
+                      <span className="text-sm sm:text-base font-black font-mono text-blue-400">{dom.score}%</span>
+                      <span className="text-[10px] text-white/50 block font-bold uppercase tracking-wider">Suitability</span>
                     </div>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[#161f36] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-1000`}
                       style={{ width: `${dom.score}%` }}
                     />
                   </div>
                   
-                  <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
                     {sanitizeNumbers(dom.rationale)}
                   </p>
                 </div>
@@ -129,72 +129,78 @@ export default function AIRecommendationSidebar({
             })}
           </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground text-xs">
+          <div className="text-center py-6 text-white/50 text-sm">
             No suitable advertising domains identified.
           </div>
         )}
       </div>
 
-      {/* 4. WHY THESE DOMAINS FIT */}
-      <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3">
-        <div className="flex items-center gap-2">
-          <BrainCircuit size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-mono">Why These Domains Fit</h3>
+      {/* 3. WHY THESE DOMAINS FIT */}
+      <div className="glassmorphism p-5 sm:p-6 rounded-2xl border border-white/10 space-y-3.5 shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <BrainCircuit size={18} className="text-blue-400" />
+          <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white font-mono">
+            Why These Domains Fit
+          </h3>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
           {sanitizeNumbers(llmRec.why_domains_fit)}
         </p>
       </div>
 
-      {/* 5. ADVANTAGES OF PUBLISHING ADS IN THIS AREA */}
-      <div className="glassmorphism p-5 rounded-2xl border border-border space-y-3">
-        <div className="flex items-center gap-2">
-          <Compass size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Advantages in This Area</h3>
+      {/* 4. ADVANTAGES OF PUBLISHING ADS IN THIS AREA */}
+      <div className="glassmorphism p-5 sm:p-6 rounded-2xl border border-white/10 space-y-3.5 shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <Compass size={18} className="text-blue-400" />
+          <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+            Advantages in This Area
+          </h3>
         </div>
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2.5 pt-1">
           {llmRec.advantages_of_publishing && llmRec.advantages_of_publishing.length > 0 ? (
             llmRec.advantages_of_publishing.map((adv, idx) => (
-              <div key={idx} className="flex gap-2.5 text-[11px] leading-relaxed text-muted-foreground hover:text-foreground transition-colors group">
-                <CheckCircle2 size={13} className="text-emerald-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                <span>{sanitizeNumbers(adv)}</span>
+              <div key={idx} className="flex gap-3 text-xs sm:text-sm leading-relaxed text-slate-200 hover:text-white transition-colors group">
+                <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <span className="font-medium">{sanitizeNumbers(adv)}</span>
               </div>
             ))
           ) : (
-            <span className="text-xs text-muted-foreground">No prominent advertising advantages detected.</span>
+            <span className="text-sm text-white/50">No prominent advertising advantages detected.</span>
           )}
         </div>
       </div>
 
-      {/* 6. TARGET AUDIENCE */}
-      <div className="glassmorphism p-5 rounded-2xl border border-border space-y-4">
-        <div className="flex items-center gap-2">
-          <Users size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Audience Segments</h3>
+      {/* 5. TARGET AUDIENCE */}
+      <div className="glassmorphism p-5 sm:p-6 rounded-2xl border border-white/10 space-y-4 shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <Users size={18} className="text-blue-400" />
+          <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+            Target Audience Segments
+          </h3>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3.5 pt-1">
           {llmRec.target_audience && llmRec.target_audience.length > 0 ? (
             llmRec.target_audience.map((aud, idx) => (
-              <div key={idx} className="bg-background/40 border border-border/60 p-3 rounded-xl space-y-2 hover:bg-background/60 transition-colors">
+              <div key={idx} className="bg-[#0d1424]/90 border border-white/10 p-4 rounded-xl space-y-2.5 hover:bg-[#121b30] transition-colors">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-foreground leading-tight">{aud.segment}</span>
-                  <span className="px-1.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[8px] font-black uppercase rounded-md shrink-0 ml-2">
+                  <span className="text-xs sm:text-sm font-black text-white leading-tight">{aud.segment}</span>
+                  <span className="px-2 py-0.5 bg-blue-500/15 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase rounded-md shrink-0 ml-2">
                     {aud.segment.split(" ")[0]}
                   </span>
                 </div>
                 
-                <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
                   {sanitizeNumbers(aud.relevance)}
                 </p>
                 
-                <div className="pt-1.5 border-t border-border/20 flex items-center justify-between text-[9px] text-muted-foreground/80 font-medium">
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/60 font-medium">
                   <span>Driven by:</span>
-                  <span className="font-semibold text-primary/95">{sanitizeNumbers(aud.driven_by)}</span>
+                  <span className="font-bold text-blue-400">{sanitizeNumbers(aud.driven_by)}</span>
                 </div>
               </div>
             ))
           ) : (
-            <span className="text-xs text-muted-foreground">No specific target audiences identified.</span>
+            <span className="text-sm text-white/50">No specific target audiences identified.</span>
           )}
         </div>
       </div>

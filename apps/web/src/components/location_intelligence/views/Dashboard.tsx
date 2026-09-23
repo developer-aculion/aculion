@@ -484,9 +484,9 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
 
         </main>
 
-        {/* ── Right AI Recommendation Sidebar (Fixed 340px on desktop) ── */}
+        {/* ── Right AI Recommendation Sidebar (Fixed 360px on desktop) ── */}
         {analytics && (
-          <div className="w-full lg:w-[340px] lg:min-w-[340px] lg:max-w-[340px] shrink-0">
+          <div className="w-full lg:w-[360px] lg:min-w-[360px] lg:max-w-[360px] shrink-0">
             <AIRecommendationSidebar
               analytics={analytics}
               candidateLat={candidateLat}
