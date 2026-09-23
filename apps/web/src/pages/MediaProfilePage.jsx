@@ -824,15 +824,15 @@ export default function MediaProfilePage({
                 </div>
               </div>
 
-              {/* Billboard Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Billboard Cards Grid - 2 columns per row on mobile */}
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                 {filteredBillboards.map((billboard) => (
                   <div
                     key={billboard.id}
                     onClick={() => onSelectBillboard(billboard)}
-                    className="group bg-[#0e1424]/80 hover:bg-[#131b30] border border-white/10 hover:border-blue-500/40 rounded-2xl overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 cursor-pointer flex flex-col relative"
+                    className="group bg-[#0e1424]/80 hover:bg-[#131b30] border border-white/10 hover:border-blue-500/40 rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 cursor-pointer flex flex-col relative"
                   >
-                    <div className="h-40 w-full bg-[#050811] relative overflow-hidden flex-shrink-0">
+                    <div className="h-28 sm:h-36 md:h-40 w-full bg-[#050811] relative overflow-hidden flex-shrink-0">
                       <img
                         src={billboard.image || '/anna_nagar_location.png'}
                         alt={billboard.name}
@@ -844,54 +844,54 @@ export default function MediaProfilePage({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0e1424] via-transparent to-black/40" />
 
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-[10px] font-bold font-mono bg-black/60 backdrop-blur-md text-cyan-400 border border-blue-500/30">
+                      <span className="absolute top-2 sm:top-3 left-2 sm:left-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-[8px] sm:text-[10px] font-bold font-mono bg-black/60 backdrop-blur-md text-cyan-400 border border-blue-500/30">
                         {billboard.billboard_code || billboard.id}
                       </span>
 
-                      <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-md text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border ${
+                      <span className={`absolute top-2 sm:top-3 right-2 sm:right-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-[8px] sm:text-[10px] font-bold backdrop-blur-md flex items-center gap-1 sm:gap-1.5 border ${
                         billboard.status === 'Active'
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                           : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
+                        <span className={`w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full ${
                           billboard.status === 'Active' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
                         }`} />
                         {billboard.status}
                       </span>
                     </div>
 
-                    <div className="p-5 flex flex-col flex-1 justify-between gap-4">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading leading-snug">
+                    <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between gap-2.5 sm:gap-4">
+                      <div className="flex flex-col gap-1 sm:gap-2">
+                        <h3 className="text-xs sm:text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading leading-snug truncate" title={billboard.name || billboard.billboard_name}>
                           {billboard.name || billboard.billboard_name || 'Billboard Asset'}
                         </h3>
-                        <p className="text-xs text-white/50 flex items-start gap-1.5 leading-normal">
-                          <i className="fa-solid fa-location-dot text-cyan-400 text-xs mt-0.5 flex-shrink-0" />
-                          <span>
+                        <p className="text-[10px] sm:text-xs text-white/50 flex items-start gap-1 leading-tight truncate">
+                          <i className="fa-solid fa-location-dot text-cyan-400 text-[10px] sm:text-xs mt-0.5 flex-shrink-0" />
+                          <span className="truncate">
                             {billboard.location || billboard.street_address || 'Chennai'}
                             {billboard.city && billboard.city !== billboard.location ? `, ${billboard.city}` : ''}
                           </span>
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
-                        <div className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex flex-col">
-                          <span className="text-[9px] text-white/40 uppercase font-semibold">Size</span>
-                          <span className="font-bold text-white mt-0.5 font-mono">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-white/10 text-xs">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-lg p-1.5 sm:p-2 flex flex-col min-w-0">
+                          <span className="text-[8px] sm:text-[9px] text-white/40 uppercase font-semibold">Size</span>
+                          <span className="font-bold text-white mt-0.5 font-mono text-[10px] sm:text-xs truncate">
                             {billboard.size || (billboard.width && billboard.height && !String(billboard.width).includes('undefined') ? `${billboard.width} × ${billboard.height}` : '40 ft × 20 ft')}
                           </span>
                         </div>
-                        <div className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex flex-col">
-                          <span className="text-[9px] text-white/40 uppercase font-semibold">Type</span>
-                          <span className="font-bold text-cyan-300 mt-0.5 truncate">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-lg p-1.5 sm:p-2 flex flex-col min-w-0">
+                          <span className="text-[8px] sm:text-[9px] text-white/40 uppercase font-semibold">Type</span>
+                          <span className="font-bold text-cyan-300 mt-0.5 text-[10px] sm:text-xs truncate">
                             {(billboard.type && billboard.type !== 'click' && !billboard.type.includes('undefined')) ? billboard.type : (billboard.billboard_type || 'Digital Billboard')}
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-2 flex items-center justify-between text-xs font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors">
-                        <span>View Intelligence Dashboard</span>
-                        <i className="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform" />
+                      <div className="pt-1 sm:pt-2 flex items-center justify-between text-[10px] sm:text-xs font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                        <span className="truncate">View Intelligence Dashboard</span>
+                        <i className="fa-solid fa-arrow-right text-[10px] sm:text-xs group-hover:translate-x-1 transition-transform shrink-0 ml-1" />
                       </div>
                     </div>
                   </div>
@@ -901,16 +901,16 @@ export default function MediaProfilePage({
                 {isAdmin ? (
                   <div
                     onClick={() => setShowAddModal(true)}
-                    className="group bg-[#0e1424]/40 hover:bg-[#0e1424]/80 border-2 border-dashed border-blue-500/30 hover:border-blue-500/60 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-4 min-h-[300px] cursor-pointer text-center relative overflow-hidden shadow-lg hover:shadow-blue-500/10"
+                    className="group bg-[#0e1424]/40 hover:bg-[#0e1424]/80 border-2 border-dashed border-blue-500/30 hover:border-blue-500/60 rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-4 min-h-[180px] sm:min-h-[300px] cursor-pointer text-center relative overflow-hidden shadow-lg hover:shadow-blue-500/10"
                   >
-                    <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/30 group-hover:border-cyan-400 group-hover:bg-blue-500/20 group-hover:scale-110 flex items-center justify-center text-cyan-400 text-2xl transition-all duration-300">
+                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-blue-500/10 border border-blue-500/30 group-hover:border-cyan-400 group-hover:bg-blue-500/20 group-hover:scale-110 flex items-center justify-center text-cyan-400 text-lg sm:text-2xl transition-all duration-300">
                       <i className="fa-solid fa-plus" />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading">
+                    <div className="flex flex-col gap-0.5 sm:gap-1">
+                      <h3 className="text-xs sm:text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading">
                         + Add Billboard
                       </h3>
-                      <p className="text-xs text-white/40 max-w-[200px]">
+                      <p className="text-[10px] sm:text-xs text-white/40 max-w-[200px] hidden sm:block">
                         Register another billboard location asset into admin platform.
                       </p>
                     </div>
@@ -918,20 +918,20 @@ export default function MediaProfilePage({
                 ) : (
                   <div
                     onClick={() => { setShowContactModal(true); setContactSubmitted(false); }}
-                    className="group bg-[#0e1424]/40 hover:bg-[#0e1424]/80 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400/60 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-4 min-h-[300px] cursor-pointer text-center relative overflow-hidden shadow-lg hover:shadow-cyan-500/10"
+                    className="group bg-[#0e1424]/40 hover:bg-[#0e1424]/80 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400/60 rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-4 min-h-[180px] sm:min-h-[300px] cursor-pointer text-center relative overflow-hidden shadow-lg hover:shadow-cyan-500/10"
                   >
-                    <div className="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/30 group-hover:border-cyan-400 group-hover:bg-cyan-500/20 group-hover:scale-110 flex items-center justify-center text-cyan-400 text-2xl transition-all duration-300 shadow-md shadow-cyan-500/10">
+                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-cyan-500/10 border border-cyan-500/30 group-hover:border-cyan-400 group-hover:bg-cyan-500/20 group-hover:scale-110 flex items-center justify-center text-cyan-400 text-lg sm:text-2xl transition-all duration-300 shadow-md shadow-cyan-500/10">
                       <i className="fa-solid fa-headset" />
                     </div>
-                    <div className="flex flex-col gap-2 max-w-[240px]">
-                      <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading">
+                    <div className="flex flex-col gap-1 sm:gap-2 max-w-[240px]">
+                      <h3 className="text-xs sm:text-base font-bold text-white group-hover:text-cyan-400 transition-colors font-heading">
                         Add New Billboard
                       </h3>
-                      <p className="text-xs text-white/50 leading-relaxed">
+                      <p className="text-[10px] sm:text-xs text-white/50 leading-relaxed hidden sm:block">
                         To add a billboard to your network, please <span className="text-cyan-300 font-semibold">contact the Aculion team</span> for onboarding & sensor setup.
                       </p>
-                      <div className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-cyan-400 group-hover:text-cyan-300 mt-1">
-                        <span>Contact Aculion Team</span>
+                      <div className="inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs font-semibold text-cyan-400 group-hover:text-cyan-300 mt-1">
+                        <span>Contact Team</span>
                         <i className="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>

@@ -159,6 +159,9 @@ export default function LocationMap({
       zoom: 13,
       zoomControl: false,
       attributionControl: false,
+      tap: false,
+      touchZoom: true,
+      dragging: true,
     });
     mapRef.current = map;
 
@@ -183,7 +186,29 @@ export default function LocationMap({
       }
     });
 
+    // Multi-step invalidateSize to ensure tiles render immediately on mobile layout settlement
+    const invalidate = () => {
+      try {
+        if (mapRef.current) mapRef.current.invalidateSize(true);
+      } catch {}
+    };
+
+    invalidate();
+    const t1 = setTimeout(invalidate, 100);
+    const t2 = setTimeout(invalidate, 300);
+    const t3 = setTimeout(invalidate, 600);
+    const t4 = setTimeout(invalidate, 1200);
+
+    window.addEventListener("resize", invalidate);
+    window.addEventListener("orientationchange", invalidate);
+
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      window.removeEventListener("resize", invalidate);
+      window.removeEventListener("orientationchange", invalidate);
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,19 +219,13 @@ export default function LocationMap({
     if (!leafletReady || !mapRef.current || !mapContainerRef.current) return;
     const observer = new ResizeObserver(() => {
       if (mapRef.current) {
-        mapRef.current.invalidateSize();
+        mapRef.current.invalidateSize(true);
       }
     });
     observer.observe(mapContainerRef.current);
     
-    // Also trigger immediate invalidate
-    const timer = setTimeout(() => {
-      if (mapRef.current) mapRef.current.invalidateSize();
-    }, 200);
-
     return () => {
       observer.disconnect();
-      clearTimeout(timer);
     };
   }, [leafletReady]);
 

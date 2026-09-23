@@ -145,10 +145,31 @@ button {
   box-shadow: 0 12px 30px rgba(0, 85, 255, 0.15);
 }
 
-/* Leaflet control fixes */
+/* Leaflet control fixes & mobile tile sizing */
 .leaflet-container {
   font-family: inherit;
   background-color: #0b0b0f !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 350px !important;
+  z-index: 10;
+  touch-action: pan-x pan-y !important;
+}
+
+/* Prevent Tailwind preflight from compressing Leaflet raster tile images */
+.leaflet-tile-container img,
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+  display: block;
+}
+
+.leaflet-pane {
+  z-index: 400 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 200 !important;
 }
 
 /* Custom scrollbars */
