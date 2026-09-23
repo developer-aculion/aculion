@@ -939,6 +939,58 @@ hr {
   background-color: var(--graphite-border);
 }
 
+/* ── Metrics Bar Mobile: 3 columns in first row, 2 columns in second row ── */
+@media (max-width: 768px) {
+  .metrics-bar {
+    padding: 36px 0 24px 0 !important;
+  }
+  .metrics-container {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 20px 8px !important;
+    justify-items: center !important;
+    align-items: start !important;
+  }
+  .metric-divider {
+    display: none !important;
+  }
+  /* Row 1: 3 columns */
+  .metrics-container .metric-item:nth-of-type(1),
+  .metrics-container .metric-item:nth-of-type(2),
+  .metrics-container .metric-item:nth-of-type(3) {
+    grid-column: span 2 !important;
+  }
+  /* Row 2: 2 columns */
+  .metrics-container .metric-item:nth-of-type(4),
+  .metrics-container .metric-item:nth-of-type(5) {
+    grid-column: span 3 !important;
+  }
+  .metric-item {
+    width: 100% !important;
+    padding: 0 4px !important;
+  }
+  .metric-value {
+    font-size: 26px !important;
+    margin-bottom: 6px !important;
+    line-height: 1.15 !important;
+  }
+  .metric-label {
+    font-size: 9px !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.3 !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .metric-value {
+    font-size: 21px !important;
+  }
+  .metric-label {
+    font-size: 8px !important;
+  }
+}
+
 /* ── ESOMAR Member Trust Section ─────────────────────────── */
 .esomar-trust-section {
   position: relative;
@@ -4375,6 +4427,71 @@ input:checked + .slider:before {
   background: rgba(12, 13, 20, 0.55);
 }
 
+/* ── Included Features Mobile: Row 1 has 4 columns, Row 2 has 3 columns ── */
+@media (max-width: 768px) {
+  .included-features-section {
+    padding: 40px 0 !important;
+  }
+  .included-features-grid {
+    display: grid !important;
+    grid-template-columns: repeat(12, 1fr) !important;
+    gap: 10px 8px !important;
+    margin-top: 24px !important;
+  }
+  .included-feature-card {
+    flex-direction: column !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 12px 6px !important;
+    gap: 8px !important;
+    max-width: none !important;
+    border-radius: 12px !important;
+    min-height: 86px !important;
+  }
+  /* Row 1: 4 cards */
+  .included-feature-card:nth-child(1),
+  .included-feature-card:nth-child(2),
+  .included-feature-card:nth-child(3),
+  .included-feature-card:nth-child(4) {
+    grid-column: span 3 !important;
+  }
+  /* Row 2: 3 cards */
+  .included-feature-card:nth-child(5),
+  .included-feature-card:nth-child(6),
+  .included-feature-card:nth-child(7) {
+    grid-column: span 4 !important;
+  }
+  .included-feature-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+    margin: 0 auto !important;
+  }
+  .included-feature-text {
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .included-features-grid {
+    gap: 8px 5px !important;
+  }
+  .included-feature-card {
+    padding: 10px 4px !important;
+    min-height: 78px !important;
+  }
+  .included-feature-icon {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+  }
+  .included-feature-text {
+    font-size: 8px !important;
+  }
+}
+
 .included-feature-icon {
   display: flex;
   align-items: center;
@@ -4590,20 +4707,80 @@ input:checked + .slider:before {
   color: var(--electric-blue);
 }
 
-/* Responsive Duality Comparison */
+/* Responsive Duality Comparison: 1 row and 2 columns on mobile */
 @media (max-width: 900px) {
   .about-duality-grid {
-    grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .about-section {
-    padding: 80px 0;
+    padding: 60px 0 !important;
+  }
+  .about-header h2.section-title {
+    font-size: 26px !important;
+  }
+  .about-header p.section-desc {
+    font-size: 13px !important;
+  }
+  .about-duality-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-top: 24px !important;
   }
   .about-duality-card {
-    padding: 28px 24px;
+    padding: 16px 12px !important;
+    border-radius: 12px !important;
+  }
+  .about-duality-badge {
+    font-size: 8px !important;
+    padding: 3px 8px !important;
+    margin-bottom: 10px !important;
+    letter-spacing: 0.05em !important;
+  }
+  .about-duality-card h3 {
+    font-size: 13px !important;
+    margin-bottom: 12px !important;
+    line-height: 1.3 !important;
+  }
+  .about-callout-list {
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+  .about-callout-list li {
+    font-size: 9.5px !important;
+    gap: 6px !important;
+    line-height: 1.3 !important;
+  }
+  .about-callout-list li i {
+    font-size: 10px !important;
+    min-width: 12px !important;
+    margin-top: 2px !important;
+  }
+  .about-callout-punchline {
+    font-size: 9.5px !important;
+    padding-top: 10px !important;
+    line-height: 1.3 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-duality-grid {
+    gap: 6px !important;
+  }
+  .about-duality-card {
+    padding: 12px 8px !important;
+  }
+  .about-duality-card h3 {
+    font-size: 11px !important;
+  }
+  .about-callout-list li {
+    font-size: 8.5px !important;
+  }
+  .about-callout-punchline {
+    font-size: 8.5px !important;
   }
 }
 
@@ -5208,7 +5385,7 @@ main.fade-in-content {
   .hero-title { font-size: 52px; max-width: 420px; }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
   .services-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
-  .services-grid.cols-2 { grid-template-columns: 1fr; max-width: 500px; }
+  .services-grid.cols-2 { grid-template-columns: repeat(2, 1fr); max-width: 900px; }
 }
 
 @media (max-width: 768px) {
@@ -9704,7 +9881,7 @@ main.fade-in-content {
 /* Responsive adjustments for solutions */
 @media (max-width: 1024px) {
   .solutions-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
   .manifesto-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -9722,14 +9899,70 @@ main.fade-in-content {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  .solutions-grid {
-    grid-template-columns: 1fr;
+  .solutions-grid-title {
+    font-size: 18px !important;
+    margin-bottom: 20px !important;
   }
+  /* Why media owners choose us: 2 rows and 4 columns */
+  .solutions-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px 6px !important;
+    margin-bottom: 40px !important;
+  }
+  .solutions-card {
+    padding: 12px 8px !important;
+    border-radius: 10px !important;
+  }
+  .solutions-card-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    margin-bottom: 8px !important;
+  }
+  .solutions-card h4 {
+    font-size: 10.5px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.25 !important;
+  }
+  .solutions-card p {
+    font-size: 8.5px !important;
+    line-height: 1.3 !important;
+  }
+  /* From Assumptions to Intelligence: 2 rows and 2 columns */
   .manifesto-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .manifesto-card {
+    padding: 14px 10px !important;
+    border-radius: 10px !important;
+  }
+  .manifesto-card-icon {
+    font-size: 18px !important;
+    margin-bottom: 8px !important;
+  }
+  .manifesto-card h4 {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+  }
+  .manifesto-card p {
+    font-size: 9.5px !important;
+    line-height: 1.35 !important;
   }
   .manifesto-section {
-    padding: 40px 24px;
+    padding: 24px 14px !important;
+    border-radius: 14px !important;
+  }
+  .manifesto-title {
+    font-size: 18px !important;
+    margin-bottom: 10px !important;
+  }
+  .manifesto-desc {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .manifesto-header {
+    margin-bottom: 24px !important;
   }
 
   /* Solutions Mobile Responsiveness Override */
@@ -9897,8 +10130,12 @@ main.fade-in-content {
     }
   }
 
-  /* ── Pricing grid: single-column stacking on mobile ── */
-  .services-grid.cols-2,
+  /* ── Pricing grid: 2-column on mobile for side-by-side comparison ── */
+  .services-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+  }
   .services-grid.cols-3 {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
@@ -9907,7 +10144,54 @@ main.fade-in-content {
 
   /* Cards: reduce inner padding on mobile so content doesn't crowd */
   .services-card {
-    padding: 28px 24px !important;
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+  }
+  .services-plan-name {
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+  }
+  .services-plan-desc {
+    font-size: 10px !important;
+    margin-bottom: 14px !important;
+    min-height: auto !important;
+    line-height: 1.35 !important;
+  }
+  .services-plan-features {
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+  .services-plan-features li {
+    font-size: 9.5px !important;
+    gap: 6px !important;
+    line-height: 1.3 !important;
+  }
+  .services-plan-features li i {
+    font-size: 9px !important;
+  }
+  .feature-header-extra {
+    font-size: 9px !important;
+    margin: 4px 0 !important;
+  }
+  .services-premium-badge {
+    top: 10px !important;
+    right: 10px !important;
+    font-size: 7px !important;
+    padding: 2px 7px !important;
+  }
+  .services-best-for {
+    font-size: 9px !important;
+    padding: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .services-best-for strong {
+    font-size: 8px !important;
+    margin-bottom: 2px !important;
+  }
+  .services-card-bottom .btn {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
   }
 
   /* Price value: scale down on very small screens */
@@ -13150,6 +13434,10 @@ body:has(.brand-portal) {
 @media (max-width: 768px) {
   .main-footer {
     padding-top: 44px;
+    margin-top: auto !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    background: linear-gradient(180deg, #080c16 0%, #03050a 100%) !important;
   }
   .footer-container {
     grid-template-columns: 1fr;
@@ -13162,6 +13450,12 @@ body:has(.brand-portal) {
   }
   .footer-links-col a:hover {
     transform: none;
+  }
+  .footer-bottom {
+    background: #020307 !important;
+    padding: 20px 0 !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+    margin-bottom: 0 !important;
   }
   .footer-bottom-container {
     flex-direction: column;
