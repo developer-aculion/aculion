@@ -691,7 +691,8 @@ document.addEventListener('DOMContentLoaded', () => {
             labels: ['Bike', 'Commercial', 'Economy', 'Premium', 'Luxury', 'Ultra Luxury'],
             chart: {
                 type: 'donut',
-                height: 260,
+                width: '100%',
+                height: 280,
                 background: 'transparent',
                 foreColor: '#94a3b8'
             },
@@ -799,6 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }],
             chart: {
                 type: 'area',
+                width: '100%',
                 height: 200,
                 background: 'transparent',
                 foreColor: '#94a3b8',
@@ -896,6 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
             chart: {
                 type: 'line',
+                width: '100%',
                 height: 280,
                 background: 'transparent',
                 foreColor: '#94a3b8',
