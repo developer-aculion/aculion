@@ -5,13 +5,23 @@ import { HeatmapPoint, POILocation, Billboard } from "../../../types/location";
 import { ZoomIn, ZoomOut, Maximize2, Layers } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Tile URL helpers
+// Tile URL helpers & API Key configuration
 // ---------------------------------------------------------------------------
-const TILE_URLS: Record<string, string> = {
-  satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  dark: "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
-  streets: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+const rawCartoKey = ((import.meta as any).env?.VITE_CARTO_API_KEY || "").trim();
+const hasCartoKey = Boolean(rawCartoKey && rawCartoKey !== "your_carto_api_key_here");
+
+const getDarkTileUrl = () => {
+  if (hasCartoKey) {
+    return `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?api_key=${encodeURIComponent(rawCartoKey)}&key=${encodeURIComponent(rawCartoKey)}`;
+  }
+  return "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+};
+
+const getTileUrl = (type: "satellite" | "dark") => {
+  if (type === "satellite") {
+    return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  }
+  return getDarkTileUrl();
 };
 
 interface LocationMapProps {
@@ -82,6 +92,36 @@ export default function LocationMap({
     });
   }, []);
 
+  // ── Helper to create tile layer with seamless fallback ──
+  const createBaseLayer = (leafletInstance: any, type: "satellite" | "dark") => {
+    const url = getTileUrl(type);
+    const isCarto = url.includes("cartocdn.com");
+
+    const layer = leafletInstance.tileLayer(url, {
+      subdomains: isCarto ? "abcd" : ["server", "services"],
+      maxZoom: 20,
+      attribution: isCarto
+        ? '&copy; <a href="https://carto.com/">CARTO</a>'
+        : '&copy; <a href="https://www.esri.com/">Esri</a>',
+    });
+
+    if (isCarto) {
+      layer.on("tileerror", () => {
+        console.warn("[LocationMap] Carto tile error encountered. Switching to ESRI Dark Gray fallback.");
+        if (mapRef.current && layersRef.current.tile === layer) {
+          mapRef.current.removeLayer(layer);
+          const fallback = leafletInstance.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+            { maxZoom: 20, attribution: "&copy; Esri" }
+          ).addTo(mapRef.current);
+          layersRef.current.tile = fallback;
+        }
+      });
+    }
+
+    return layer;
+  };
+
   // ── Listen for chat view actions to center map ──
   useEffect(() => {
     const handleChatViewOnMap = (e: any) => {
@@ -123,11 +163,7 @@ export default function LocationMap({
     mapRef.current = map;
 
     // Default tile
-    layersRef.current.tile = L.tileLayer(TILE_URLS.dark, {
-      subdomains: "abcd",
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
-    }).addTo(map);
+    layersRef.current.tile = createBaseLayer(L, mapType).addTo(map);
 
     // Layer groups
     layersRef.current.poiGroup = L.layerGroup().addTo(map);
@@ -180,11 +216,7 @@ export default function LocationMap({
     if (layersRef.current.tile) {
       mapRef.current.removeLayer(layersRef.current.tile);
     }
-    const tileUrl = TILE_URLS[mapType] || TILE_URLS.dark;
-    layersRef.current.tile = L.tileLayer(tileUrl, {
-      subdomains: "abcd",
-      maxZoom: 20,
-    }).addTo(mapRef.current);
+    layersRef.current.tile = createBaseLayer(L, mapType).addTo(mapRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapType, leafletReady]);
 
