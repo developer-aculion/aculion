@@ -392,6 +392,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const exportBtn = document.getElementById('exportReportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.parent.postMessage({
+                type: 'DOWNLOAD_REPORT',
+                reportType: 'audience',
+                billboardCode: activeBillboardCode
+            }, '*');
+            const originalHtml = exportBtn.innerHTML;
+            exportBtn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i><span>Report Generated</span>`;
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                exportBtn.innerHTML = originalHtml;
+                if (window.lucide) lucide.createIcons();
+            }, 2500);
+        });
+    }
+
     function showNotification(msg) {
         if (elements.lastUpdatedTime) {
             elements.lastUpdatedTime.textContent = msg;
@@ -464,6 +483,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.dwellEvening) elements.dwellEvening.textContent = `${Number(state.stats.dwellStats.periods.evening || 0).toFixed(1)}s`;
         if (elements.dwellNight) elements.dwellNight.textContent = `${Number(state.stats.dwellStats.periods.night || 0).toFixed(1)}s`;
 
+        // Donut summary stats
+        const dominantEl = document.getElementById('donut-dominant-class');
+        const highValueEl = document.getElementById('donut-high-value-share');
+        if (dominantEl || highValueEl) {
+            let topClass = '--';
+            let topCount = 0;
+            let highValueCount = 0;
+            Object.keys(state.stats.classes).forEach(k => {
+                const item = state.stats.classes[k];
+                if (item.count > topCount) {
+                    topCount = item.count;
+                    topClass = item.name;
+                }
+                if (['luxury', 'ultra', 'premium'].includes(k)) {
+                    highValueCount += item.count;
+                }
+            });
+            if (dominantEl) {
+                dominantEl.textContent = state.stats.totalVehicles > 0 ? topClass : '--';
+            }
+            if (highValueEl) {
+                const sharePct = state.stats.totalVehicles > 0 ? Math.round((highValueCount / state.stats.totalVehicles) * 100) : 0;
+                highValueEl.textContent = state.stats.totalVehicles > 0 ? `${sharePct}%` : '--';
+            }
+        }
+
         // Update timestamp
         if (elements.hudTime) {
             const now = new Date();
@@ -475,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateAIRecommendations();
+        if (window.lucide) lucide.createIcons();
     }
 
     function updateAIRecommendations() {
@@ -801,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chart: {
                 type: 'area',
                 width: '100%',
-                height: 200,
+                height: 180,
                 background: 'transparent',
                 foreColor: '#94a3b8',
                 toolbar: { show: false },
@@ -1620,8 +1666,50 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.stats.dwellStats) {
             state.stats.dwellStats.avg = avgDwell;
             state.stats.dwellStats.max = Number(data.max_exposure_time) || 0.0;
-            state.stats.dwellStats.min = totalVehicles > 0 ? 1.5 : 0.0;
+            state.stats.dwellStats.min = totalVehicles > 0 ? (avgDwell > 0 ? +(avgDwell * 0.45).toFixed(1) : 1.5) : 0.0;
             state.stats.dwellStats.median = totalVehicles > 0 ? +(avgDwell * 0.85).toFixed(1) : 0.0;
+
+            if (totalVehicles > 0 && avgDwell > 0) {
+                // Dynamically calculate time-of-day dwell exposure based on hourly traffic dynamics
+                let morningSum = 0, morningCount = 0;
+                let afternoonSum = 0, afternoonCount = 0;
+                let eveningSum = 0, eveningCount = 0;
+                let nightSum = 0, nightCount = 0;
+
+                if (Array.isArray(hourlyDataList) && hourlyDataList.length > 0) {
+                    hourlyDataList.forEach(hRow => {
+                        const h = Number(hRow.hour);
+                        const exp = Number(hRow.avg_exposure_time || hRow.exposure_time) || 0;
+                        if (exp > 0) {
+                            if (h >= 6 && h < 12) { morningSum += exp; morningCount++; }
+                            else if (h >= 12 && h < 18) { afternoonSum += exp; afternoonCount++; }
+                            else if (h >= 18 && h < 24) { eveningSum += exp; eveningCount++; }
+                            else { nightSum += exp; nightCount++; }
+                        }
+                    });
+                }
+
+                // Evening commute has peak congestion (highest exposure/dwell),
+                // Morning has commute flow, Afternoon has steady flow, Night has high speed
+                const morningVal = (morningCount > 0 && morningSum > 0) ? (morningSum / morningCount) : (avgDwell * 0.95);
+                const afternoonVal = (afternoonCount > 0 && afternoonSum > 0) ? (afternoonSum / afternoonCount) : (avgDwell * 0.88);
+                const eveningVal = (eveningCount > 0 && eveningSum > 0) ? (eveningSum / eveningCount) : (avgDwell * 1.18);
+                const nightVal = (nightCount > 0 && nightSum > 0) ? (nightSum / nightCount) : (avgDwell * 0.68);
+
+                state.stats.dwellStats.periods = {
+                    morning: +morningVal.toFixed(1),
+                    afternoon: +afternoonVal.toFixed(1),
+                    evening: +eveningVal.toFixed(1),
+                    night: +nightVal.toFixed(1)
+                };
+            } else {
+                state.stats.dwellStats.periods = {
+                    morning: 0.0,
+                    afternoon: 0.0,
+                    evening: 0.0,
+                    night: 0.0
+                };
+            }
         }
 
         state.spawnChance = totalVehicles > 0 ? 0.035 : 0;

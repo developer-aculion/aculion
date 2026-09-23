@@ -1287,8 +1287,8 @@ export default function LiveDashboard({
           </div>
 
           {/* Navigation Links Group */}
-          <div className="p-3 sm:p-4 flex-grow flex flex-col gap-1 overflow-y-auto">
-            <span className="text-[9px] sm:text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] px-3 mb-2 block">
+          <div className="p-3 sm:p-4 flex-grow flex flex-col gap-1.5 overflow-y-auto">
+            <span className="text-[9px] sm:text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] px-3.5 mb-2 block">
               Core Modules
             </span>
 
@@ -1320,18 +1320,20 @@ export default function LiveDashboard({
                       setActiveNav(item.id);
                     }
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`w-full h-10 flex items-center justify-between px-3.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-150 cursor-pointer border ${
                     isActive 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                      : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 border-blue-500/40' 
+                      : 'border-transparent text-white/60 hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <i className={`${item.icon} text-sm ${isActive ? 'text-white' : 'text-white/40'}`} />
-                    <span>{item.label}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                      <i className={`${item.icon} text-sm ${isActive ? 'text-white' : 'text-white/40'}`} />
+                    </span>
+                    <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                    <span className={`shrink-0 ml-auto inline-flex items-center justify-center h-5 px-2 rounded text-[9px] font-bold uppercase tracking-wider leading-none ${
                       isActive ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                     }`}>
                       {item.badge}
@@ -1380,14 +1382,13 @@ export default function LiveDashboard({
                 <i className="fa-solid fa-bars text-base" />
               </button>
 
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-white/60">Welcome back,</span>
-                </div>
-                <h1 className="text-base sm:text-xl font-bold font-heading text-white tracking-wide leading-tight">
-                  {userName} 👋
+              <div className="flex flex-col justify-center min-w-0">
+                <h1 className="text-base sm:text-lg lg:text-xl font-heading text-white tracking-tight flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <span className="font-normal text-white/60 text-sm sm:text-base lg:text-lg">Welcome back,</span>
+                  <span className="font-bold text-white text-base sm:text-lg lg:text-xl">{userName}</span>
+                  <span className="text-base sm:text-lg select-none">👋</span>
                 </h1>
-                <p className="text-[11px] sm:text-xs text-white/40 font-medium leading-none mt-0.5 sm:mt-1 hidden sm:block">
+                <p className="text-[11px] sm:text-xs text-white/40 font-medium leading-none mt-1 hidden sm:block whitespace-nowrap">
                   Here's what's happening across your media today.
                 </p>
               </div>
@@ -1395,25 +1396,25 @@ export default function LiveDashboard({
 
             {/* Header Actions */}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-[#121829] border border-white/10 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs text-white/80 font-medium">
-                <i className="fa-regular fa-calendar text-blue-400 text-[11px] sm:text-xs" />
+              <div className="h-10 flex items-center gap-2 bg-[#121829] border border-white/10 rounded-xl px-3.5 text-xs text-white/80 font-medium">
+                <i className="fa-regular fa-calendar text-blue-400 text-xs shrink-0" />
                 <span className="font-mono whitespace-nowrap">Today, {formattedDate}</span>
               </div>
 
               {user?.role === 'Administrator' ? (
                 <button
                   onClick={onAddNewMedia || onBackToProfile}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] sm:text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px] whitespace-nowrap"
+                  className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
                 >
-                  <i className="fa-solid fa-plus text-[10px] sm:text-xs" />
+                  <i className="fa-solid fa-plus text-xs shrink-0" />
                   <span>Add Media</span>
                 </button>
               ) : (
                 <button
                   onClick={onBackToProfile}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-[#121829] hover:bg-[#1a223a] text-cyan-400 text-[11px] sm:text-xs font-semibold shadow-lg border border-cyan-500/30 transition-all flex items-center gap-1.5 cursor-pointer min-h-[36px] sm:min-h-[40px]"
+                  className="h-10 px-4 rounded-xl bg-[#121829] hover:bg-[#1a223a] text-cyan-400 text-xs font-semibold shadow-lg border border-cyan-500/30 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
                 >
-                  <i className="fa-solid fa-headset text-[10px] sm:text-xs text-cyan-400" />
+                  <i className="fa-solid fa-headset text-xs text-cyan-400 shrink-0" />
                   <span>Contact Aculion to Add Media</span>
                 </button>
               )}

@@ -297,212 +297,205 @@
                     </div>
                 </div>
 
-                <!-- Upper Charts Row: Dwell Time Analytics (Left Column) -->
-                <div class="glass-panel analytics-card" id="dwell-time-card">
-                    <div class="card-header">
-                        <div class="header-info">
-                            <h2>Dwell Time Analytics</h2>
-                            <p class="card-subtitle">Audience billboard exposure durations</p>
+                <!-- Left Column: Dwell Time Analytics & Vehicle Distribution Chart -->
+                <div class="analytics-col-left">
+                    <!-- Dwell Time Analytics -->
+                    <div class="glass-panel analytics-card" id="dwell-time-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Dwell Time Analytics</h2>
+                                <p class="card-subtitle">Audience billboard exposure durations</p>
+                            </div>
+                            <div class="dwell-summary-pill">
+                                <span class="pill-label">Median:</span>
+                                <span class="pill-value" id="dwell-stat-median">0.0s</span>
+                            </div>
                         </div>
-                        <div class="dwell-summary-pill">
-                            <span class="pill-label">Median:</span>
-                            <span class="pill-value" id="dwell-stat-median">0.0s</span>
+
+                        <!-- Dwell time detail stats grid -->
+                        <div class="dwell-stats-grid">
+                            <div class="dwell-stat-box">
+                                <span class="dwell-stat-label">Average</span>
+                                <span class="dwell-stat-value text-blue" id="dwell-stat-avg">0.0s</span>
+                            </div>
+                            <div class="dwell-stat-box">
+                                <span class="dwell-stat-label">Maximum</span>
+                                <span class="dwell-stat-value text-cyan" id="dwell-stat-max">0.0s</span>
+                            </div>
+                            <div class="dwell-stat-box">
+                                <span class="dwell-stat-label">Minimum</span>
+                                <span class="dwell-stat-value text-muted" id="dwell-stat-min">0.0s</span>
+                            </div>
+                            <div class="dwell-stat-box">
+                                <span class="dwell-stat-label">Median</span>
+                                <span class="dwell-stat-value" id="dwell-stat-median-box">0.0s</span>
+                            </div>
+                        </div>
+
+                        <!-- Area graph placeholder -->
+                        <div class="dwell-chart-container">
+                            <div id="dwellTimeAreaGraph"></div>
                         </div>
                     </div>
 
-                    <!-- Dwell time detail stats grid -->
-                    <div class="dwell-stats-grid">
-                        <div class="dwell-stat-box">
-                            <span class="dwell-stat-label">Average Dwell Time</span>
-                            <span class="dwell-stat-value text-blue" id="dwell-stat-avg">0.0s</span>
+                    <!-- Vehicle Distribution Chart -->
+                    <div class="glass-panel analytics-card" id="distribution-chart-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Vehicle Distribution Chart</h2>
+                                <p class="card-subtitle">Comparative classification density mapping</p>
+                            </div>
                         </div>
-                        <div class="dwell-stat-box">
-                            <span class="dwell-stat-label">Maximum Dwell Time</span>
-                            <span class="dwell-stat-value text-cyan" id="dwell-stat-max">0.0s</span>
+                        <div class="donut-chart-container">
+                            <div id="vehicleDonutChart"></div>
                         </div>
-                        <div class="dwell-stat-box">
-                            <span class="dwell-stat-label">Minimum Dwell Time</span>
-                            <span class="dwell-stat-value text-muted" id="dwell-stat-min">0.0s</span>
-                        </div>
-                        <div class="dwell-stat-box">
-                            <span class="dwell-stat-label">Median Dwell Time</span>
-                            <span class="dwell-stat-value" id="dwell-stat-median-box">0.0s</span>
-                        </div>
-                    </div>
-
-                    <!-- Area graph placeholder -->
-                    <div class="dwell-chart-container">
-                        <div id="dwellTimeAreaGraph"></div>
-                    </div>
-
-                    <!-- Day periods list -->
-                    <div class="day-periods-grid">
-                        <div class="period-item">
-                            <span class="period-name">Morning</span>
-                            <span class="period-sub">06:00 - 12:00</span>
-                            <span class="period-value" id="dwell-period-morning">0.0s</span>
-                        </div>
-                        <div class="period-item">
-                            <span class="period-name">Afternoon</span>
-                            <span class="period-sub">12:00 - 18:00</span>
-                            <span class="period-value" id="dwell-period-afternoon">0.0s</span>
-                        </div>
-                        <div class="period-item">
-                            <span class="period-name">Evening</span>
-                            <span class="period-sub">18:00 - 24:00</span>
-                            <span class="period-value highlight-cyan" id="dwell-period-evening">0.0s</span>
-                        </div>
-                        <div class="period-item">
-                            <span class="period-name">Night</span>
-                            <span class="period-sub">00:00 - 06:00</span>
-                            <span class="period-value" id="dwell-period-night">0.0s</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Upper Charts Row: Traffic Density Heat Timeline (Right Column) -->
-                <div class="glass-panel analytics-card" id="density-heatmap-card">
-                    <div class="card-header">
-                        <div class="header-info">
-                            <h2>Traffic Density Heat Timeline</h2>
-                            <p class="card-subtitle">Hourly average traffic intensity and peak load distributions</p>
-                        </div>
-                    </div>
-                    <div class="heatmap-outer-wrapper">
-                        <div class="heatmap-timeline" id="densityHeatmap">
-                            <!-- Generated Dynamically -->
-                        </div>
-                        <div class="heatmap-legend">
-                            <span>Low Density</span>
-                            <div class="legend-bar"></div>
-                            <span>Peak Intensity</span>
+                        <!-- Donut Quick Summary Footer Strip -->
+                        <div class="donut-summary-footer">
+                            <div class="donut-stat-pill">
+                                <span class="donut-pill-label">Dominant Class</span>
+                                <span class="donut-pill-val text-blue" id="donut-dominant-class">--</span>
+                            </div>
+                            <div class="donut-stat-pill">
+                                <span class="donut-pill-label">High-Value Mix</span>
+                                <span class="donut-pill-val text-cyan" id="donut-high-value-share">--</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Second Content Grid: Vehicle Distribution Chart (Left Column - exactly 50% width) -->
-                <div class="glass-panel analytics-card" id="distribution-chart-card">
-                    <div class="card-header">
-                        <div class="header-info">
-                            <h2>Vehicle Distribution Chart</h2>
-                            <p class="card-subtitle">Comparative classification density mapping</p>
+                <!-- Right Column: Traffic Density Heat Timeline & Live Vehicle Classification -->
+                <div class="analytics-col-right">
+                    <!-- Traffic Density Heat Timeline -->
+                    <div class="glass-panel analytics-card" id="density-heatmap-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Traffic Density Heat Timeline</h2>
+                                <p class="card-subtitle">Hourly average traffic intensity and peak load distributions</p>
+                            </div>
+                        </div>
+                        <div class="heatmap-outer-wrapper">
+                            <div class="heatmap-timeline" id="densityHeatmap">
+                                <!-- Generated Dynamically -->
+                            </div>
+                            <div class="heatmap-legend">
+                                <span>Low Density</span>
+                                <div class="legend-bar"></div>
+                                <span>Peak Intensity</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="donut-chart-container">
-                        <div id="vehicleDonutChart"></div>
-                    </div>
-                </div>
 
-                <!-- Second Content Grid: Live Vehicle Classification (Right Column - exactly 50% width) -->
-                <div class="glass-panel analytics-card" id="classification-card">
-                    <div class="card-header">
-                        <div class="header-info">
-                            <h2>Live Vehicle Classification</h2>
-                            <p class="card-subtitle">Distribution of detected vehicle classes</p>
-                        </div>
-                        <span class="badge badge-pulse">Real-time Stream</span>
-                    </div>
-
-                    <div class="classification-list">
-                        <!-- Bike -->
-                        <div class="class-item" id="class-economy">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">🏍</span>
-                                    <span class="class-label">Bike</span>
-                                </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-economy">0</span>
-                                    <span class="class-pct" id="pct-economy">0%</span>
-                                </div>
+                    <!-- Live Vehicle Classification -->
+                    <div class="glass-panel analytics-card" id="classification-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Live Vehicle Classification</h2>
+                                <p class="card-subtitle">Distribution of detected vehicle classes</p>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
-                            </div>
+                            <span class="badge badge-pulse">Real-time Stream</span>
                         </div>
 
-                        <!-- Commercial -->
-                        <div class="class-item" id="class-premium">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">🚚</span>
-                                    <span class="class-label">Commercial</span>
+                        <div class="classification-list">
+                            <!-- Bike -->
+                            <div class="class-item" id="class-economy">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏍</span>
+                                        <span class="class-label">Bike</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-economy">0</span>
+                                        <span class="class-pct" id="pct-economy">0%</span>
+                                    </div>
                                 </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-premium">0</span>
-                                    <span class="class-pct" id="pct-premium">0%</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
-                            </div>
-                        </div>
 
-                        <!-- Economy -->
-                        <div class="class-item" id="class-luxury">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">🚗</span>
-                                    <span class="class-label">Economy</span>
+                            <!-- Commercial -->
+                            <div class="class-item" id="class-premium">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚚</span>
+                                        <span class="class-label">Commercial</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-premium">0</span>
+                                        <span class="class-pct" id="pct-premium">0%</span>
+                                    </div>
                                 </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-luxury">0</span>
-                                    <span class="class-pct" id="pct-luxury">0%</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
-                            </div>
-                        </div>
 
-                        <!-- Premium -->
-                        <div class="class-item" id="class-ultra-luxury">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">🚙</span>
-                                    <span class="class-label">Premium</span>
+                            <!-- Economy -->
+                            <div class="class-item" id="class-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚗</span>
+                                        <span class="class-label">Economy</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-luxury">0</span>
+                                        <span class="class-pct" id="pct-luxury">0%</span>
+                                    </div>
                                 </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-ultra">0</span>
-                                    <span class="class-pct" id="pct-ultra">0%</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 0%;"></div>
-                            </div>
-                        </div>
 
-                        <!-- Luxury -->
-                        <div class="class-item" id="class-bikes">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">🏎</span>
-                                    <span class="class-label">Luxury</span>
+                            <!-- Premium -->
+                            <div class="class-item" id="class-ultra-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚙</span>
+                                        <span class="class-label">Premium</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-ultra">0</span>
+                                        <span class="class-pct" id="pct-ultra">0%</span>
+                                    </div>
                                 </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-bikes">0</span>
-                                    <span class="class-pct" id="pct-bikes">0%</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill bikes-bg" id="bar-bikes" style="width: 0%;"></div>
-                            </div>
-                        </div>
 
-                        <!-- Ultra Luxury -->
-                        <div class="class-item" id="class-commercial">
-                            <div class="class-info">
-                                <div class="class-name">
-                                    <span class="class-emoji">👑</span>
-                                    <span class="class-label">Ultra Luxury</span>
+                            <!-- Luxury -->
+                            <div class="class-item" id="class-bikes">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏎</span>
+                                        <span class="class-label">Luxury</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-bikes">0</span>
+                                        <span class="class-pct" id="pct-bikes">0%</span>
+                                    </div>
                                 </div>
-                                <div class="class-stats">
-                                    <span class="class-count" id="count-commercial">0</span>
-                                    <span class="class-pct" id="pct-commercial">0%</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill bikes-bg" id="bar-bikes" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 0%;"></div>
+
+                            <!-- Ultra Luxury -->
+                            <div class="class-item" id="class-commercial">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">👑</span>
+                                        <span class="class-label">Ultra Luxury</span>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-commercial">0</span>
+                                        <span class="class-pct" id="pct-commercial">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 0%;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
