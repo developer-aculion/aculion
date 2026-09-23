@@ -11,7 +11,7 @@ export default function LocationIntelligence({ selectedBillboard }) {
 
   return (
     <Providers>
-      <div className={`location-intelligence-root h-full w-full bg-[#070913] text-white ${activeTab === "billboards" ? "min-h-screen overflow-y-auto overflow-x-hidden" : "overflow-hidden"}`}>
+      <div className="location-intelligence-root w-full min-h-full bg-[#070913] text-white overflow-x-hidden overflow-y-auto">
         {activeTab === "billboards" ? (
           <Billboards />
         ) : (

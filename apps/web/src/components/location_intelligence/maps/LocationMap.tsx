@@ -7,12 +7,11 @@ import { ZoomIn, ZoomOut, Maximize2, Layers } from "lucide-react";
 // ---------------------------------------------------------------------------
 // Tile URL helpers
 // ---------------------------------------------------------------------------
-const CARTO_KEY = (import.meta as any).env?.VITE_CARTO_API_KEY || "";
-
 const TILE_URLS: Record<string, string> = {
   satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  dark: `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_KEY}`,
-  light: `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_KEY}`,
+  dark: "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+  light: "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
+  streets: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 };
 
 interface LocationMapProps {
@@ -108,38 +107,15 @@ export default function LocationMap({
     isMapPickingActiveRef.current = isMapPickingActive;
   }, [isMapPickingActive]);
 
-  // ── Dom Click Capture for Location Picking (Capture Phase) ──
-  useEffect(() => {
-    if (!leafletReady || !mapRef.current || !mapContainerRef.current) return;
-    const container = mapContainerRef.current;
-
-    const handleDomClick = (e: MouseEvent) => {
-      if (!isMapPickingActiveRef.current) return;
-
-      const map = mapRef.current;
-      const latlng = map.mouseEventToLatLng(e);
-      console.log("DOM Click captured in pick mode:", latlng.lat, latlng.lng);
-
-      e.stopPropagation();
-      e.preventDefault();
-
-      if (typeof onLocationPickedRef.current === "function") {
-        onLocationPickedRef.current(latlng.lat, latlng.lng);
-      }
-    };
-
-    container.addEventListener("click", handleDomClick, true);
-    return () => {
-      container.removeEventListener("click", handleDomClick, true);
-    };
-  }, [leafletReady]);
-
   // ── Initialise Map ──
   useEffect(() => {
     if (!leafletReady || !L || !mapContainerRef.current || mapRef.current) return;
 
+    const initialCenterLat = selectedLat || latitude || 13.0827;
+    const initialCenterLng = selectedLng || longitude || 80.2707;
+
     const map = L.map(mapContainerRef.current, {
-      center: [selectedLat || 13.0827, selectedLng || 80.2707],
+      center: [initialCenterLat, initialCenterLng],
       zoom: 13,
       zoomControl: false,
       attributionControl: false,
@@ -147,7 +123,11 @@ export default function LocationMap({
     mapRef.current = map;
 
     // Default tile
-    layersRef.current.tile = L.tileLayer(TILE_URLS.dark, { subdomains: "abcd", maxZoom: 20 }).addTo(map);
+    layersRef.current.tile = L.tileLayer(TILE_URLS.dark, {
+      subdomains: "abcd",
+      maxZoom: 20,
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+    }).addTo(map);
 
     // Layer groups
     layersRef.current.poiGroup = L.layerGroup().addTo(map);
@@ -157,17 +137,13 @@ export default function LocationMap({
     layersRef.current.markerGroup = L.layerGroup().addTo(map);
     layersRef.current.billboardGroup = L.layerGroup().addTo(map);
 
-    // Click handler for candidate picking (using Ref to avoid stale closure issues)
+    // Click handler for candidate picking
     map.on("click", (e: any) => {
-      console.log("Map clicked inside Leaflet:", e.latlng.lat, e.latlng.lng);
       if (!isMapPickingActiveRef.current) {
-        console.log("Map picking is NOT active. Click ignored.");
         return;
       }
       if (typeof onLocationPickedRef.current === "function") {
         onLocationPickedRef.current(e.latlng.lat, e.latlng.lng);
-      } else {
-        console.warn("onLocationPickedRef.current is not a function:", onLocationPickedRef.current);
       }
     });
 
@@ -177,13 +153,25 @@ export default function LocationMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady]);
 
-  // ── Force Invalidate Size after leaflet initialization finishes ──
+  // ── Robust ResizeObserver for automatic invalidateSize ──
   useEffect(() => {
-    if (!leafletReady || !mapRef.current) return;
+    if (!leafletReady || !mapRef.current || !mapContainerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    });
+    observer.observe(mapContainerRef.current);
+    
+    // Also trigger immediate invalidate
     const timer = setTimeout(() => {
-      mapRef.current.invalidateSize();
-    }, 250);
-    return () => clearTimeout(timer);
+      if (mapRef.current) mapRef.current.invalidateSize();
+    }, 200);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, [leafletReady]);
 
   // ── Swap Base Tile Layer (reactive to mapType) ──
@@ -192,7 +180,11 @@ export default function LocationMap({
     if (layersRef.current.tile) {
       mapRef.current.removeLayer(layersRef.current.tile);
     }
-    layersRef.current.tile = L.tileLayer(TILE_URLS[mapType], { subdomains: "abcd", maxZoom: 20 }).addTo(mapRef.current);
+    const tileUrl = TILE_URLS[mapType] || TILE_URLS.dark;
+    layersRef.current.tile = L.tileLayer(tileUrl, {
+      subdomains: "abcd",
+      maxZoom: 20,
+    }).addTo(mapRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapType, leafletReady]);
 
@@ -219,11 +211,15 @@ export default function LocationMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layerViz, leafletReady]);
 
-  // ── Center map view only when the finalized analyzed coordinates change ──
+  // ── Smooth Pan to candidate coordinates when updated ──
   useEffect(() => {
     if (!leafletReady || !mapRef.current) return;
-    mapRef.current.setView([latitude, longitude], mapRef.current.getZoom(), { animate: true });
-  }, [latitude, longitude, leafletReady]);
+    const targetLat = selectedLat || latitude;
+    const targetLng = selectedLng || longitude;
+    if (targetLat && targetLng) {
+      mapRef.current.panTo([targetLat, targetLng], { animate: true, duration: 0.5 });
+    }
+  }, [selectedLat, selectedLng, latitude, longitude, leafletReady]);
 
   // ── Main Update Effect ──
   useEffect(() => {

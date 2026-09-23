@@ -72,7 +72,7 @@ export default function AIRecommendationSidebar({
 
 
   return (
-    <div className="w-full lg:w-[320px] lg:min-w-[320px] lg:max-w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-card/20 p-4 sm:p-5 lg:p-6 flex flex-col space-y-6 lg:h-auto lg:min-h-full text-foreground shrink-0 min-w-0 box-border">
+    <div className="w-full border-t lg:border-t-0 lg:border-l border-white/10 bg-[#090e1c]/80 p-4 sm:p-5 lg:p-6 flex flex-col space-y-6 lg:min-h-full text-white shrink-0 min-w-0 box-border">
       
 
       {/* HEADER */}
