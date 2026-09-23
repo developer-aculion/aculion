@@ -15,6 +15,8 @@ import SignInPage from './pages/SignInPage';
 import MediaProfilePage from './pages/MediaProfilePage';
 import BookDemoModal from './components/BookDemoModal';
 import { billboardService } from './services/billboard.service';
+import SEOHead from './components/SEOHead';
+import InsightsPage from './components/InsightsPage';
 
 const INITIAL_BILLBOARDS = [
   {
@@ -1211,6 +1213,9 @@ export default function App() {
 
   return (
     <div className={isLoggedIn ? 'logged-in' : 'logged-out'}>
+      {/* Route-Aware Dynamic SEO Metadata System */}
+      <SEOHead route={route} />
+
       {/* Global Full-Screen 3D Smart City Background */}
       <SmartCityBackground />
 
@@ -1390,6 +1395,19 @@ export default function App() {
                 </button>
               </div>
             </div>
+          ) : (route === '/insights' || route.startsWith('/insights/')) ? (
+            <InsightsPage
+              navigateTo={navigateTo}
+              route={route}
+              user={user}
+              isLoggedIn={isLoggedIn}
+              setShowSignin={(val) => {
+                if (val) {
+                  navigateTo(null, '/sign-in');
+                }
+              }}
+              setShowRegister={setShowRegister}
+            />
           ) : (
 
             <>
@@ -2374,8 +2392,9 @@ export default function App() {
               {/* Column 2: Product */}
               <div className="footer-links-col">
                 <h4 className="footer-col-title">PRODUCT</h4>
+                <a href="/insights" onClick={(e) => navigateTo(e, '/insights')}>Insights & Research</a>
                 <a href="#features" onClick={(e) => handleNavLinkClick(e, '/', 'features')}>Features</a>
-                <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')}>Insights</a>
+                <a href="#solutions" onClick={(e) => handleNavLinkClick(e, '/', 'solutions')}>Insights Overview</a>
                 <a href="#services" onClick={(e) => handleNavLinkClick(e, '/', 'services')}>Services</a>
                 <a href="/dashboard" onClick={(e) => navigateTo(e, '/dashboard')}>Dashboard</a>
                 <a href="#roadmap" onClick={(e) => handleNavLinkClick(e, '/', 'roadmap')}>Roadmap</a>

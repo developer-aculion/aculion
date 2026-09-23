@@ -187,10 +187,17 @@ const SEED_COMMENTS = {
   'smart-cities-and-interactive-ooh': []
 };
 
-export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowRegister }) {
+export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowRegister, navigateTo, route }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeBlog, setActiveBlog] = useState(null);
+  const [activeBlog, setActiveBlog] = useState(() => {
+    const currentPath = route || (typeof window !== 'undefined' ? window.location.pathname : '');
+    if (currentPath.startsWith('/insights/')) {
+      const blogId = currentPath.replace('/insights/', '').replace(/\/$/, '');
+      return DEFAULT_BLOGS.find(b => b.id === blogId) || null;
+    }
+    return null;
+  });
 
   // Likes and comments lists synced with localStorage
   const [blogsLikes, setBlogsLikes] = useState({});
@@ -275,7 +282,24 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
   // Format category list
   const categories = ['All', 'AI & Tech', 'OOH Advertising', 'Privacy & Ethics', 'Smart Cities'];
 
-  // Handle URL hash mapping
+  // Handle URL pathname and hash mapping
+  useEffect(() => {
+    const currentPath = route || window.location.pathname;
+    if (currentPath.startsWith('/insights/')) {
+      const blogId = currentPath.replace('/insights/', '').replace(/\/$/, '');
+      const matched = DEFAULT_BLOGS.find(b => b.id === blogId);
+      if (matched) {
+        setActiveBlog(matched);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else {
+        setActiveBlog(null);
+      }
+    } else if (currentPath === '/insights' || currentPath === '/insights/') {
+      setActiveBlog(null);
+    }
+  }, [route]);
+
+  // Backwards-compatible hash mapping
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
@@ -283,28 +307,41 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
         const blogId = hash.replace('#insights/', '');
         const matched = DEFAULT_BLOGS.find(b => b.id === blogId);
         if (matched) {
-          setActiveBlog(matched);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          setActiveBlog(null);
+          if (navigateTo) {
+            navigateTo(null, `/insights/${blogId}`);
+          } else {
+            setActiveBlog(matched);
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }
         }
-      } else if (hash === '#insights') {
-        setActiveBlog(null);
       }
     };
     window.addEventListener('hashchange', handleHash);
-    handleHash();
     return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
+  }, [navigateTo]);
 
   // Open blog article
-  const openArticle = (blog) => {
-    window.location.hash = `#insights/${blog.id}`;
+  const openArticle = (blog, e) => {
+    if (e) e.preventDefault();
+    if (navigateTo) {
+      navigateTo(e, `/insights/${blog.id}`);
+    } else {
+      window.history.pushState(null, '', `/insights/${blog.id}`);
+      setActiveBlog(blog);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   };
 
   // Close blog article
-  const closeArticle = () => {
-    window.location.hash = '#insights';
+  const closeArticle = (e) => {
+    if (e) e.preventDefault();
+    if (navigateTo) {
+      navigateTo(e, '/insights');
+    } else {
+      window.history.pushState(null, '', '/insights');
+      setActiveBlog(null);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   };
 
   // Toggle Blog Like
@@ -750,7 +787,15 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                             <span className="blog-meta-dot"></span>
                             <span>{blog.readTime}</span>
                           </div>
-                          <h2 className="blog-card-title">{blog.title}</h2>
+                          <h2 className="blog-card-title">
+                            <a 
+                              href={`/insights/${blog.id}`} 
+                              onClick={(e) => openArticle(blog, e)}
+                              style={{ color: 'inherit', textDecoration: 'none' }}
+                            >
+                              {blog.title}
+                            </a>
+                          </h2>
                           <p className="blog-card-excerpt">{blog.excerpt}</p>
                           <div className="blog-card-footer">
                             <div className="blog-author-info">
@@ -770,13 +815,14 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                               </span>
                             </div>
                           </div>
-                          <button
+                          <a
+                            href={`/insights/${blog.id}`}
                             className="blog-read-btn"
-                            style={{ marginTop: '20px', alignSelf: 'flex-start' }}
-                            onClick={() => openArticle(blog)}
+                            style={{ marginTop: '20px', alignSelf: 'flex-start', textDecoration: 'none' }}
+                            onClick={(e) => openArticle(blog, e)}
                           >
                             Read More <i className="fa-solid fa-arrow-right"></i>
-                          </button>
+                          </a>
                         </div>
                       </article>
                     );
@@ -799,10 +845,12 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                   </h3>
                   <div className="trending-list">
                     {trendingBlogs.map((blog, idx) => (
-                      <div
+                      <a
                         key={blog.id}
+                        href={`/insights/${blog.id}`}
                         className="trending-item"
-                        onClick={() => openArticle(blog)}
+                        onClick={(e) => openArticle(blog, e)}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                       >
                         <span className="trending-rank">0{idx + 1}</span>
                         <div className="trending-details">
@@ -813,7 +861,7 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                             <span>{blog.readTime}</span>
                           </div>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -825,10 +873,12 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                   </h3>
                   <div className="latest-list">
                     {latestBlogs.map(blog => (
-                      <div
+                      <a
                         key={blog.id}
+                        href={`/insights/${blog.id}`}
                         className="latest-item"
-                        onClick={() => openArticle(blog)}
+                        onClick={(e) => openArticle(blog, e)}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                       >
                         <div className="latest-details">
                           <h4 className="latest-title">{blog.title}</h4>
@@ -838,7 +888,7 @@ export default function InsightsPage({ user, isLoggedIn, setShowSignin, setShowR
                             <span>{blog.readTime}</span>
                           </div>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>

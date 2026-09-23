@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /sign-in
+Disallow: /forgot-password
+Disallow: /*/dashboard/*
+Disallow: /*/media-profile/*
+
+Sitemap: https://www.aculion.com/sitemap.xml
