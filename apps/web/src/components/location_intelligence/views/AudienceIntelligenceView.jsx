@@ -197,9 +197,11 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
           </div>
           <div className="mt-3">
             <span className="text-xl font-black text-white font-mono">
-              {trafficOverview?.flow_rate ? `${Number(trafficOverview.flow_rate).toFixed(1)}` : '0.0'} <span className="text-xs font-normal text-slate-400">/min</span>
+              {trafficOverview?.flow_rate ? `${Number(trafficOverview.flow_rate).toFixed(1)}` : '0.0'} <span className="text-xs font-normal text-slate-400">/ hr</span>
             </span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Traffic throughput</div>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+              Flow / min: <span className="text-cyan-300 font-mono">{trafficOverview?.flow_rate ? `${(Number(trafficOverview.flow_rate) / 60).toFixed(1)} / min` : '0.0 / min'}</span>
+            </div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
               <i className="fa-solid fa-circle text-[7px] text-emerald-400 animate-pulse" />
               <span>Live telemetry</span>
