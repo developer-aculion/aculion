@@ -213,9 +213,9 @@ export default function LiveDashboard({
     const bbName = selectedBillboard?.billboard_name || selectedBillboard?.name || 'Corridor Asset';
     const lat = (Number(selectedBillboard?.latitude) || 12.9010).toFixed(4);
     const lng = (Number(selectedBillboard?.longitude) || 80.2279).toFixed(4);
-    const flow = telemetry?.flow_rate || 84.5;
-    const peak = telemetry?.peak_traffic_hour || '06:00 PM – 07:00 PM';
-    const total = (telemetry?.total_vehicles || 17820).toLocaleString();
+    const flow = telemetry?.flow_rate || 0;
+    const peak = telemetry?.peak_traffic_hour || '—';
+    const total = (Number(telemetry?.total_vehicles) || 0).toLocaleString();
 
     return [
       {

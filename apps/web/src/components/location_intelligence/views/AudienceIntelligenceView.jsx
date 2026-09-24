@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AreaChart,
   Area,
@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { billboardService } from '../../../services/billboard.service';
 
 // Mock trend data for Audience Trend (7D & 30D)
 const TREND_DATA_7D = [
@@ -71,7 +72,41 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
   const activeCount = Object.values(targetCriteria).filter(Boolean).length;
   const matchPercentage = Math.min(98, Math.max(65, 60 + activeCount * 7.5));
 
-  const billboardName = selectedBillboard?.name || selectedBillboard?.location || 'Anna Nagar – Shanthi Colony Junction';
+  const bbCode = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001';
+  const billboardName = selectedBillboard?.name || selectedBillboard?.location || 'Mount Road Junction';
+
+  const [trafficOverview, setTrafficOverview] = useState(null);
+  const [peakTrafficData, setPeakTrafficData] = useState({
+    peakHourStr: '—',
+    peakHour: null,
+    peakCount: 0,
+    avgDensity: 0
+  });
+  const [loadingTraffic, setLoadingTraffic] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      if (!bbCode) return;
+      setLoadingTraffic(true);
+      try {
+        const [overview, peakRes] = await Promise.all([
+          billboardService.getLatestTrafficData(bbCode),
+          billboardService.getPeakTrafficHour(bbCode)
+        ]);
+        if (isMounted) {
+          if (overview) setTrafficOverview(overview);
+          if (peakRes) setPeakTrafficData(peakRes);
+        }
+      } catch (err) {
+        console.error("[AudienceIntelligenceView] Error loading database metrics:", err);
+      } finally {
+        if (isMounted) setLoadingTraffic(false);
+      }
+    };
+    loadData();
+    return () => { isMounted = false; };
+  }, [bbCode, timeFilter]);
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 min-w-0 bg-[#070913] text-white font-sans overflow-y-auto">
@@ -120,66 +155,78 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl font-black text-white font-mono">14.2K</span>
+            <span className="text-xl font-black text-white font-mono">
+              {trafficOverview?.estimated_reach ? Number(trafficOverview.estimated_reach).toLocaleString('en-IN') : '—'}
+            </span>
             <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Unique people</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
               <i className="fa-solid fa-caret-up" />
-              <span>12.4% vs yesterday</span>
+              <span>Real-time sensor</span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Estimated Impressions */}
+        {/* Card 2: Total Vehicles */}
         <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Est. Impressions</span>
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Total Vehicles</span>
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-              <i className="fa-solid fa-eye" />
+              <i className="fa-solid fa-car" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl font-black text-white font-mono">42.8K</span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Total exposures</div>
+            <span className="text-xl font-black text-white font-mono">
+              {trafficOverview?.total_vehicles ? Number(trafficOverview.total_vehicles).toLocaleString('en-IN') : '0'}
+            </span>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Vehicles crossed</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
               <i className="fa-solid fa-caret-up" />
-              <span>15.6% vs yesterday</span>
+              <span>Sensor verified</span>
             </div>
           </div>
         </div>
 
-        {/* Card 3: Active Audience */}
+        {/* Card 3: Flow Rate */}
         <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Active Audience</span>
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Flow Rate</span>
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-              <i className="fa-solid fa-user-check" />
+              <i className="fa-solid fa-wave-square" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl font-black text-white font-mono">6.8K</span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">People present</div>
+            <span className="text-xl font-black text-white font-mono">
+              {trafficOverview?.flow_rate ? `${Number(trafficOverview.flow_rate).toFixed(1)}` : '0.0'} <span className="text-xs font-normal text-slate-400">/min</span>
+            </span>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Traffic throughput</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-              <i className="fa-solid fa-caret-up" />
-              <span>9.3% vs yesterday</span>
+              <i className="fa-solid fa-circle text-[7px] text-emerald-400 animate-pulse" />
+              <span>Live telemetry</span>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Peak Audience */}
-        <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/30 transition-all">
+        {/* Card 4: Peak Traffic Hour */}
+        <div className="bg-[#0f1424]/90 border border-blue-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/60 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Peak Audience</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-              <i className="fa-solid fa-chart-line" />
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Peak Traffic Hour</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-cyan-400 text-xs">
+              <i className="fa-solid fa-hourglass-half" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl font-black text-white font-mono">2.4K <span className="text-xs font-normal text-slate-400">/hr</span></span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">6:00 PM - 7:00 PM</div>
-            <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-              <i className="fa-solid fa-caret-up" />
-              <span>18.4% vs last week</span>
+            <span className="text-base sm:text-lg font-black font-mono text-cyan-300">
+              {peakTrafficData.peakHourStr}
+            </span>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+              Avg. Density: <span className="text-cyan-300 font-mono">{peakTrafficData.avgDensity > 0 ? `${peakTrafficData.avgDensity} veh/min` : '-- veh/min'}</span>
             </div>
+            {peakTrafficData.peakCount > 0 && (
+              <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
+                <i className="fa-solid fa-arrow-trend-up" />
+                <span>{peakTrafficData.peakCount.toLocaleString('en-IN')} max hourly veh</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -192,11 +239,13 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl font-black text-white font-mono">3m 42s</span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Average time spent</div>
+            <span className="text-xl font-black text-white font-mono">
+              {trafficOverview?.avg_exposure_time ? `${Number(trafficOverview.avg_exposure_time).toFixed(2)}s` : '0.00s'}
+            </span>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Average exposure time</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
               <i className="fa-solid fa-caret-up" />
-              <span>6.2% vs last week</span>
+              <span>Camera tracking</span>
             </div>
           </div>
         </div>

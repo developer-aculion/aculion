@@ -382,15 +382,17 @@ def compute_analytics(
         avg_exposure_time = base_avg_exposure if base_avg_exposure > 0 else 0.0
         max_exposure_time = base_max_exposure if base_max_exposure > 0 else 0.0
 
-    # Peak traffic hour
-    peak_traffic_hour = "N/A"
+    # Peak traffic hour (HH:00 - HH:59)
+    peak_traffic_hour = "—"
     peak_hour_count = 0
     if hourly_vehicle_counts:
         best_hour = max(hourly_vehicle_counts.items(), key=lambda x: len(x[1]))
-        peak_traffic_hour = best_hour[0]
+        try:
+            h_int = int(best_hour[0])
+            peak_traffic_hour = f"{h_int:02d}:00 - {h_int:02d}:59"
+        except Exception:
+            peak_traffic_hour = str(best_hour[0])
         peak_hour_count = len(best_hour[1])
-    elif baseline_data and baseline_data.get("peak_traffic_hour"):
-        peak_traffic_hour = baseline_data.get("peak_traffic_hour")
 
     # Estimated Reach
     estimated_reach = sum(
@@ -454,7 +456,6 @@ def build_supabase_payload(analytics, is_live, stat_date_str):
         "max_exposure_time": analytics["max_exposure_time_sec"],
         "estimated_reach": analytics["estimated_reach_persons"],
         "flow_rate": analytics["flow_rate_per_min"],
-        "peak_traffic_hour": analytics["peak_traffic_hour"],
         "is_live": is_live,
         "is_legacy": False,
         "last_updated": ist_now.isoformat(),
@@ -502,7 +503,6 @@ def push_to_supabase_history(analytics, stat_date_str=None):
         "max_exposure_time": payload["max_exposure_time"],
         "estimated_reach": payload["estimated_reach"],
         "flow_rate": payload["flow_rate"],
-        "peak_traffic_hour": payload["peak_traffic_hour"],
         "recorded_at": get_ist_now().isoformat(),
         "is_live": True
     }

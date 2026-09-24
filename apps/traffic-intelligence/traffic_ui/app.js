@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             totalVehicles: 0,
             avgDwellTime: 0.0,
-            peakHour: 'N/A',
+            peakHour: '—',
+            peakDensity: '-- veh/min',
             estimatedReach: 0,
             flowRate: 0.0,
             accuracy: 98.7,
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalVehicles: initialSimData.totalVehicles,
             avgDwellTime: initialSimData.avgDwellTime,
             peakHour: initialSimData.peakHour,
+            peakDensity: initialSimData.peakDensity,
             estimatedReach: initialSimData.estimatedReach,
             flowRate: initialSimData.flowRate,
             accuracy: initialSimData.accuracy,
@@ -119,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         kpiVehicles: document.getElementById('kpi-vehicles-value'),
         kpiDwell: document.getElementById('kpi-dwell-value'),
         kpiPeak: document.getElementById('kpi-peak-value'),
+        kpiPeakDensity: document.getElementById('kpi-peak-density'),
         kpiReach: document.getElementById('kpi-reach-value'),
         kpiFlow: document.getElementById('kpi-flow-value'),
 
@@ -434,17 +437,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
     }
 
-    // Peak Hour 12-Hour Window Formatter Helper
+    // Peak Hour Window Formatter Helper (HH:00 - HH:59)
     function formatPeakHourWindow(hour) {
         if (hour === null || hour === undefined || hour === '' || isNaN(Number(hour))) return '—';
         const startH = Number(hour);
-        const endH = (startH + 1) % 24;
-        const format12h = (h) => {
-            const period = h >= 12 ? 'PM' : 'AM';
-            const h12 = h % 12 === 0 ? 12 : h % 12;
-            return `${String(h12).padStart(2, '0')}:00 ${period}`;
-        };
-        return `${format12h(startH)} – ${format12h(endH)}`;
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(startH)}:00 - ${pad(startH)}:59`;
     }
 
     // --- UI Values Update Binders ---
@@ -454,7 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.kpiDwell) elements.kpiDwell.textContent = `${Number(state.stats.avgDwellTime || 0).toFixed(2)} sec`;
         if (elements.kpiReach) elements.kpiReach.textContent = formatIndianNumber(state.stats.estimatedReach);
         if (elements.kpiFlow) elements.kpiFlow.textContent = `${Number(state.stats.flowRate || 0).toFixed(1)} / min`;
-        if (elements.kpiPeak) elements.kpiPeak.textContent = state.stats.peakHour || 'N/A';
+        if (elements.kpiPeak) elements.kpiPeak.textContent = state.stats.peakHour || '—';
+        if (elements.kpiPeakDensity) elements.kpiPeakDensity.textContent = state.stats.peakDensity || '-- veh/min';
 
         // Update list values and progress bars
         Object.keys(state.stats.classes).forEach(key => {
@@ -1399,6 +1398,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             let calculatedPeakHour = null;
+            let calculatedPeakDensity = '-- veh/min';
+            let calculatedPeakCount = 0;
             let hourlyDataList = [];
             if (hourlyResponse && hourlyResponse.ok) {
                 const hData = await hourlyResponse.json();
@@ -1415,6 +1416,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (bestHourRow && maxV > 0) {
                         calculatedPeakHour = formatPeakHourWindow(bestHourRow.hour);
+                        calculatedPeakCount = maxV;
+                        calculatedPeakDensity = `${(maxV / 60).toFixed(1)} veh/min`;
                     }
                 }
             }
@@ -1446,6 +1449,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             if (bestH && maxV > 0) {
                                 calculatedPeakHour = formatPeakHourWindow(bestH.hour);
+                                calculatedPeakCount = maxV;
+                                calculatedPeakDensity = `${(maxV / 60).toFixed(1)} veh/min`;
                             }
                         }
                     }
@@ -1508,8 +1513,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (row) {
                     if (calculatedPeakHour) {
                         row.peak_traffic_hour = calculatedPeakHour;
+                        row.peak_density = calculatedPeakDensity;
+                        row.peak_count = calculatedPeakCount;
                     } else if (Number(row.total_vehicles) === 0) {
                         row.peak_traffic_hour = '—';
+                        row.peak_density = '-- veh/min';
+                        row.peak_count = 0;
                     }
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
                     
@@ -1566,7 +1575,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const alreadyZero = (lastRenderedStateKey === stateKey);
 
         state.stats = getInitialStats();
-        state.stats.peakHour = 'N/A';
+        state.stats.peakHour = '—';
+        state.stats.peakDensity = '-- veh/min';
         state.spawnChance = 0;
         vehicles = [];
 
@@ -1637,6 +1647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgDwell = Number(data.avg_exposure_time) || 0.0;
         const flowRate = Number(data.flow_rate) || 0.0;
         const peakHour = (totalVehicles === 0 && (!data.peak_traffic_hour || data.peak_traffic_hour === 'N/A')) ? '—' : (data.peak_traffic_hour || '—');
+        const peakDensity = (totalVehicles === 0) ? '-- veh/min' : (data.peak_density || (data.peak_count ? `${(data.peak_count / 60).toFixed(1)} veh/min` : '-- veh/min'));
 
         // Check if incoming data actually differs from currently rendered state
         const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}_${ultraLuxuryCount}`;
@@ -1646,6 +1657,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.stats.totalVehicles = totalVehicles;
         state.stats.avgDwellTime = avgDwell;
         state.stats.peakHour = peakHour;
+        state.stats.peakDensity = peakDensity;
         state.stats.estimatedReach = Number(data.estimated_reach) || (totalVehicles > 0 ? Math.round(totalVehicles * 2.4) : 0);
         state.stats.flowRate = flowRate;
 

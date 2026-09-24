@@ -46,7 +46,6 @@ def generate_mock_record(camera_code: str) -> dict:
         "max_exposure_time": round(random.uniform(20.0, 45.0), 1),
         "estimated_reach": int(total * random.uniform(1.2, 1.8)),
         "flow_rate": round(total / 60.0, 2),
-        "peak_traffic_hour": "08:00 AM - 09:30 AM",
         "is_live": True,
         "last_updated": datetime.utcnow()
     }

@@ -213,18 +213,13 @@ export const billboardService = {
   },
 
   /**
-   * Helper to format an hour (0-23) into standard 12-hour window string (e.g. 18 -> '06:00 PM – 07:00 PM')
+   * Helper to format an hour (0-23) into standard 24-hour hour range format (e.g. 9 -> '09:00 - 09:59')
    */
   formatPeakHourWindow: (hour: number | string | null | undefined): string => {
     if (hour === null || hour === undefined || hour === '' || isNaN(Number(hour))) return '—';
     const startH = Number(hour);
-    const endH = (startH + 1) % 24;
-    const format12h = (h: number) => {
-      const period = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 === 0 ? 12 : h % 12;
-      return `${String(h12).padStart(2, '0')}:00 ${period}`;
-    };
-    return `${format12h(startH)} – ${format12h(endH)}`;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(startH)}:00 - ${pad(startH)}:59`;
   },
 
   /**
@@ -270,21 +265,23 @@ export const billboardService = {
   },
 
   /**
-   * Calculates the Peak Traffic Hour specifically for a billboard and day from 'traffic_hour'.
+   * Calculates the Peak Traffic Hour specifically for a billboard and day by calculating
+   * the maximum total number of vehicles from the database (traffic_hour).
    */
   getPeakTrafficHour: async (billboardCode: string, statDate?: string): Promise<{
     peakHourStr: string;
     peakHour: number | null;
     peakCount: number;
+    avgDensity: number;
     hourlyData: any[];
   }> => {
     if (!billboardCode) {
-      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData: [] };
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData: [] };
     }
 
     const hourlyData = await billboardService.getHourlyTraffic(billboardCode, statDate);
     if (!hourlyData || hourlyData.length === 0) {
-      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData: [] };
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData: [] };
     }
 
     let peakRecord: any = null;
@@ -299,13 +296,14 @@ export const billboardService = {
     }
 
     if (!peakRecord || maxVehicles <= 0) {
-      return { peakHourStr: '—', peakHour: null, peakCount: 0, hourlyData };
+      return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData };
     }
 
     return {
       peakHourStr: billboardService.formatPeakHourWindow(peakRecord.hour),
       peakHour: Number(peakRecord.hour),
       peakCount: maxVehicles,
+      avgDensity: Number((maxVehicles / 60).toFixed(1)),
       hourlyData
     };
   },

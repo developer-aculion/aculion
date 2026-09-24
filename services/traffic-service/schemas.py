@@ -17,7 +17,6 @@ class TrafficRecord(BaseModel):
     max_exposure_time: float
     estimated_reach: int
     flow_rate: float
-    peak_traffic_hour: str
     is_live: bool = True
     last_updated: Optional[datetime] = None
     created_at: Optional[datetime] = None
