@@ -459,6 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Format KPI numbers
         if (elements.kpiVehicles) elements.kpiVehicles.textContent = formatIndianNumber(state.stats.totalVehicles);
         if (elements.kpiDwell) elements.kpiDwell.textContent = `${Number(state.stats.avgDwellTime || 0).toFixed(2)} sec`;
+        if (elements.kpiReach) elements.kpiReach.textContent = formatIndianNumber(state.stats.estimatedReach);
         const flowPerHour = Number(state.stats.flowRate) || 0;
         if (elements.kpiFlow) elements.kpiFlow.textContent = `${flowPerHour.toFixed(1)} / hr`;
         if (elements.kpiFlowMin) elements.kpiFlowMin.textContent = flowPerHour > 0 ? `${(flowPerHour / 60).toFixed(1)} / min` : '0.0 / min';
