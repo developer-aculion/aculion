@@ -537,29 +537,7 @@ export default function LiveDashboard({
       const companyName = user?.company || selectedBillboard?.company_name || 'Aculion Traffic Intelligence';
       const bbType = selectedBillboard?.type || selectedBillboard?.billboard_type || 'Digital Billboard';
 
-      // Calculate 7-day range in IST ending today
-      const now = new Date();
-      const dates = [];
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
-        dates.push(dateStr);
-      }
-
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
-
-      // Formatted start and end dates
-      const startDateObj = new Date(minDate + 'T12:00:00+05:30');
-      const endDateObj = new Date(maxDate + 'T12:00:00+05:30');
-      const startDateFormatted = startDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const endDateFormatted = endDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const dateStr = `${startDateFormatted} – ${endDateFormatted}`;
-
-      // Query traffic_day, traffic_hour, traffic_overview, and traffic_overview_history for full 7-day coverage
+      // Query traffic_day, traffic_hour, traffic_overview, and traffic_overview_history for ALL available data
       let dayRows = [];
       let hourRows = [];
       let liveOverviewRow = null;
@@ -570,15 +548,11 @@ export default function LiveDashboard({
             .from("traffic_day")
             .select("*")
             .eq("billboard_code", bbCode)
-            .gte("date", minDate)
-            .lte("date", maxDate)
             .order("date", { ascending: true }),
           supabase
             .from("traffic_hour")
             .select("*")
             .eq("billboard_code", bbCode)
-            .gte("date", minDate)
-            .lte("date", maxDate)
             .order("date", { ascending: true })
             .order("hour", { ascending: true }),
           supabase
@@ -600,8 +574,24 @@ export default function LiveDashboard({
         if (liveRes.data) liveOverviewRow = liveRes.data;
         if (histRes.data) historyRows = histRes.data;
       } catch (fetchErr) {
-        console.warn("[downloadReportAsPDF] Notice reading 7-day telemetry from Supabase:", fetchErr);
+        console.warn("[downloadReportAsPDF] Notice reading telemetry from Supabase:", fetchErr);
       }
+
+      // Map day rows by date
+      const dayMap = new Map();
+      dayRows.forEach(r => {
+        if (r.date) dayMap.set(r.date, r);
+      });
+
+      // Group hour rows by date
+      const hourByDate = new Map();
+      hourRows.forEach(r => {
+        const dKey = r.date || r.stat_date;
+        if (dKey) {
+          if (!hourByDate.has(dKey)) hourByDate.set(dKey, []);
+          hourByDate.get(dKey).push(r);
+        }
+      });
 
       // Group history by IST date and IST hour
       const histByDate = new Map();
@@ -620,23 +610,65 @@ export default function LiveDashboard({
         }
       });
 
-      // Map day rows by date
-      const dayMap = new Map();
-      dayRows.forEach(r => dayMap.set(r.date, r));
+      const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
-      // Group hour rows by date
-      const hourByDate = new Map();
+      // Collect all distinct dates present in database records
+      const activeDatesSet = new Set();
+      dayRows.forEach(r => {
+        if (r.date && Number(r.total_vehicles) > 0) activeDatesSet.add(r.date);
+      });
       hourRows.forEach(r => {
-        const dKey = r.date || r.stat_date;
-        if (dKey) {
-          if (!hourByDate.has(dKey)) hourByDate.set(dKey, []);
-          hourByDate.get(dKey).push(r);
+        const d = r.date || r.stat_date;
+        if (d && Number(r.total_vehicles) > 0) activeDatesSet.add(d);
+      });
+      if (liveOverviewRow && Number(liveOverviewRow.total_vehicles) > 0) {
+        const d = liveOverviewRow.stat_date || todayIST;
+        activeDatesSet.add(d);
+      }
+      historyRows.forEach(h => {
+        if (h.stat_date && Number(h.total_vehicles) > 0) activeDatesSet.add(h.stat_date);
+        else if (h.recorded_at && Number(h.total_vehicles) > 0) {
+          const dt = new Date(h.recorded_at);
+          const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(dt);
+          activeDatesSet.add(istStr);
         }
       });
 
-      const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      let dates = [];
+      if (activeDatesSet.size > 0) {
+        const sortedDates = Array.from(activeDatesSet).sort();
+        // If 7 or fewer active dates with data, include ALL available active dates!
+        if (sortedDates.length <= 7) {
+          dates = sortedDates;
+        } else {
+          // Take the latest 7 available active dates
+          dates = sortedDates.slice(-7);
+        }
+      } else {
+        // Fallback if brand new billboard with 0 records: 7 calendar days ending today
+        const now = new Date();
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+          dates.push(dateStr);
+        }
+      }
 
-      // Compute exact 7-day aggregates from real records
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      // Formatted start and end dates
+      const startDateObj = new Date(minDate + 'T12:00:00+05:30');
+      const endDateObj = new Date(maxDate + 'T12:00:00+05:30');
+      const startDateFormatted = startDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const endDateFormatted = endDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const dateStr = `${startDateFormatted} – ${endDateFormatted}`;
+      const dayCountLabel = dates.length === 7 ? '7-DAY' : `${dates.length}-DAY`;
+
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      // Compute exact aggregates from real records across all available days
       let total7DayVehicles = 0;
       let totalBikes = 0;
       let totalCommercial = 0;
@@ -931,37 +963,37 @@ export default function LiveDashboard({
 
         // Right side info
         setFont('normal', 6.8, '#64748b');
-        text(`Page ${pageNum} of 2   •   Weekly Traffic Intelligence Report (${startDateFormatted} – ${endDateFormatted})`, pageW - margin, pageH - 8, { align: 'right' });
+        text(`Page ${pageNum} of 2   •   Traffic Intelligence & Mobility Report (${startDateFormatted} – ${endDateFormatted})`, pageW - margin, pageH - 8, { align: 'right' });
       };
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 1: 7-DAY EXECUTIVE OVERVIEW & VEHICLE CLASSIFICATION
+      // PAGE 1: EXECUTIVE OVERVIEW & VEHICLE CLASSIFICATION
       // ══════════════════════════════════════════════════════════
       fillRect(0, 0, pageW, pageH, '#FFFFFF');
-      drawHeader(1, '7-DAY TRAFFIC & EXPOSURE OVERVIEW');
+      drawHeader(1, `${dayCountLabel} TRAFFIC & EXPOSURE OVERVIEW`);
 
       let y = 29;
 
       // Title Block
       setFont('bold', 11.5, '#0f172a');
-      text(`${bbName} — 7-Day Audience Intelligence & Traffic Analytics`, margin, y);
+      text(`${bbName} — ${dayCountLabel} Audience Intelligence & Traffic Analytics`, margin, y);
       y += 4.5;
       setFont('normal', 7.0, '#64748b');
-      text(`Reporting Window: ${startDateFormatted} – ${endDateFormatted} (Last 7 Days)   •   Display Type: ${bbType}   •   Data Source: Supabase Live Database`, margin, y);
+      text(`Reporting Window: ${startDateFormatted} – ${endDateFormatted} (${dates.length} Available Recorded Days)   •   Display Type: ${bbType}   •   Data Source: Supabase Live Database`, margin, y);
       y += 6.5;
 
-      // Section 1: 7-Day Executive Mobility KPIs
+      // Section 1: Executive Mobility KPIs
       fillRect(margin, y, contentW, 5.2, '#eff6ff');
       fillRect(margin, y, 3, 5.2, '#2563eb');
       setFont('bold', 7.0, '#1d4ed8');
-      text('  7-DAY EXECUTIVE TRAFFIC & AUDIENCE VOLUME OVERVIEW', margin + 3.5, y + 3.6);
+      text(`  ${dayCountLabel} EXECUTIVE TRAFFIC & AUDIENCE VOLUME OVERVIEW`, margin + 3.5, y + 3.6);
       y += 6.8;
 
       const kpiBoxes = [
-        { label: 'TOTAL 7-DAY VEHICLES', val: total7DayVehicles.toLocaleString(), sub: 'Verified 7-Day Count', col: '#0284c7' },
-        { label: '7-DAY AUDIENCE REACH', val: totalReach.toLocaleString(), sub: 'Gross Impressions', col: '#059669' },
+        { label: `TOTAL ${dayCountLabel} VEHICLES`, val: total7DayVehicles.toLocaleString(), sub: 'Verified Database Count', col: '#0284c7' },
+        { label: `${dayCountLabel} AUDIENCE REACH`, val: totalReach.toLocaleString(), sub: 'Gross Impressions', col: '#059669' },
         { label: 'AVERAGE DWELL DURATION', val: avgDwell7Day > 0 ? `${avgDwell7Day}s` : '0.0s', sub: `Max Exposure: ${maxDwell7Day > 0 ? `${maxDwell7Day.toFixed(1)}s` : '0.0s'}`, col: '#2563eb' },
-        { label: 'WEEKLY PEAK MOBILITY WINDOW', val: overallWeeklyPeakWindow, sub: `Peak Day: ${overallPeakDayName} (${overallMaxCount.toLocaleString()} veh)`, col: '#d97706' }
+        { label: 'PEAK MOBILITY WINDOW', val: overallWeeklyPeakWindow, sub: `Peak Day: ${overallPeakDayName} (${overallMaxCount.toLocaleString()} veh)`, col: '#d97706' }
       ];
 
       const cardW = (contentW - 3 * 3.5) / 4;
@@ -979,11 +1011,11 @@ export default function LiveDashboard({
       });
       y += 22.0;
 
-      // Section 2: 7-Day Vehicle Classification Distribution
+      // Section 2: Vehicle Classification Distribution
       fillRect(margin, y, contentW, 5.2, '#f5f3ff');
       fillRect(margin, y, 3, 5.2, '#7c3aed');
       setFont('bold', 7.0, '#6d28d9');
-      text('  7-DAY VEHICLE CLASSIFICATION DISTRIBUTION & AFFLUENCE RATIOS', margin + 3.5, y + 3.6);
+      text(`  ${dayCountLabel} VEHICLE CLASSIFICATION DISTRIBUTION & AFFLUENCE RATIOS`, margin + 3.5, y + 3.6);
       y += 6.8;
 
       const pieBoxH = 62;
@@ -1027,7 +1059,7 @@ export default function LiveDashboard({
       doc.setFillColor(255, 255, 255);
       doc.circle(chartCx, chartCy, innerR, 'F');
       setFont('bold', 5.2, '#64748b');
-      text('7-DAY TOTAL', chartCx, chartCy - 1.8, { align: 'center' });
+      text('TOTAL VEHICLES', chartCx, chartCy - 1.8, { align: 'center' });
       setFont('bold', 8.0, '#0f172a');
       text(total7DayVehicles.toLocaleString(), chartCx, chartCy + 3.0, { align: 'center' });
 
@@ -1040,7 +1072,7 @@ export default function LiveDashboard({
       strokeRect(tableX, tableY, tableW, 4.8, '#e2e8f0');
       setFont('bold', 5.8, '#475569');
       text('CATEGORY', tableX + 3, tableY + 3.3);
-      text('7-DAY VEHICLES', tableX + 36, tableY + 3.3);
+      text('RECORDED VEHICLES', tableX + 36, tableY + 3.3);
       text('PERCENT', tableX + 66, tableY + 3.3);
       text('DISTRIBUTION', tableX + 85, tableY + 3.3);
       tableY += 5.4;
@@ -1074,11 +1106,11 @@ export default function LiveDashboard({
 
       y += pieBoxH + 4.5;
 
-      // Section 3: 7-Day Audience Demographic & Affluence Insights
+      // Section 3: Audience Demographic & Affluence Insights
       fillRect(margin, y, contentW, 5.0, '#ecfdf5');
       fillRect(margin, y, 3, 5.0, '#059669');
       setFont('bold', 6.8, '#047857');
-      text('  7-DAY AUDIENCE AFFLUENCE & MOBILITY INTELLIGENCE', margin + 3.5, y + 3.5);
+      text(`  ${dayCountLabel} AUDIENCE AFFLUENCE & MOBILITY INTELLIGENCE`, margin + 3.5, y + 3.5);
       y += 6.5;
 
       const affluenceBoxH = 22;
@@ -1088,7 +1120,7 @@ export default function LiveDashboard({
       text(`• High Affluence Demographics: Out of ${total7DayVehicles.toLocaleString()} recorded vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium, Luxury, and Ultra-Luxury tiers.`, margin + 3.5, y + 4.8);
       text(`  This elevated proportion reflects high-disposable-income consumers, senior executives, and affluent residential commuters.`, margin + 3.5, y + 8.8);
       text(`• Exposure & Dwell Velocity: Commuters maintain an average dwell duration of ${avgDwell7Day} seconds (Peak single-vehicle exposure: ${maxDwell7Day.toFixed(1)}s).`, margin + 3.5, y + 13.0);
-      text(`• Peak Mobility Intensity: Maximum weekly throughput peaked on ${overallPeakDayName} (${overallPeakDate}) during ${overallWeeklyPeakWindow} with ${overallMaxCount.toLocaleString()} vehicles.`, margin + 3.5, y + 17.2);
+      text(`• Peak Mobility Intensity: Maximum throughput peaked on ${overallPeakDayName} (${overallPeakDate}) during ${overallWeeklyPeakWindow} with ${overallMaxCount.toLocaleString()} vehicles.`, margin + 3.5, y + 17.2);
       y += affluenceBoxH + 4.5;
 
       // Section 4: LOCATION ANALYSIS (Dedicated Separate Section)
@@ -1147,19 +1179,19 @@ export default function LiveDashboard({
       drawFooter(1);
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 2: 7-DAY VEHICLE BAR CHART & DAILY MOBILITY BREAKDOWN
+      // PAGE 2: VEHICLE BAR CHART & DAILY MOBILITY BREAKDOWN
       // ══════════════════════════════════════════════════════════
       doc.addPage();
       fillRect(0, 0, pageW, pageH, '#FFFFFF');
-      drawHeader(2, '7-DAY MOBILITY PATTERNS & DAILY BREAKDOWN');
+      drawHeader(2, `${dayCountLabel} MOBILITY PATTERNS & DAILY BREAKDOWN`);
 
       y = 30;
 
-      // Section 5: 7-Day Vehicle Category Comparison (Vertical Bar Chart)
+      // Section 6: Vehicle Category Comparison (Vertical Bar Chart)
       fillRect(margin, y, contentW, 5.5, '#fffbeb');
       fillRect(margin, y, 3, 5.5, '#d97706');
       setFont('bold', 7.2, '#b45309');
-      text('  7-DAY VEHICLE CATEGORY VOLUME COMPARISON (VERTICAL BAR CHART)', margin + 3.5, y + 3.8);
+      text(`  ${dayCountLabel} VEHICLE CATEGORY VOLUME COMPARISON (VERTICAL BAR CHART)`, margin + 3.5, y + 3.8);
       y += 7.5;
 
       const barChartH = 65;
@@ -1206,14 +1238,14 @@ export default function LiveDashboard({
 
       y += barChartH + 6.5;
 
-      // Section 6: 7-Day Daily Mobility Throughput Breakdown & Daily History
+      // Section 7: Daily Mobility Throughput Breakdown & Daily History
       fillRect(margin, y, contentW, 5.5, '#eff6ff');
       fillRect(margin, y, 3, 5.5, '#0284c7');
       setFont('bold', 7.2, '#0369a1');
-      text('  7-DAY DAILY MOBILITY THROUGHPUT BREAKDOWN', margin + 3.5, y + 3.8);
+      text(`  ${dayCountLabel} DAILY MOBILITY THROUGHPUT BREAKDOWN`, margin + 3.5, y + 3.8);
       y += 7.5;
 
-      // 7-Day Daily Bar Chart
+      // Daily Bar Chart
       const dailyChartH = 58;
       fillRect(margin, y, contentW, dailyChartH, '#f8fafc');
       strokeRect(margin, y, contentW, dailyChartH, '#e2e8f0');
@@ -1233,7 +1265,7 @@ export default function LiveDashboard({
       doc.line(dBarLeft, dBarBottom, dBarRight, dBarBottom);
 
       const dSlotW = dPlotW / weeklyDays.length;
-      const dBarWidth = Math.min(16, dSlotW * 0.55);
+      const dBarWidth = Math.min(18, dSlotW * 0.55);
 
       weeklyDays.forEach((day, idx) => {
         const bx = dBarLeft + idx * dSlotW + (dSlotW - dBarWidth) / 2;
@@ -1259,8 +1291,8 @@ export default function LiveDashboard({
 
       y += dailyChartH + 6.0;
 
-      // 7-Day Daily Breakdown Table
-      const dayTableH = 60;
+      // Daily Breakdown Table
+      const dayTableH = Math.max(50, weeklyDays.length * 7.5 + 10);
       fillRect(margin, y, contentW, dayTableH, '#f8fafc');
       strokeRect(margin, y, contentW, dayTableH, '#e2e8f0');
 
@@ -1274,7 +1306,7 @@ export default function LiveDashboard({
       text('RECORDED VEHICLES', margin + 58, rowY + 3.6);
       text('PEAK MOBILITY WINDOW', margin + 100, rowY + 3.6);
       text('PEAK HOUR VOLUME', margin + 145, rowY + 3.6);
-      text('7-DAY SHARE', margin + 175, rowY + 3.6);
+      text('SHARE OF TOTAL', margin + 175, rowY + 3.6);
       rowY += 5.8;
 
       weeklyDays.forEach((d, idx) => {
