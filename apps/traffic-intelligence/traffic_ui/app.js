@@ -1726,7 +1726,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fallback: If traffic_hour was empty, check traffic_overview_history
             if (!calculatedPeakHour) {
                 try {
-                    const histUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=recorded_at,total_vehicles,flow_rate&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${selectedDate}&order=recorded_at.asc&limit=1000`;
+                    const histUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=recorded_at,stat_date,total_vehicles,flow_rate&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=recorded_at.asc&limit=1000`;
                     const histRes = await fetch(histUrl, {
                         cache: 'no-store',
                         headers: {
@@ -1738,35 +1738,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (histRes.ok) {
                         const histData = await histRes.json();
                         if (Array.isArray(histData) && histData.length > 0) {
-                            const hourBucketMap = new Map();
-                            for (const hRow of histData) {
-                                if (!hRow.recorded_at) continue;
-                                const dt = new Date(hRow.recorded_at);
-                                const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
-                                const vCount = Number(hRow.total_vehicles) || 0;
-                                if (!hourBucketMap.has(istHour) || vCount > (hourBucketMap.get(istHour).total_vehicles || 0)) {
-                                    hourBucketMap.set(istHour, {
-                                        hour: istHour,
-                                        total_vehicles: vCount,
-                                        flow_rate: hRow.flow_rate || 0
-                                    });
+                            const matchingRows = histData.filter(h => {
+                                if (h.stat_date === selectedDate) return true;
+                                if (h.recorded_at) {
+                                    const d = new Date(h.recorded_at);
+                                    const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+                                    return istStr === selectedDate;
                                 }
-                            }
-                            const bucketList = Array.from(hourBucketMap.values()).sort((a, b) => a.hour - b.hour);
-                            if (hourlyDataList.length === 0) hourlyDataList = bucketList;
+                                return false;
+                            });
 
-                            let maxV = 0;
-                            let bestH = null;
-                            for (const bRow of bucketList) {
-                                if (bRow.total_vehicles > maxV) {
-                                    maxV = bRow.total_vehicles;
-                                    bestH = bRow;
+                            if (matchingRows.length > 0) {
+                                const hourBucketMap = new Map();
+                                for (const hRow of matchingRows) {
+                                    if (!hRow.recorded_at) continue;
+                                    const dt = new Date(hRow.recorded_at);
+                                    const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+                                    const vCount = Number(hRow.total_vehicles) || 0;
+                                    if (!hourBucketMap.has(istHour) || vCount > (hourBucketMap.get(istHour).total_vehicles || 0)) {
+                                        hourBucketMap.set(istHour, {
+                                            hour: istHour,
+                                            total_vehicles: vCount,
+                                            flow_rate: hRow.flow_rate || 0
+                                        });
+                                    }
                                 }
-                            }
-                            if (bestH && maxV > 0) {
-                                calculatedPeakHour = formatPeakHourWindow(bestH.hour);
-                                calculatedPeakCount = maxV;
-                                calculatedPeakDensity = `${(maxV / 60).toFixed(1)} veh/min`;
+                                const bucketList = Array.from(hourBucketMap.values()).sort((a, b) => a.hour - b.hour);
+                                if (hourlyDataList.length === 0) hourlyDataList = bucketList;
+
+                                let maxV = 0;
+                                let bestH = null;
+                                for (const bRow of bucketList) {
+                                    if (bRow.total_vehicles > maxV) {
+                                        maxV = bRow.total_vehicles;
+                                        bestH = bRow;
+                                    }
+                                }
+                                if (bestH && maxV > 0) {
+                                    calculatedPeakHour = formatPeakHourWindow(bestH.hour);
+                                    calculatedPeakCount = maxV;
+                                    calculatedPeakDensity = `${(maxV / 60).toFixed(1)} veh/min`;
+                                }
                             }
                         }
                     }

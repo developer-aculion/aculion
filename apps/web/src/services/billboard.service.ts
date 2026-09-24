@@ -274,32 +274,43 @@ export const billboardService = {
       // 2. Fallback: Aggregate from traffic_overview_history by IST hour
       const { data: histData, error: histError } = await supabase
         .from("traffic_overview_history")
-        .select("recorded_at, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
+        .select("recorded_at, stat_date, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
         .eq("billboard_code", billboardCode)
-        .eq("stat_date", targetDate)
         .order("recorded_at", { ascending: true })
-        .limit(1000);
+        .limit(2000);
 
       if (!histError && histData && histData.length > 0) {
-        const hourMap = new Map<number, any>();
-        for (const row of histData) {
-          if (!row.recorded_at) continue;
-          const dt = new Date(row.recorded_at);
-          // Convert to IST hour (UTC + 5:30)
-          const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
-          const count = Number(row.total_vehicles) || 0;
-          if (!hourMap.has(istHour) || count > (Number(hourMap.get(istHour).total_vehicles) || 0)) {
-            hourMap.set(istHour, {
-              ...row,
-              hour: istHour,
-              total_vehicles: count,
-              flow_rate: row.flow_rate || 0
-            });
+        const matchingHist = histData.filter((row: any) => {
+          if (row.stat_date === targetDate) return true;
+          if (row.recorded_at) {
+            const d = new Date(row.recorded_at);
+            const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+            return istStr === targetDate;
           }
-        }
-        const hourList = Array.from(hourMap.values()).sort((a, b) => a.hour - b.hour);
-        if (hourList.length > 0) {
-          return hourList;
+          return false;
+        });
+
+        if (matchingHist.length > 0) {
+          const hourMap = new Map<number, any>();
+          for (const row of matchingHist) {
+            if (!row.recorded_at) continue;
+            const dt = new Date(row.recorded_at);
+            // Convert to IST hour (UTC + 5:30)
+            const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+            const count = Number(row.total_vehicles) || 0;
+            if (!hourMap.has(istHour) || count > (Number(hourMap.get(istHour).total_vehicles) || 0)) {
+              hourMap.set(istHour, {
+                ...row,
+                hour: istHour,
+                total_vehicles: count,
+                flow_rate: row.flow_rate || 0
+              });
+            }
+          }
+          const hourList = Array.from(hourMap.values()).sort((a, b) => a.hour - b.hour);
+          if (hourList.length > 0) {
+            return hourList;
+          }
         }
       }
 
