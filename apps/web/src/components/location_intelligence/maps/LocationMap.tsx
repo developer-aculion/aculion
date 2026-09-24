@@ -5,23 +5,17 @@ import { HeatmapPoint, POILocation, Billboard } from "../../../types/location";
 import { ZoomIn, ZoomOut, Maximize2, Layers } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Tile URL helpers & API Key configuration
+// Tile URL helpers & High-availability tile endpoints
 // ---------------------------------------------------------------------------
-const rawCartoKey = ((import.meta as any).env?.VITE_CARTO_API_KEY || "").trim();
-const hasCartoKey = Boolean(rawCartoKey && rawCartoKey !== "your_carto_api_key_here");
-
 const getDarkTileUrl = () => {
-  if (hasCartoKey) {
-    return `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?api_key=${encodeURIComponent(rawCartoKey)}&key=${encodeURIComponent(rawCartoKey)}`;
-  }
-  return "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+  return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
 };
 
 const getTileUrl = (type: "satellite" | "dark") => {
   if (type === "satellite") {
     return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   }
-  return getDarkTileUrl();
+  return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
 };
 
 interface LocationMapProps {
@@ -84,10 +78,19 @@ export default function LocationMap({
   const [leafletReady, setLeafletReady] = useState(false);
   const [L, setL] = useState<any>(null);
 
-  // ── Load Leaflet dynamically ──
+  // ── Load Leaflet dynamically & configure marker icons ──
   useEffect(() => {
     import("leaflet").then((mod) => {
-      setL(mod.default || mod);
+      const leafletInstance = mod.default || mod;
+      try {
+        delete (leafletInstance.Icon.Default.prototype as any)._getIconUrl;
+        leafletInstance.Icon.Default.mergeOptions({
+          iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+          iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+          shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        });
+      } catch {}
+      setL(leafletInstance);
       setLeafletReady(true);
     });
   }, []);
@@ -105,19 +108,17 @@ export default function LocationMap({
         : '&copy; <a href="https://www.esri.com/">Esri</a>',
     });
 
-    if (isCarto) {
-      layer.on("tileerror", () => {
-        console.warn("[LocationMap] Carto tile error encountered. Switching to ESRI Dark Gray fallback.");
-        if (mapRef.current && layersRef.current.tile === layer) {
-          mapRef.current.removeLayer(layer);
-          const fallback = leafletInstance.tileLayer(
-            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-            { maxZoom: 20, attribution: "&copy; Esri" }
-          ).addTo(mapRef.current);
-          layersRef.current.tile = fallback;
-        }
-      });
-    }
+    layer.on("tileerror", () => {
+      console.warn("[LocationMap] Primary tile error encountered. Switching to OpenStreetMap fallback.");
+      if (mapRef.current && layersRef.current.tile === layer) {
+        mapRef.current.removeLayer(layer);
+        const fallback = leafletInstance.tileLayer(
+          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          { maxZoom: 19, attribution: "&copy; OpenStreetMap" }
+        ).addTo(mapRef.current);
+        layersRef.current.tile = fallback;
+      }
+    });
 
     return layer;
   };
