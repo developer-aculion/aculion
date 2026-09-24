@@ -158,6 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
         dwellMedian: document.getElementById('dwell-stat-median'),
         dwellMedianBox: document.getElementById('dwell-stat-median-box'),
 
+        // Weekly Peak Intelligence Elements
+        weeklyOverallPeakHour: document.getElementById('weekly-overall-peak-hour'),
+        weeklyOverallPeakDay: document.getElementById('weekly-overall-peak-day'),
+        weeklyOverallPeakVolume: document.getElementById('weekly-overall-peak-volume'),
+        weeklyOverallPeakDensity: document.getElementById('weekly-overall-peak-density'),
+        weeklyTotalCount: document.getElementById('weekly-total-vehicles-count'),
+        weeklyDaysGrid: document.getElementById('weekly-days-grid'),
+
         // Dwell Periods
         dwellMorning: document.getElementById('dwell-period-morning'),
         dwellAfternoon: document.getElementById('dwell-period-afternoon'),
@@ -647,11 +655,6 @@ document.addEventListener('DOMContentLoaded', () => {
             label.textContent = formattedHour;
             block.appendChild(label);
 
-            const sub = document.createElement('span');
-            sub.className = 'heatmap-block-sub';
-            sub.textContent = `${scale} v/m`;
-            block.appendChild(sub);
-
             const tooltip = document.createElement('div');
             tooltip.className = 'tooltip';
             tooltip.innerHTML = `
@@ -662,6 +665,187 @@ document.addEventListener('DOMContentLoaded', () => {
             block.appendChild(tooltip);
 
             elements.densityHeatmap.appendChild(block);
+        }
+    }
+
+    // --- Weekly Peak Traffic Intelligence Fetcher ---
+    async function fetchWeeklyPeakTraffic(cleanCode) {
+        if (!cleanCode) return;
+
+        try {
+            const now = new Date();
+            const dates = [];
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+                dates.push(dStr);
+            }
+
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
+
+            const hourQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&date=gte.${minDate}&date=lte.${maxDate}&order=date.asc&order=hour.asc`;
+            const dayQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_day?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&date=gte.${minDate}&date=lte.${maxDate}&order=date.asc`;
+
+            const [hourRes, dayRes] = await Promise.all([
+                fetch(hourQueryUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => null),
+                fetch(dayQueryUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => null)
+            ]);
+
+            const hourRows = (hourRes && hourRes.ok) ? await hourRes.json() : [];
+            const dayRows = (dayRes && dayRes.ok) ? await dayRes.json() : [];
+
+            const dayMap = new Map();
+            if (Array.isArray(dayRows)) {
+                dayRows.forEach(d => dayMap.set(d.date, d));
+            }
+
+            const hourByDate = new Map();
+            if (Array.isArray(hourRows)) {
+                hourRows.forEach(h => {
+                    const k = h.date || h.stat_date;
+                    if (k) {
+                        if (!hourByDate.has(k)) hourByDate.set(k, []);
+                        hourByDate.get(k).push(h);
+                    }
+                });
+            }
+
+            let overallMaxCount = 0;
+            let overallPeakHour = null;
+            let overallPeakDate = '—';
+            let overallPeakDayName = '—';
+            let weeklyTotal = 0;
+
+            const daysData = dates.map(dateStr => {
+                const dateObj = new Date(dateStr + 'T12:00:00+05:30');
+                const dayName = dayNames[dateObj.getDay()];
+                const dayRow = dayMap.get(dateStr);
+                const dayHours = hourByDate.get(dateStr) || [];
+
+                let dayMaxCount = 0;
+                let dayPeakHour = null;
+                let dayCalculatedTotal = 0;
+
+                for (const h of dayHours) {
+                    const count = Number(h.total_vehicles) || 0;
+                    dayCalculatedTotal += count;
+                    if (count > dayMaxCount) {
+                        dayMaxCount = count;
+                        dayPeakHour = Number(h.hour);
+                    }
+                }
+
+                const dayTotal = Number(dayRow?.total_vehicles) || dayCalculatedTotal || 0;
+                weeklyTotal += dayTotal;
+
+                if (dayMaxCount > overallMaxCount) {
+                    overallMaxCount = dayMaxCount;
+                    overallPeakHour = dayPeakHour;
+                    overallPeakDate = dateStr;
+                    overallPeakDayName = dayName;
+                }
+
+                return {
+                    date: dateStr,
+                    dayName,
+                    peakHourStr: dayMaxCount > 0 ? formatPeakHourWindow(dayPeakHour) : '—',
+                    peakHour: dayPeakHour,
+                    peakCount: dayMaxCount,
+                    totalVehicles: dayTotal,
+                    avgDensity: dayMaxCount > 0 ? Number((dayMaxCount / 60).toFixed(1)) : 0,
+                    isWeeklyPeak: false
+                };
+            });
+
+            // Mark weekly peak day
+            if (overallMaxCount > 0) {
+                daysData.forEach(d => {
+                    if (d.date === overallPeakDate && d.peakCount === overallMaxCount) {
+                        d.isWeeklyPeak = true;
+                    }
+                });
+            }
+
+            // Update UI elements
+            if (elements.weeklyOverallPeakHour) {
+                elements.weeklyOverallPeakHour.textContent = overallMaxCount > 0 ? formatPeakHourWindow(overallPeakHour) : '—';
+            }
+            if (elements.weeklyOverallPeakDay) {
+                elements.weeklyOverallPeakDay.textContent = overallMaxCount > 0 ? `${overallPeakDayName} (${overallPeakDate})` : '—';
+            }
+            if (elements.weeklyOverallPeakVolume) {
+                elements.weeklyOverallPeakVolume.textContent = overallMaxCount > 0 ? `${formatIndianNumber(overallMaxCount)} veh` : '—';
+            }
+            if (elements.weeklyOverallPeakDensity) {
+                elements.weeklyOverallPeakDensity.textContent = overallMaxCount > 0 ? `${(overallMaxCount / 60).toFixed(1)} veh/min` : '-- veh/min';
+            }
+            if (elements.weeklyTotalCount) {
+                elements.weeklyTotalCount.textContent = formatIndianNumber(weeklyTotal);
+            }
+
+            // Render 7-day cards
+            if (elements.weeklyDaysGrid) {
+                elements.weeklyDaysGrid.innerHTML = '';
+                daysData.forEach(d => {
+                    const card = document.createElement('div');
+                    card.className = `weekly-day-card ${d.isWeeklyPeak ? 'is-peak' : ''}`;
+
+                    if (d.isWeeklyPeak) {
+                        const badge = document.createElement('div');
+                        badge.className = 'weekly-day-badge';
+                        badge.textContent = 'Weekly Peak';
+                        card.appendChild(badge);
+                    }
+
+                    const header = document.createElement('div');
+                    header.className = 'day-card-header';
+                    header.innerHTML = `
+                        <span class="day-card-name">${d.dayName}</span>
+                        <span class="day-card-date">${d.date.slice(5)}</span>
+                    `;
+                    card.appendChild(header);
+
+                    const hourEl = document.createElement('div');
+                    hourEl.className = 'day-card-peak-hour';
+                    hourEl.textContent = d.peakHourStr;
+                    card.appendChild(hourEl);
+
+                    const volEl = document.createElement('div');
+                    volEl.className = 'day-card-vol';
+                    volEl.textContent = d.peakCount > 0 ? `${formatIndianNumber(d.peakCount)} veh` : '0 veh';
+                    card.appendChild(volEl);
+
+                    const footer = document.createElement('div');
+                    footer.className = 'day-card-footer';
+                    footer.innerHTML = `
+                        <span>Density:</span>
+                        <strong>${d.avgDensity > 0 ? `${d.avgDensity} v/m` : '--'}</strong>
+                    `;
+                    card.appendChild(footer);
+
+                    elements.weeklyDaysGrid.appendChild(card);
+                });
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } catch (err) {
+            console.error("Error fetching weekly peak traffic:", err);
         }
     }
 
@@ -1521,6 +1705,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         row.peak_count = 0;
                     }
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
+                    fetchWeeklyPeakTraffic(cleanCode);
                     
                     // Offline detection: if last_updated is older than 60s or is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
@@ -1547,6 +1732,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // STRICT NO-DATA RULE: Billboard has no record for this date -> Apply zero state
                     applyZeroState(cleanCode);
+                    fetchWeeklyPeakTraffic(cleanCode);
                     setStatus('connected', true, false);
                     if (elements.lastUpdatedTime) {
                         elements.lastUpdatedTime.textContent = formatLastUpdated(new Date());

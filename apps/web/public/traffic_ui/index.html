@@ -501,6 +501,61 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Weekly Peak Traffic Intelligence Section -->
+            <section class="analytics-row-weekly" id="weekly-peak-section">
+                <div class="glass-panel analytics-card weekly-peak-card" id="weekly-peak-traffic-card">
+                    <div class="card-header">
+                        <div class="header-info">
+                            <div class="header-title-flex">
+                                <h2>Weekly Peak Traffic Intelligence</h2>
+                                <span class="badge badge-weekly-range">7-Day Aggregation</span>
+                            </div>
+                            <p class="card-subtitle">Overall weekly peak mobility window and 7-day daily throughput breakdown</p>
+                        </div>
+                        <div class="weekly-sync-badge">
+                            <span class="live-dot-pulse"></span>
+                            <span class="pulse-text" id="weekly-peak-status">Database Synced</span>
+                        </div>
+                    </div>
+
+                    <div class="weekly-peak-grid-container">
+                        <!-- Left Hero Spotlight: Overall Weekly Peak Window -->
+                        <div class="weekly-peak-hero-box">
+                            <div class="hero-header-tag">
+                                <i data-lucide="zap"></i>
+                                <span>OVERALL WEEKLY PEAK WINDOW</span>
+                            </div>
+                            <div class="hero-peak-window" id="weekly-overall-peak-hour">—</div>
+                            <div class="hero-peak-details">
+                                <div class="hero-detail-item">
+                                    <span class="detail-label">Peak Day:</span>
+                                    <span class="detail-val text-cyan" id="weekly-overall-peak-day">—</span>
+                                </div>
+                                <div class="hero-detail-item">
+                                    <span class="detail-label">Peak Volume:</span>
+                                    <span class="detail-val text-white" id="weekly-overall-peak-volume">—</span>
+                                </div>
+                                <div class="hero-detail-item">
+                                    <span class="detail-label">Avg. Density:</span>
+                                    <span class="detail-val text-emerald" id="weekly-overall-peak-density">-- veh/min</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Grid: 7-Day Day-by-Day Peak Hour Cards -->
+                        <div class="weekly-days-wrapper">
+                            <div class="weekly-days-header">
+                                <span class="days-title">7-Day Daily Peak Hour Breakdown</span>
+                                <span class="weekly-total-text">Weekly Total: <strong id="weekly-total-vehicles-count">0</strong> veh</span>
+                            </div>
+                            <div class="weekly-days-grid" id="weekly-days-grid">
+                                <!-- Populated dynamically by app.js -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 

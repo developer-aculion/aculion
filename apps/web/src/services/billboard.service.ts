@@ -309,6 +309,164 @@ export const billboardService = {
   },
 
   /**
+   * Calculates the Weekly Peak Traffic Hour and 7-day daily peak breakdown for a billboard
+   * directly from database records (traffic_hour and traffic_day).
+   */
+  getWeeklyPeakTrafficHour: async (billboardCode: string): Promise<{
+    weeklyPeakHourStr: string;
+    weeklyPeakDay: string;
+    weeklyPeakDate: string;
+    weeklyPeakCount: number;
+    weeklyAvgDensity: number;
+    weeklyTotalVehicles: number;
+    days: Array<{
+      date: string;
+      dayName: string;
+      peakHourStr: string;
+      peakHour: number | null;
+      peakCount: number;
+      totalVehicles: number;
+      avgDensity: number;
+      isWeeklyPeak: boolean;
+    }>;
+  }> => {
+    const emptyResult = {
+      weeklyPeakHourStr: '—',
+      weeklyPeakDay: '—',
+      weeklyPeakDate: '—',
+      weeklyPeakCount: 0,
+      weeklyAvgDensity: 0,
+      weeklyTotalVehicles: 0,
+      days: []
+    };
+
+    if (!billboardCode) return emptyResult;
+
+    try {
+      // Calculate 7-day range in IST
+      const now = new Date();
+      const dates: string[] = [];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+        dates.push(dateStr);
+      }
+
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      // Query traffic_hour and traffic_day for this billboard in the 7-day window
+      const [hourRes, dayRes] = await Promise.all([
+        supabase
+          .from("traffic_hour")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .gte("date", minDate)
+          .lte("date", maxDate)
+          .order("date", { ascending: true })
+          .order("hour", { ascending: true }),
+        supabase
+          .from("traffic_day")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .gte("date", minDate)
+          .lte("date", maxDate)
+          .order("date", { ascending: true })
+      ]);
+
+      const hourRows = hourRes.data || [];
+      const dayRows = dayRes.data || [];
+
+      // Map day rows by date
+      const dayMap = new Map<string, any>();
+      for (const dRow of dayRows) {
+        dayMap.set(dRow.date, dRow);
+      }
+
+      // Group hour rows by date
+      const hourByDate = new Map<string, any[]>();
+      for (const hRow of hourRows) {
+        const dKey = hRow.date || hRow.stat_date;
+        if (dKey) {
+          if (!hourByDate.has(dKey)) hourByDate.set(dKey, []);
+          hourByDate.get(dKey)!.push(hRow);
+        }
+      }
+
+      let overallMaxCount = 0;
+      let overallPeakHour: number | null = null;
+      let overallPeakDate = '—';
+      let overallPeakDayName = '—';
+      let weeklyTotal = 0;
+
+      const days = dates.map(dateStr => {
+        const dateObj = new Date(dateStr + 'T12:00:00+05:30');
+        const dayName = dayNames[dateObj.getDay()];
+        const dayRow = dayMap.get(dateStr);
+        const dayHours = hourByDate.get(dateStr) || [];
+
+        let dayMaxCount = 0;
+        let dayPeakHour: number | null = null;
+        let dayCalculatedTotal = 0;
+
+        for (const h of dayHours) {
+          const count = Number(h.total_vehicles) || 0;
+          dayCalculatedTotal += count;
+          if (count > dayMaxCount) {
+            dayMaxCount = count;
+            dayPeakHour = Number(h.hour);
+          }
+        }
+
+        const dayTotal = Number(dayRow?.total_vehicles) || dayCalculatedTotal || 0;
+        weeklyTotal += dayTotal;
+
+        if (dayMaxCount > overallMaxCount) {
+          overallMaxCount = dayMaxCount;
+          overallPeakHour = dayPeakHour;
+          overallPeakDate = dateStr;
+          overallPeakDayName = dayName;
+        }
+
+        return {
+          date: dateStr,
+          dayName,
+          peakHourStr: dayMaxCount > 0 ? billboardService.formatPeakHourWindow(dayPeakHour) : '—',
+          peakHour: dayPeakHour,
+          peakCount: dayMaxCount,
+          totalVehicles: dayTotal,
+          avgDensity: dayMaxCount > 0 ? Number((dayMaxCount / 60).toFixed(1)) : 0,
+          isWeeklyPeak: false
+        };
+      });
+
+      // Mark the weekly peak day
+      if (overallMaxCount > 0) {
+        days.forEach(d => {
+          if (d.date === overallPeakDate && d.peakCount === overallMaxCount) {
+            d.isWeeklyPeak = true;
+          }
+        });
+      }
+
+      return {
+        weeklyPeakHourStr: overallMaxCount > 0 ? billboardService.formatPeakHourWindow(overallPeakHour) : '—',
+        weeklyPeakDay: overallPeakDayName,
+        weeklyPeakDate: overallPeakDate,
+        weeklyPeakCount: overallMaxCount,
+        weeklyAvgDensity: overallMaxCount > 0 ? Number((overallMaxCount / 60).toFixed(1)) : 0,
+        weeklyTotalVehicles: weeklyTotal,
+        days
+      };
+    } catch (err) {
+      console.error("[billboardService] Error in getWeeklyPeakTrafficHour:", err);
+      return emptyResult;
+    }
+  },
+
+  /**
    * Fetch latest completed recording metadata and temporary signed URL for a billboard.
    */
   getLatestRecording: async (billboardCode: string): Promise<BillboardRecordingData | null> => {
