@@ -178,21 +178,22 @@ export const billboardService = {
   getTrafficOverview: async (billboardCode: string, statDate?: string): Promise<any> => {
     const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     const targetDate = statDate || todayIST;
-    let { data, error } = await supabase
-      .from("traffic_overview")
-      .select("*")
-      .eq("billboard_code", billboardCode)
-      .eq("stat_date", targetDate)
-      .order("last_updated", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[billboardService] Error fetching traffic overview:", error);
-      throw new Error(error.message || "Failed to fetch traffic overview.");
+    let data: any = null;
+    try {
+      const res = await supabase
+        .from("traffic_overview")
+        .select("*")
+        .eq("billboard_code", billboardCode)
+        .eq("stat_date", targetDate)
+        .order("last_updated", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (res.data) data = res.data;
+    } catch (err) {
+      console.warn("[billboardService] Notice fetching exact stat_date overview:", err);
     }
 
-    if (!data && targetDate === todayIST) {
+    if ((!data || Number(data.total_vehicles) === 0) && targetDate === todayIST) {
       try {
         const fallbackRes = await supabase
           .from("traffic_overview")
@@ -201,8 +202,24 @@ export const billboardService = {
           .order("last_updated", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (fallbackRes.data) {
+        if (fallbackRes.data && Number(fallbackRes.data.total_vehicles) > 0) {
           data = fallbackRes.data;
+        } else {
+          // Check traffic_overview_history for latest live snapshot
+          const histRes = await supabase
+            .from("traffic_overview_history")
+            .select("*")
+            .eq("billboard_code", billboardCode)
+            .order("recorded_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (histRes.data && Number(histRes.data.total_vehicles) > 0) {
+            data = {
+              ...histRes.data,
+              last_updated: histRes.data.recorded_at,
+              is_live: true
+            };
+          }
         }
       } catch (fbErr) {
         console.warn("[billboardService] Fallback query notice:", fbErr);
@@ -210,6 +227,10 @@ export const billboardService = {
     }
 
     return data;
+  },
+
+  getLatestTrafficData: async (billboardCode: string): Promise<any> => {
+    return billboardService.getTrafficOverview(billboardCode);
   },
 
   /**

@@ -8,7 +8,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { billboardService } from '../../../services/billboard.service';
-import WeeklyPeakTrafficHourCard from '../cards/WeeklyPeakTrafficHourCard';
 
 // Mock trend data for Audience Trend (7D & 30D)
 const TREND_DATA_7D = [
@@ -286,9 +285,6 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
         </div>
 
       </div>
-
-      {/* ── WEEKLY PEAK TRAFFIC HOUR INTELLIGENCE COMPONENT ── */}
-      <WeeklyPeakTrafficHourCard billboardCode={bbCode} />
 
       {/* ── ROW 1: AUDIENCE TREND & AUDIENCE SEGMENTS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

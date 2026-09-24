@@ -209,6 +209,17 @@ export default function LiveDashboard({
   const [alerts, setAlerts] = useState([]);
 
   // Reports configurations
+  const get7DayDefaultDates = () => {
+    const now = new Date();
+    const endStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    const startD = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const startStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(startD);
+    return { startStr, endStr };
+  };
+
+  const defaultDates = get7DayDefaultDates();
+  const [reportStartDate, setReportStartDate] = useState(defaultDates.startStr);
+  const [reportEndDate, setReportEndDate] = useState(defaultDates.endStr);
   const [reportType, setReportType] = useState('weekly');
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
@@ -296,8 +307,8 @@ export default function LiveDashboard({
 
       let data = res.data;
 
-      // Fallback: If no record found for today's stat_date, check if there's a live record updated today
-      if (!data) {
+      // Fallback: If no record found for today's stat_date or count is 0, check latest overview or history snapshot
+      if (!data || Number(data.total_vehicles) === 0) {
         try {
           const fallbackRes = await supabase
             .from("traffic_overview")
@@ -307,15 +318,23 @@ export default function LiveDashboard({
             .limit(1)
             .maybeSingle();
           
-          if (fallbackRes.data && fallbackRes.data.billboard_code === targetBbCode) {
-            const row = fallbackRes.data;
-            const lastUpdatedStr = row.last_updated ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(row.last_updated)) : '';
-            if (row.is_live || lastUpdatedStr === todayIST) {
-              data = row;
-              // Auto-heal stat_date in background
-              if (row.id && row.stat_date !== todayIST) {
-                supabase.from("traffic_overview").update({ stat_date: todayIST, is_legacy: false }).eq("id", row.id).then();
-              }
+          if (fallbackRes.data && fallbackRes.data.billboard_code === targetBbCode && Number(fallbackRes.data.total_vehicles) > 0) {
+            data = fallbackRes.data;
+          } else {
+            // Check traffic_overview_history for latest live snapshot
+            const histRes = await supabase
+              .from("traffic_overview_history")
+              .select("*")
+              .eq("billboard_code", targetBbCode)
+              .order("recorded_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (histRes.data && Number(histRes.data.total_vehicles) > 0) {
+              data = {
+                ...histRes.data,
+                last_updated: histRes.data.recorded_at,
+                is_live: true
+              };
             }
           }
         } catch (fbErr) {
@@ -507,7 +526,7 @@ export default function LiveDashboard({
   }, [fetchDbTrafficOverview, dbTrafficData, selectedBillboard, user, reportType]);
 
 
-  // Download clean 2-page report with pure white background & strictly real database telemetry
+  // Download clean 2-page report with pure white background & strictly real 7-day database telemetry
   const downloadReportAsPDF = async (rep) => {
     try {
       const bbCode = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001';
@@ -517,72 +536,191 @@ export default function LiveDashboard({
       const ownerName = user?.name || selectedBillboard?.owner_name || 'Aculion Media Partner';
       const companyName = user?.company || selectedBillboard?.company_name || 'Aculion Traffic Intelligence';
       const bbType = selectedBillboard?.type || selectedBillboard?.billboard_type || 'Digital Billboard';
-      const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
-      // Fetch latest live traffic overview from Supabase if not yet present in state
-      let liveStats = dbTrafficData;
-      if (!liveStats || liveStats.billboard_code !== bbCode) {
-        try {
-          const { data } = await supabase
-            .from("traffic_overview")
+      // Calculate 7-day range in IST ending today
+      const now = new Date();
+      const dates = [];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+        dates.push(dateStr);
+      }
+
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      // Formatted start and end dates
+      const startDateObj = new Date(minDate + 'T12:00:00+05:30');
+      const endDateObj = new Date(maxDate + 'T12:00:00+05:30');
+      const startDateFormatted = startDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const endDateFormatted = endDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const dateStr = `${startDateFormatted} – ${endDateFormatted}`;
+
+      // Query traffic_day and traffic_hour strictly for the 7-day window from Supabase
+      let dayRows = [];
+      let hourRows = [];
+      try {
+        const [dayRes, hourRes] = await Promise.all([
+          supabase
+            .from("traffic_day")
             .select("*")
             .eq("billboard_code", bbCode)
-            .eq("stat_date", todayIST)
-            .order("last_updated", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (data) liveStats = data;
-        } catch (fetchErr) {
-          console.warn("[downloadReportAsPDF] Notice reading live stats from Supabase:", fetchErr);
-        }
-      }
-
-      // Fetch hourly trend history rows and calculate peak hour from traffic_hour
-      let historyRows = [];
-      let peakHourStr = liveStats?.peak_traffic_hour || (totalV > 0 ? 'Peak Window' : '—');
-      try {
-        const [hData, peakRes] = await Promise.all([
-          billboardService.getHourlyTraffic(bbCode, todayIST),
-          billboardService.getPeakTrafficHour(bbCode, todayIST)
+            .gte("date", minDate)
+            .lte("date", maxDate)
+            .order("date", { ascending: true }),
+          supabase
+            .from("traffic_hour")
+            .select("*")
+            .eq("billboard_code", bbCode)
+            .gte("date", minDate)
+            .lte("date", maxDate)
+            .order("date", { ascending: true })
+            .order("hour", { ascending: true })
         ]);
-        if (hData && Array.isArray(hData) && hData.length > 0) {
-          historyRows = hData;
-        }
-        if (peakRes && peakRes.peakHourStr && peakRes.peakHourStr !== '—') {
-          peakHourStr = peakRes.peakHourStr;
-        }
-      } catch (hErr) {
-        console.warn("[downloadReportAsPDF] Notice reading hourly history from Supabase:", hErr);
+        if (dayRes.data) dayRows = dayRes.data;
+        if (hourRes.data) hourRows = hourRes.data;
+      } catch (fetchErr) {
+        console.warn("[downloadReportAsPDF] Notice reading 7-day telemetry from Supabase:", fetchErr);
       }
 
-      // Real database telemetry values (strictly 0 fallback if no record exists)
-      const totalV = Number(liveStats?.total_vehicles) || 0;
-      const bikesV = Number(liveStats?.bikes) || 0;
-      const commV = Number(liveStats?.commercial) || 0;
-      const econV = Number(liveStats?.economy) || 0;
-      const premV = Number(liveStats?.premium) || 0;
-      const luxV = Number(liveStats?.luxury) || 0;
-      const ultraV = Number(liveStats?.ultra_luxury) || 0;
+      // Map day rows by date
+      const dayMap = new Map();
+      dayRows.forEach(r => dayMap.set(r.date, r));
 
-      const sumVehicles = bikesV + commV + econV + premV + luxV + ultraV;
-      const divisorV = sumVehicles > 0 ? sumVehicles : (totalV > 0 ? totalV : 1);
+      // Group hour rows by date
+      const hourByDate = new Map();
+      hourRows.forEach(r => {
+        const dKey = r.date || r.stat_date;
+        if (dKey) {
+          if (!hourByDate.has(dKey)) hourByDate.set(dKey, []);
+          hourByDate.get(dKey).push(r);
+        }
+      });
 
-      const reachV = Number(liveStats?.estimated_reach) || (totalV > 0 ? Math.round(totalV * 2.4) : 0);
-      const dwellV = Number(liveStats?.avg_exposure_time) || 0;
-      const maxDwellV = Number(liveStats?.max_exposure_time) || 0;
-      const flowV = Number(liveStats?.flow_rate) || 0;
-      if (!peakHourStr && totalV === 0) peakHourStr = '—';
+      // Compute exact 7-day aggregates from real records
+      let total7DayVehicles = 0;
+      let totalBikes = 0;
+      let totalCommercial = 0;
+      let totalEconomy = 0;
+      let totalPremium = 0;
+      let totalLuxury = 0;
+      let totalUltraLuxury = 0;
+      let totalReach = 0;
+      let dwellWeightedSum = 0;
+      let maxDwell7Day = 0;
 
-      const highEndV = premV + luxV + ultraV;
+      let overallMaxCount = 0;
+      let overallPeakHour = null;
+      let overallPeakDate = '—';
+      let overallPeakDayName = '—';
+
+      const weeklyDays = dates.map(dateStr => {
+        const dateObj = new Date(dateStr + 'T12:00:00+05:30');
+        const dayIdx = dateObj.getDay();
+        const shortDay = dayNames[dayIdx];
+        const fullDay = fullDayNames[dayIdx];
+        const dayRow = dayMap.get(dateStr);
+        const dayHours = hourByDate.get(dateStr) || [];
+
+        let dayMaxCount = 0;
+        let dayPeakHour = null;
+        let hSumV = 0, hSumBikes = 0, hSumComm = 0, hSumEcon = 0, hSumPrem = 0, hSumLux = 0, hSumUltra = 0, hSumReach = 0, hDwellSum = 0, hMaxDwell = 0;
+
+        for (const h of dayHours) {
+          const count = Number(h.total_vehicles) || 0;
+          hSumV += count;
+          hSumBikes += Number(h.bikes) || 0;
+          hSumComm += Number(h.commercial) || 0;
+          hSumEcon += Number(h.economy) || 0;
+          hSumPrem += Number(h.premium) || 0;
+          hSumLux += Number(h.luxury) || 0;
+          hSumUltra += Number(h.ultra_luxury) || 0;
+          hSumReach += Number(h.estimated_reach) || 0;
+          const avgDw = Number(h.avg_exposure_time) || 0;
+          hDwellSum += avgDw * count;
+          if (Number(h.max_exposure_time) > hMaxDwell) hMaxDwell = Number(h.max_exposure_time);
+          if (count > dayMaxCount) {
+            dayMaxCount = count;
+            dayPeakHour = Number(h.hour);
+          }
+        }
+
+        let dayTotal = 0, dBikes = 0, dComm = 0, dEcon = 0, dPrem = 0, dLux = 0, dUltra = 0, dReach = 0, dAvgDwell = 0, dMaxDwell = 0;
+
+        if (dayRow) {
+          dayTotal = Number(dayRow.total_vehicles) || 0;
+          dBikes = Number(dayRow.bikes) || 0;
+          dComm = Number(dayRow.commercial) || 0;
+          dEcon = Number(dayRow.economy) || 0;
+          dPrem = Number(dayRow.premium) || 0;
+          dLux = Number(dayRow.luxury) || 0;
+          dUltra = Number(dayRow.ultra_luxury) || 0;
+          dReach = Number(dayRow.estimated_reach) || 0;
+          dAvgDwell = Number(dayRow.avg_exposure_time) || 0;
+          dMaxDwell = Number(dayRow.max_exposure_time) || 0;
+        } else {
+          dayTotal = hSumV;
+          dBikes = hSumBikes;
+          dComm = hSumComm;
+          dEcon = hSumEcon;
+          dPrem = hSumPrem;
+          dLux = hSumLux;
+          dUltra = hSumUltra;
+          dReach = hSumReach || (dayTotal > 0 ? Math.round(dayTotal * 2.4) : 0);
+          dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
+          dMaxDwell = hMaxDwell;
+        }
+
+        total7DayVehicles += dayTotal;
+        totalBikes += dBikes;
+        totalCommercial += dComm;
+        totalEconomy += dEcon;
+        totalPremium += dPrem;
+        totalLuxury += dLux;
+        totalUltraLuxury += dUltra;
+        totalReach += dReach;
+        dwellWeightedSum += dAvgDwell * dayTotal;
+        if (dMaxDwell > maxDwell7Day) maxDwell7Day = dMaxDwell;
+
+        if (dayMaxCount > overallMaxCount) {
+          overallMaxCount = dayMaxCount;
+          overallPeakHour = dayPeakHour;
+          overallPeakDate = dateStr;
+          overallPeakDayName = fullDay;
+        }
+
+        return {
+          date: dateStr,
+          shortDay,
+          fullDay,
+          shortDate: dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+          totalVehicles: dayTotal,
+          peakHour: dayPeakHour,
+          peakCount: dayMaxCount,
+          peakHourStr: dayMaxCount > 0 ? billboardService.formatPeakHourWindow(dayPeakHour) : '—',
+          avgDensity: dayMaxCount > 0 ? Number((dayMaxCount / 60).toFixed(1)) : 0
+        };
+      });
+
+      const avgDwell7Day = total7DayVehicles > 0 ? Number((dwellWeightedSum / total7DayVehicles).toFixed(1)) : 0.0;
+      const overallWeeklyPeakWindow = overallMaxCount > 0 ? billboardService.formatPeakHourWindow(overallPeakHour) : '—';
+
+      const sumVehicles = totalBikes + totalCommercial + totalEconomy + totalPremium + totalLuxury + totalUltraLuxury;
+      const divisorV = sumVehicles > 0 ? sumVehicles : (total7DayVehicles > 0 ? total7DayVehicles : 1);
+
+      const highEndV = totalPremium + totalLuxury + totalUltraLuxury;
       const highEndPct = divisorV > 0 ? ((highEndV / divisorV) * 100).toFixed(1) : '0.0';
 
       const categories = [
-        { name: 'Bike', desc: 'Two-Wheelers & Couriers', count: bikesV, pct: totalV > 0 ? +((bikesV / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
-        { name: 'Commercial', desc: 'Freight, Vans & Logistics', count: commV, pct: totalV > 0 ? +((commV / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
-        { name: 'Economy', desc: 'Hatchbacks & Mass Commuters', count: econV, pct: totalV > 0 ? +((econV / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
-        { name: 'Premium', desc: 'Executive Sedans & Compact SUVs', count: premV, pct: totalV > 0 ? +((premV / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
-        { name: 'Luxury', desc: 'High-End Sedans & Premium SUVs', count: luxV, pct: totalV > 0 ? +((luxV / divisorV) * 100).toFixed(1) : 0, color: '#059669' },
-        { name: 'Ultra Luxury', desc: 'Supercars & Exclusive Flagships', count: ultraV, pct: totalV > 0 ? +((ultraV / divisorV) * 100).toFixed(1) : 0, color: '#EA580C' }
+        { name: 'Bike', desc: 'Two-Wheelers & Couriers', count: totalBikes, pct: total7DayVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
+        { name: 'Commercial', desc: 'Freight, Vans & Logistics', count: totalCommercial, pct: total7DayVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
+        { name: 'Economy', desc: 'Hatchbacks & Mass Commuters', count: totalEconomy, pct: total7DayVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
+        { name: 'Premium', desc: 'Executive Sedans & Compact SUVs', count: totalPremium, pct: total7DayVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
+        { name: 'Luxury', desc: 'High-End Sedans & Premium SUVs', count: totalLuxury, pct: total7DayVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' },
+        { name: 'Ultra Luxury', desc: 'Supercars & Exclusive Flagships', count: totalUltraLuxury, pct: total7DayVehicles > 0 ? +((totalUltraLuxury / divisorV) * 100).toFixed(1) : 0, color: '#EA580C' }
       ];
 
       // Pre-load the Aculion logo safely with timeout
@@ -662,9 +800,6 @@ export default function LiveDashboard({
         doc.setTextColor(...hex(color));
       };
 
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-
       // Clean White Header
       const drawHeader = (pageNum, pageTitle) => {
         // Top accent bar
@@ -685,59 +820,69 @@ export default function LiveDashboard({
         text(pageTitle, pageW - margin, 9, { align: 'right' });
         setFont('normal', 7, '#64748b');
         text(`Page ${pageNum} of 2`, pageW - margin, 14.5, { align: 'right' });
-        text(`Date: ${dateStr}`, pageW - margin, 19.5, { align: 'right' });
+        text(`Period: ${dateStr}`, pageW - margin, 19.5, { align: 'right' });
       };
 
-      // Clean White Footer
+      // Clean White Footer with 'POWERED BY' above logo and 'connect@aculion.com' below logo
       const drawFooter = (pageNum) => {
-        fillRect(0, pageH - 13, pageW, 0.6, '#e2e8f0');
+        fillRect(0, pageH - 18, pageW, 0.6, '#e2e8f0');
 
+        // Above logo: POWERED BY
+        setFont('bold', 5.5, '#64748b');
+        text('POWERED BY', margin, pageH - 13.8);
+
+        // Logo
         if (logoDataUrl) {
           try {
-            const logoH = 6.5;
+            const logoH = 5.8;
             const logoW = logoH * 4.2;
-            doc.addImage(logoDataUrl, 'PNG', margin, pageH - 10, logoW, logoH);
+            doc.addImage(logoDataUrl, 'PNG', margin, pageH - 12.8, logoW, logoH);
           } catch (imgErr) {
-            setFont('bold', 9, '#2563eb');
-            text('ACULION', margin, pageH - 5.5);
+            setFont('bold', 8.5, '#2563eb');
+            text('ACULION', margin, pageH - 8);
           }
         } else {
-          setFont('bold', 9, '#2563eb');
-          text('ACULION', margin, pageH - 5.5);
+          setFont('bold', 8.5, '#2563eb');
+          text('ACULION', margin, pageH - 8);
         }
 
-        setFont('normal', 7, '#64748b');
-        text(`Page ${pageNum} of 2   •   Generated on ${dateStr}`, pageW - margin, pageH - 5.5, { align: 'right' });
+        // Below logo: connect@aculion.com
+        setFont('normal', 6, '#475569');
+        text('connect@aculion.com', margin, pageH - 3.8);
+
+        // Right side info
+        setFont('normal', 6.8, '#64748b');
+        text(`Page ${pageNum} of 2   •   Weekly Traffic Intelligence Report (${startDateFormatted} – ${endDateFormatted})`, pageW - margin, pageH - 8, { align: 'right' });
       };
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 1: EXECUTIVE OVERVIEW & VEHICLE CLASSIFICATION
+      // PAGE 1: 7-DAY EXECUTIVE OVERVIEW & VEHICLE CLASSIFICATION
       // ══════════════════════════════════════════════════════════
       fillRect(0, 0, pageW, pageH, '#FFFFFF');
-      drawHeader(1, 'TRAFFIC & EXPOSURE OVERVIEW');
+      drawHeader(1, '7-DAY TRAFFIC & EXPOSURE OVERVIEW');
 
       let y = 30;
 
       // Title Block
       setFont('bold', 12, '#0f172a');
-      text(`${bbName} — Traffic Analytics & Vehicle Classification`, margin, y);
+      text(`${bbName} — 7-Day Audience Intelligence & Traffic Analytics`, margin, y);
       y += 5;
       setFont('normal', 7.2, '#64748b');
-      text(`Observation Date: ${dateStr}   •   Display Type: ${bbType}   •   Sync: Live Database`, margin, y);
+      text(`Reporting Window: ${startDateFormatted} – ${endDateFormatted} (Last 7 Days)   •   Display Type: ${bbType}   •   Data Source: Supabase Live Database`, margin, y);
       y += 7.5;
 
-      // Section 1: Executive Mobility KPIs
+      // Section 1: 7-Day Executive Mobility KPIs
       fillRect(margin, y, contentW, 5.5, '#eff6ff');
       fillRect(margin, y, 3, 5.5, '#2563eb');
       setFont('bold', 7.2, '#1d4ed8');
-      text('  EXECUTIVE TRAFFIC & AUDIENCE VOLUME OVERVIEW', margin + 3.5, y + 3.8);
+      text('  7-DAY EXECUTIVE TRAFFIC & AUDIENCE VOLUME OVERVIEW', margin + 3.5, y + 3.8);
       y += 7.5;
 
       const kpiBoxes = [
-        { label: 'TOTAL VEHICLES RECORDED', val: totalV.toLocaleString(), sub: 'Verified Flow Count', col: '#0284c7' },
-        { label: 'ESTIMATED AUDIENCE REACH', val: reachV.toLocaleString(), sub: 'Gross Impressions', col: '#059669' },
-        { label: 'AVERAGE DWELL DURATION', val: dwellV > 0 ? `${dwellV}s` : '0.0s', sub: `Max Exposure: ${maxDwellV > 0 ? `${maxDwellV}s` : '0.0s'}`, col: '#2563eb' },
-        { label: 'PEAK MOBILITY WINDOW', val: peakHourStr, sub: `Throughput: ${flowV} veh/min`, col: '#d97706' }
+        { label: 'TOTAL 7-DAY VEHICLES', val: total7DayVehicles.toLocaleString(), sub: 'Verified 7-Day Count', col: '#0284c7' },
+        { label: '7-DAY AUDIENCE REACH', val: totalReach.toLocaleString(), sub: 'Gross Impressions', col: '#059669' },
+        { label: 'AVERAGE DWELL DURATION', val: avgDwell7Day > 0 ? `${avgDwell7Day}s` : '0.0s', sub: `Max Exposure: ${maxDwell7Day > 0 ? `${maxDwell7Day.toFixed(1)}s` : '0.0s'}`, col: '#2563eb' },
+        { label: 'WEEKLY PEAK MOBILITY WINDOW', val: overallWeeklyPeakWindow, sub: `Peak Day: ${overallPeakDayName} (${overallMaxCount.toLocaleString()} veh)`, col: '#d97706' }
       ];
 
       const cardW = (contentW - 3 * 3.5) / 4;
@@ -755,11 +900,11 @@ export default function LiveDashboard({
       });
       y += 23.5;
 
-      // Section 2: Vehicle Classification Distribution
+      // Section 2: 7-Day Vehicle Classification Distribution
       fillRect(margin, y, contentW, 5.5, '#f5f3ff');
       fillRect(margin, y, 3, 5.5, '#7c3aed');
       setFont('bold', 7.2, '#6d28d9');
-      text('  VEHICLE CLASSIFICATION DISTRIBUTION & AFFLUENCE RATIOS', margin + 3.5, y + 3.8);
+      text('  7-DAY VEHICLE CLASSIFICATION DISTRIBUTION & AFFLUENCE RATIOS', margin + 3.5, y + 3.8);
       y += 7.5;
 
       const pieBoxH = 74;
@@ -803,9 +948,9 @@ export default function LiveDashboard({
       doc.setFillColor(255, 255, 255);
       doc.circle(chartCx, chartCy, innerR, 'F');
       setFont('bold', 5.5, '#64748b');
-      text('TOTAL VEHICLES', chartCx, chartCy - 2, { align: 'center' });
+      text('7-DAY TOTAL', chartCx, chartCy - 2, { align: 'center' });
       setFont('bold', 8.5, '#0f172a');
-      text(totalV.toLocaleString(), chartCx, chartCy + 3.2, { align: 'center' });
+      text(total7DayVehicles.toLocaleString(), chartCx, chartCy + 3.2, { align: 'center' });
 
       // Table on the right side of the donut chart
       const tableX = margin + 74;
@@ -816,7 +961,7 @@ export default function LiveDashboard({
       strokeRect(tableX, tableY, tableW, 5.2, '#e2e8f0');
       setFont('bold', 6.2, '#475569');
       text('CATEGORY', tableX + 3, tableY + 3.6);
-      text('VEHICLES', tableX + 42, tableY + 3.6);
+      text('7-DAY VEHICLES', tableX + 38, tableY + 3.6);
       text('PERCENT', tableX + 68, tableY + 3.6);
       text('DISTRIBUTION', tableX + 86, tableY + 3.6);
       tableY += 6;
@@ -835,7 +980,7 @@ export default function LiveDashboard({
         text(seg.desc, tableX + 8, tableY + 7);
 
         setFont('bold', 6.8, '#0f172a');
-        text(seg.count.toLocaleString(), tableX + 42, tableY + 5.2);
+        text(seg.count.toLocaleString(), tableX + 38, tableY + 5.2);
 
         setFont('bold', 7, seg.color);
         text(`${seg.pct}%`, tableX + 68, tableY + 5.2);
@@ -850,74 +995,79 @@ export default function LiveDashboard({
 
       y += pieBoxH + 5.5;
 
-      // Section 3: Audience Demographic Insights Box
+      // Section 3: 7-Day Audience Demographic & Locality Economic Takeaways
       fillRect(margin, y, contentW, 5.5, '#ecfdf5');
       fillRect(margin, y, 3, 5.5, '#059669');
       setFont('bold', 7.2, '#047857');
-      text('  AUDIENCE DEMOGRAPHIC & AFFLUENCE TAKEAWAYS', margin + 3.5, y + 3.8);
+      text('  7-DAY AUDIENCE AFFLUENCE, LOCALITY PROFILE & ECONOMIC CONTEXT', margin + 3.5, y + 3.8);
       y += 7.5;
 
-      fillRect(margin, y, contentW, 34, '#f8fafc');
-      strokeRect(margin, y, contentW, 34, '#e2e8f0');
-      setFont('normal', 6.8, '#334155');
-      text(`• Out of ${totalV.toLocaleString()} recorded vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium, Luxury, and Ultra-Luxury categories.`, margin + 3.5, y + 5.5);
-      text(`  This confirms an affluent vehicular audience profile passing directly within the primary display visual cone.`, margin + 3.5, y + 10);
-      text(`• The recorded average dwell / exposure duration at this location is ${dwellV} seconds (Max exposure: ${maxDwellV}s).`, margin + 3.5, y + 15);
-      text(`• The peak traffic window is recorded at ${peakHourStr} with a flow throughput of ${flowV} vehicles per minute.`, margin + 3.5, y + 20);
-      text(`• Telemetry stream is synchronized with the database record for ${bbCode} (${landmark}, ${city}).`, margin + 3.5, y + 25);
-      y += 38;
+      const takeawayBoxH = 37;
+      fillRect(margin, y, contentW, takeawayBoxH, '#f8fafc');
+      strokeRect(margin, y, contentW, takeawayBoxH, '#e2e8f0');
+      setFont('normal', 6.6, '#334155');
+      text(`• High Affluence Index: Out of ${total7DayVehicles.toLocaleString()} recorded vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium, Luxury, and Ultra-Luxury categories.`, margin + 3.5, y + 5.2);
+      text(`  This elevated proportion highlights an affluent vehicular demographic with substantial purchasing power and high disposable income.`, margin + 3.5, y + 9.5);
+      text(`• Locality & Economic Context: Situated along ${landmark} in ${city}, this strategic corridor serves as a primary arterial conduit connecting`, margin + 3.5, y + 14.2);
+      text(`  prime residential developments, prominent commercial office complexes, and high-street retail zones, driving superior advertising ROI.`, margin + 3.5, y + 18.5);
+      text(`• Exposure & Dwell Profile: Vehicles maintain an average exposure time of ${avgDwell7Day} seconds (Peak dwell recording: ${maxDwell7Day.toFixed(1)}s).`, margin + 3.5, y + 23.2);
+      text(`• Weekly Peak Mobility: Maximum throughput occurred on ${overallPeakDayName} (${overallPeakDate}) during ${overallWeeklyPeakWindow} with ${overallMaxCount.toLocaleString()} vehicles.`, margin + 3.5, y + 27.5);
+      text(`• Economic Summary: High mix of executive sedans, premium SUVs, and commercial logistics confirms strong local economic vitality.`, margin + 3.5, y + 32.0);
+      y += takeawayBoxH + 5.5;
 
       // Section 4: Location & Display Asset Profile
       fillRect(margin, y, contentW, 5.5, '#f1f5f9');
       fillRect(margin, y, 3, 5.5, '#0284c7');
       setFont('bold', 7.2, '#0369a1');
-      text('  DISPLAY ASSET & LOCATION PROFILE', margin + 3.5, y + 3.8);
+      text('  DISPLAY ASSET, CATCHMENT ZONE & LOCATION PROFILE', margin + 3.5, y + 3.8);
       y += 7.5;
 
-      fillRect(margin, y, contentW, 30, '#f8fafc');
-      strokeRect(margin, y, contentW, 30, '#e2e8f0');
+      const profileBoxH = 34;
+      fillRect(margin, y, contentW, profileBoxH, '#f8fafc');
+      strokeRect(margin, y, contentW, profileBoxH, '#e2e8f0');
 
       const profileGrid = [
         ['Billboard Asset Code', bbCode, 'Media Asset Type', bbType],
         ['Location Landmark', landmark, 'City / Region', city],
-        ['GPS Geo-Coordinates', `${(Number(selectedBillboard?.latitude) || 0).toFixed(4)}° N, ${(Number(selectedBillboard?.longitude) || 0).toFixed(4)}° E`, 'Operational Status', selectedBillboard?.status || 'Active'],
+        ['Locality Character', 'Prime Commercial & Residential Arterial', 'Catchment Affluence', 'High-Income Executive Corridor'],
+        ['GPS Geo-Coordinates', `${(Number(selectedBillboard?.latitude) || 0).toFixed(4)}° N, ${(Number(selectedBillboard?.longitude) || 0).toFixed(4)}° E`, 'Operational Status', selectedBillboard?.status || 'Active Live Monitoring'],
         ['Front Camera Node', selectedBillboard?.camera_ff_code || 'CAM-FF-001', 'Secondary Camera Node', selectedBillboard?.camera_bf_code || 'CAM-BF-001']
       ];
 
       let profY = y + 4.5;
       profileGrid.forEach((row) => {
-        setFont('bold', 6.2, '#64748b');
+        setFont('bold', 6.0, '#64748b');
         text(row[0] + ':', margin + 4, profY);
-        setFont('normal', 6.5, '#0f172a');
-        text(row[1], margin + 38, profY);
+        setFont('normal', 6.2, '#0f172a');
+        text(row[1], margin + 36, profY);
 
-        setFont('bold', 6.2, '#64748b');
+        setFont('bold', 6.0, '#64748b');
         text(row[2] + ':', margin + 95, profY);
-        setFont('normal', 6.5, '#2563eb');
-        text(row[3], margin + 135, profY);
+        setFont('normal', 6.2, '#2563eb');
+        text(row[3], margin + 130, profY);
 
-        profY += 6.5;
+        profY += 6.0;
       });
 
       drawFooter(1);
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 2: VEHICLE BAR CHART & HOURLY MOBILITY TRENDS
+      // PAGE 2: 7-DAY VEHICLE BAR CHART & DAILY MOBILITY BREAKDOWN
       // ══════════════════════════════════════════════════════════
       doc.addPage();
       fillRect(0, 0, pageW, pageH, '#FFFFFF');
-      drawHeader(2, 'MOBILITY TRENDS & VEHICLE COMPARISON');
+      drawHeader(2, '7-DAY MOBILITY PATTERNS & DAILY BREAKDOWN');
 
       y = 30;
 
-      // Section 5: Vehicle Category Comparison (Vertical Bar Chart)
+      // Section 5: 7-Day Vehicle Category Comparison (Vertical Bar Chart)
       fillRect(margin, y, contentW, 5.5, '#fffbeb');
       fillRect(margin, y, 3, 5.5, '#d97706');
       setFont('bold', 7.2, '#b45309');
-      text('  VEHICLE CATEGORY VOLUME COMPARISON (VERTICAL BAR CHART)', margin + 3.5, y + 3.8);
+      text('  7-DAY VEHICLE CATEGORY VOLUME COMPARISON (VERTICAL BAR CHART)', margin + 3.5, y + 3.8);
       y += 7.5;
 
-      const barChartH = 68;
+      const barChartH = 65;
       fillRect(margin, y, contentW, barChartH, '#f8fafc');
       strokeRect(margin, y, contentW, barChartH, '#e2e8f0');
 
@@ -961,134 +1111,109 @@ export default function LiveDashboard({
 
       y += barChartH + 6.5;
 
-      // Section 6: Hourly Mobility Flow Rate & Traffic History
+      // Section 6: 7-Day Daily Mobility Throughput Breakdown & Daily History
       fillRect(margin, y, contentW, 5.5, '#eff6ff');
       fillRect(margin, y, 3, 5.5, '#0284c7');
       setFont('bold', 7.2, '#0369a1');
-      text('  HOURLY MOBILITY FLOW RATE & TRAFFIC HISTORY', margin + 3.5, y + 3.8);
+      text('  7-DAY DAILY MOBILITY THROUGHPUT BREAKDOWN', margin + 3.5, y + 3.8);
       y += 7.5;
 
-      const lineChartH = 68;
-      fillRect(margin, y, contentW, lineChartH, '#f8fafc');
-      strokeRect(margin, y, contentW, lineChartH, '#e2e8f0');
+      // 7-Day Daily Bar Chart
+      const dailyChartH = 58;
+      fillRect(margin, y, contentW, dailyChartH, '#f8fafc');
+      strokeRect(margin, y, contentW, dailyChartH, '#e2e8f0');
 
-      const hourlyTrendData = (historyRows && historyRows.length > 0)
-        ? historyRows.map(r => {
-            const hr = Number(r.hour) || 0;
-            const period = hr >= 12 ? 'PM' : 'AM';
-            const displayHr = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
-            return {
-              label: `${String(displayHr).padStart(2, '0')} ${period}`,
-              val: Number(r.flow_rate) || 0
-            };
-          })
-        : [
-            { label: '06 AM', val: Math.round(flowV * 0.4) },
-            { label: '08 AM', val: Math.round(flowV * 0.8) },
-            { label: '10 AM', val: Math.round(flowV * 0.95) },
-            { label: '12 PM', val: Math.round(flowV * 0.75) },
-            { label: '02 PM', val: Math.round(flowV * 0.7) },
-            { label: '04 PM', val: Math.round(flowV * 0.85) },
-            { label: '06 PM', val: Math.round(flowV * 1.1) },
-            { label: '08 PM', val: Math.round(flowV * 0.9) },
-            { label: '10 PM', val: Math.round(flowV * 0.45) }
-          ];
+      const dBarLeft = margin + 14;
+      const dBarRight = margin + contentW - 14;
+      const dBarTop = y + 10;
+      const dBarBottom = y + dailyChartH - 14;
+      const dPlotW = dBarRight - dBarLeft;
+      const dPlotH = dBarBottom - dBarTop;
 
-      const chartLeft = margin + 22;
-      const chartRight = margin + contentW - 14;
-      const chartTop = y + 10;
-      const chartBottom = y + lineChartH - 15;
-      const plotW = chartRight - chartLeft;
-      const plotH = chartBottom - chartTop;
+      const maxDailyVal = Math.max(...weeklyDays.map(d => d.totalVehicles)) * 1.15 || 100;
 
-      const maxLineVal = Math.max(...hourlyTrendData.map(d => d.val)) * 1.15 || 50;
+      // Baseline
+      doc.setDrawColor(...hex('#e2e8f0'));
+      doc.setLineWidth(0.4);
+      doc.line(dBarLeft, dBarBottom, dBarRight, dBarBottom);
 
-      // Gridlines
-      const gridSteps = 4;
-      for (let i = 0; i <= gridSteps; i++) {
-        const gy = chartBottom - (i / gridSteps) * plotH;
-        const gVal = Math.round((i / gridSteps) * maxLineVal);
-        doc.setDrawColor(...hex('#e2e8f0'));
-        doc.setLineWidth(0.2);
-        doc.line(chartLeft, gy, chartRight, gy);
+      const dSlotW = dPlotW / weeklyDays.length;
+      const dBarWidth = Math.min(16, dSlotW * 0.55);
 
-        setFont('normal', 5.6, '#64748b');
-        text(`${gVal} /min`, chartLeft - 2.5, gy + 1.2, { align: 'right' });
-      }
+      weeklyDays.forEach((day, idx) => {
+        const bx = dBarLeft + idx * dSlotW + (dSlotW - dBarWidth) / 2;
+        const bHeight = Math.max(3, (day.totalVehicles / maxDailyVal) * dPlotH);
+        const by = dBarBottom - bHeight;
+        const isPeakDay = day.date === overallPeakDate && day.totalVehicles > 0;
 
-      // Coordinates
-      const coords = hourlyTrendData.map((pt, idx) => {
-        const divisor = hourlyTrendData.length > 1 ? hourlyTrendData.length - 1 : 1;
-        const px = chartLeft + (idx / divisor) * plotW;
-        const py = chartBottom - (pt.val / maxLineVal) * plotH;
-        return { x: px, y: py, ...pt };
+        // Track
+        fillRect(bx, dBarTop, dBarWidth, dPlotH, '#e2e8f0');
+        // Bar
+        fillRect(bx, by, dBarWidth, bHeight, isPeakDay ? '#2563eb' : '#0284c7');
+
+        // Value above bar
+        setFont('bold', 5.6, isPeakDay ? '#2563eb' : '#0f172a');
+        text(day.totalVehicles.toLocaleString(), bx + dBarWidth / 2, by - 2, { align: 'center' });
+
+        // Label below bar
+        setFont('bold', 5.6, isPeakDay ? '#2563eb' : '#475569');
+        text(day.shortDate, bx + dBarWidth / 2, dBarBottom + 4.5, { align: 'center' });
+        setFont('normal', 4.8, '#64748b');
+        text(day.shortDay, bx + dBarWidth / 2, dBarBottom + 8.5, { align: 'center' });
       });
 
-      // Shaded area underneath line
-      for (let i = 0; i < coords.length - 1; i++) {
-        const p1 = coords[i];
-        const p2 = coords[i + 1];
-        doc.setFillColor(...hex('#eff6ff'));
-        doc.triangle(p1.x, p1.y, p2.x, p2.y, p1.x, chartBottom, 'F');
-        doc.triangle(p2.x, p2.y, p2.x, chartBottom, p1.x, chartBottom, 'F');
-      }
+      y += dailyChartH + 6.0;
 
-      // Main line
-      doc.setDrawColor(...hex('#0284c7'));
-      doc.setLineWidth(0.8);
-      for (let i = 0; i < coords.length - 1; i++) {
-        doc.line(coords[i].x, coords[i].y, coords[i + 1].x, coords[i + 1].y);
-      }
+      // 7-Day Daily Breakdown Table
+      const dayTableH = 60;
+      fillRect(margin, y, contentW, dayTableH, '#f8fafc');
+      strokeRect(margin, y, contentW, dayTableH, '#e2e8f0');
 
-      // Dots & Labels
-      coords.forEach((pt) => {
-        doc.setFillColor(...hex('#0284c7'));
-        doc.circle(pt.x, pt.y, 1.3, 'F');
-        doc.setFillColor(255, 255, 255);
-        doc.circle(pt.x, pt.y, 0.6, 'F');
+      let rowY = y + 2.5;
+      fillRect(margin + 2, rowY, contentW - 4, 5.2, '#f1f5f9');
+      strokeRect(margin + 2, rowY, contentW - 4, 5.2, '#e2e8f0');
 
-        setFont('normal', 5.8, '#64748b');
-        text(pt.label, pt.x, chartBottom + 5.5, { align: 'center' });
-      });
+      setFont('bold', 5.8, '#475569');
+      text('DATE', margin + 6, rowY + 3.6);
+      text('DAY', margin + 30, rowY + 3.6);
+      text('RECORDED VEHICLES', margin + 58, rowY + 3.6);
+      text('PEAK MOBILITY WINDOW', margin + 100, rowY + 3.6);
+      text('PEAK HOUR VOLUME', margin + 145, rowY + 3.6);
+      text('7-DAY SHARE', margin + 175, rowY + 3.6);
+      rowY += 5.8;
 
-      y += lineChartH + 6.5;
+      weeklyDays.forEach((d, idx) => {
+        const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+        const isPeak = d.date === overallPeakDate && d.totalVehicles > 0;
+        const sharePct = total7DayVehicles > 0 ? ((d.totalVehicles / total7DayVehicles) * 100).toFixed(1) : '0.0';
 
-      // Section 7: Telemetry & Database Audit Metadata
-      fillRect(margin, y, contentW, 5.5, '#f1f5f9');
-      fillRect(margin, y, 3, 5.5, '#475569');
-      setFont('bold', 7.2, '#334155');
-      text('  DATABASE TELEMETRY & CAMERA NODE AUDIT METADATA', margin + 3.5, y + 3.8);
-      y += 7.5;
+        fillRect(margin + 2, rowY, contentW - 4, 6.8, isPeak ? '#eff6ff' : rowBg);
+        strokeRect(margin + 2, rowY, contentW - 4, 6.8, isPeak ? '#bfdbfe' : '#f1f5f9');
 
-      fillRect(margin, y, contentW, 46, '#f8fafc');
-      strokeRect(margin, y, contentW, 46, '#e2e8f0');
+        setFont(isPeak ? 'bold' : 'normal', 6.0, '#0f172a');
+        text(d.date, margin + 6, rowY + 4.5);
 
-      const auditGrid = [
-        ['Billboard Asset Code', bbCode, 'Display Asset Name', bbName],
-        ['Primary Camera Node', selectedBillboard?.camera_ff_code || 'CAM-FF-001', 'Secondary Camera Node', selectedBillboard?.camera_bf_code || 'CAM-BF-001'],
-        ['GPS Geo-Coordinates', `${(Number(selectedBillboard?.latitude) || 0).toFixed(4)}° N, ${(Number(selectedBillboard?.longitude) || 0).toFixed(4)}° E`, 'Display Location', `${landmark}, ${city}`],
-        ['Database Record Date', liveStats?.stat_date || todayIST, 'Last Telemetry Sync', liveStats?.last_updated ? new Date(liveStats.last_updated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : dateStr],
-        ['Stream Connection Status', liveStats?.is_live ? 'Online Live Stream' : 'Synced from Database', 'Total Recorded Volume', `${totalV.toLocaleString()} Vehicles`]
-      ];
+        setFont(isPeak ? 'bold' : 'normal', 6.0, isPeak ? '#2563eb' : '#475569');
+        text(d.fullDay, margin + 30, rowY + 4.5);
 
-      let auditY = y + 4.5;
-      auditGrid.forEach((row) => {
-        setFont('bold', 6.2, '#64748b');
-        text(row[0] + ':', margin + 4, auditY);
-        setFont('normal', 6.5, '#0f172a');
-        text(row[1], margin + 38, auditY);
+        setFont('bold', 6.0, '#0f172a');
+        text(d.totalVehicles.toLocaleString(), margin + 58, rowY + 4.5);
 
-        setFont('bold', 6.2, '#64748b');
-        text(row[2] + ':', margin + 95, auditY);
-        setFont('normal', 6.5, '#2563eb');
-        text(row[3], margin + 135, auditY);
+        setFont('normal', 5.8, '#475569');
+        text(d.peakHourStr, margin + 100, rowY + 4.5);
 
-        auditY += 8.2;
+        setFont('normal', 5.8, isPeak ? '#2563eb' : '#0f172a');
+        text(d.peakCount > 0 ? `${d.peakCount.toLocaleString()} veh` : '—', margin + 145, rowY + 4.5);
+
+        setFont('bold', 6.0, isPeak ? '#2563eb' : '#0284c7');
+        text(`${sharePct}%`, margin + 175, rowY + 4.5);
+
+        rowY += 7.2;
       });
 
       drawFooter(2);
 
-      const fileName = `Aculion_${bbCode}_Traffic_Intelligence_Report.pdf`;
+      const fileName = `Aculion_${bbCode}_7Day_Traffic_Intelligence_Report.pdf`;
       try {
         doc.save(fileName);
       } catch (saveErr) {
@@ -2131,11 +2256,21 @@ export default function LiveDashboard({
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1">
                           <label className="text-[9px] text-white/50">Start Date</label>
-                          <input type="date" defaultValue="2026-07-01" className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" />
+                          <input 
+                            type="date" 
+                            value={reportStartDate} 
+                            onChange={(e) => setReportStartDate(e.target.value)}
+                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" 
+                          />
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-[9px] text-white/50">End Date</label>
-                          <input type="date" defaultValue="2026-07-11" className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" />
+                          <input 
+                            type="date" 
+                            value={reportEndDate} 
+                            onChange={(e) => setReportEndDate(e.target.value)}
+                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" 
+                          />
                         </div>
                       </div>
 

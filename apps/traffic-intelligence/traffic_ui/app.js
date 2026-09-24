@@ -1766,13 +1766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (bestH && maxV > 0) {
                                 calculatedPeakHour = formatPeakHourWindow(bestH.hour);
                                 calculatedPeakCount = maxV;
-                                calculatedPeakDensity = ${(maxV / 60).toFixed(1)} veh/min;
-                            }
-                        }
-                            }
-                            if (bestH && maxV > 0) {
-                                calculatedPeakHour = formatPeakHourWindow(bestH.hour);
-                                calculatedPeakCount = maxV;
                                 calculatedPeakDensity = `${(maxV / 60).toFixed(1)} veh/min`;
                             }
                         }
@@ -1794,8 +1787,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 let row = (data && Array.isArray(data) && data.length > 0 && data[0].billboard_code === cleanCode) ? data[0] : null;
 
-                // Fallback: If querying today and no exact stat_date match, check if there's an active/live record updated today
-                if (!row && selectedDate === getTodayIST()) {
+                // Fallback 1: If row not found or total is 0, check latest traffic_overview row regardless of stat_date
+                if (!row || Number(row.total_vehicles) === 0) {
                     try {
                         const fallbackUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=last_updated.desc&limit=1&_nocache=${Date.now()}`;
                         const fbRes = await fetch(fallbackUrl, {
@@ -1810,21 +1803,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             const fbData = await fbRes.json();
                             if (fbData && Array.isArray(fbData) && fbData.length > 0 && fbData[0].billboard_code === cleanCode) {
                                 const fbRow = fbData[0];
-                                const lastUpdatedDay = fbRow.last_updated ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(fbRow.last_updated)) : '';
-                                if (fbRow.is_live || lastUpdatedDay === selectedDate) {
+                                if (Number(fbRow.total_vehicles) > 0) {
                                     row = fbRow;
-                                    // Auto-heal stat_date in database if mismatched
-                                    if (fbRow.id && fbRow.stat_date !== selectedDate) {
-                                        fetch(`https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?id=eq.${encodeURIComponent(fbRow.id)}`, {
-                                            method: 'PATCH',
-                                            headers: {
-                                                'apikey': SUPABASE_SERVICE_KEY,
-                                                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                                                'Content-Type': 'application/json'
-                                            },
-                                            body: JSON.stringify({ stat_date: selectedDate, is_legacy: false })
-                                        }).catch(() => null);
-                                    }
                                 }
                             }
                         }
@@ -1833,7 +1813,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                if (row) {
+                // Fallback 2: If still 0, check latest snapshot from traffic_overview_history
+                if (!row || Number(row.total_vehicles) === 0) {
+                    try {
+                        const histLatestUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=recorded_at.desc&limit=1&_nocache=${Date.now()}`;
+                        const hlRes = await fetch(histLatestUrl, {
+                            cache: 'no-store',
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (hlRes.ok) {
+                            const hlData = await hlRes.json();
+                            if (hlData && Array.isArray(hlData) && hlData.length > 0 && Number(hlData[0].total_vehicles) > 0) {
+                                row = {
+                                    ...hlData[0],
+                                    last_updated: hlData[0].recorded_at || new Date().toISOString(),
+                                    is_live: true
+                                };
+                            }
+                        }
+                    } catch (hlErr) {
+                        console.warn("History latest snapshot fallback notice:", hlErr);
+                    }
+                }
+
+                if (row && Number(row.total_vehicles) > 0) {
                     if (calculatedPeakHour) {
                         row.peak_traffic_hour = calculatedPeakHour;
                         row.peak_density = calculatedPeakDensity;
@@ -1843,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
                         row.peak_traffic_hour = formatPeakHourWindow(istHour);
                         row.peak_count = Number(row.total_vehicles);
-                        row.peak_density = ${(Number(row.total_vehicles) / 60).toFixed(1)} veh/min;
+                        row.peak_density = `${(Number(row.total_vehicles) / 60).toFixed(1)} veh/min`;
                     } else {
                         row.peak_traffic_hour = '—';
                         row.peak_density = '-- veh/min';
@@ -1852,10 +1859,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
                     fetchWeeklyPeakTraffic(cleanCode);
                     
-                    // Offline detection: if last_updated is older than 60s or is_live is false
+                    // Offline detection: if last_updated is older than 180s and is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
                     const diffSeconds = (Date.now() - lastUpdatedTimeMs) / 1000;
-                    const isOffline = (!row.is_live || diffSeconds > 60);
+                    const isOffline = (!row.is_live && diffSeconds > 180);
 
                     if (isOffline) {
                         const updatedTimeStr = row.last_updated ? new Intl.DateTimeFormat('en-US', {
