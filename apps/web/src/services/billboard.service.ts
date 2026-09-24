@@ -68,7 +68,8 @@ export const billboardService = {
     const { data, error } = await supabase
       .from("billboards")
       .select("*")
-      .eq("id", id)
+      .or(`id.eq.${id},billboard_code.eq.${id}`)
+      .limit(1)
       .maybeSingle();
 
     if (error) {
@@ -80,6 +81,25 @@ export const billboardService = {
       throw new Error(`Billboard with ID ${id} not found.`);
     }
 
+    return mapDbRecordToBillboard(data);
+  },
+
+  getBillboardByCode: async (code: string): Promise<Billboard | null> => {
+    if (!code) return null;
+    const { data, error } = await supabase
+      .from("billboards")
+      .select("*")
+      .or(`billboard_code.eq.${code},id.eq.${code}`)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[billboardService] Error fetching billboard by code:", error);
+      return null;
+    }
+
+    if (!data) return null;
     return mapDbRecordToBillboard(data);
   },
 

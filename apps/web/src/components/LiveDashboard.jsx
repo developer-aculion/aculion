@@ -764,67 +764,83 @@ export default function LiveDashboard({
 
         let dayTotal = 0, dBikes = 0, dComm = 0, dEcon = 0, dPrem = 0, dLux = 0, dUltra = 0, dReach = 0, dAvgDwell = 0, dMaxDwell = 0;
 
-        if (dayRow && Number(dayRow.total_vehicles) > 0) {
-          dayTotal = Number(dayRow.total_vehicles) || 0;
-          dBikes = Number(dayRow.bikes) || 0;
-          dComm = Number(dayRow.commercial) || 0;
-          dEcon = Number(dayRow.economy) || 0;
-          dPrem = Number(dayRow.premium) || 0;
-          dLux = Number(dayRow.luxury) || 0;
-          dUltra = Number(dayRow.ultra_luxury) || 0;
-          dReach = Number(dayRow.estimated_reach) || 0;
-          dAvgDwell = Number(dayRow.avg_exposure_time) || 0;
-          dMaxDwell = Number(dayRow.max_exposure_time) || 0;
-        } else if (hSumV > 0) {
-          dayTotal = hSumV;
-          dBikes = hSumBikes;
-          dComm = hSumComm;
-          dEcon = hSumEcon;
-          dPrem = hSumPrem;
-          dLux = hSumLux;
-          dUltra = hSumUltra;
-          dReach = hSumReach || (dayTotal > 0 ? Math.round(dayTotal * 2.4) : 0);
-          dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
-          dMaxDwell = hMaxDwell;
-        } else if (dateStr === todayIST && liveOverviewRow && Number(liveOverviewRow.total_vehicles) > 0) {
-          dayTotal = Number(liveOverviewRow.total_vehicles) || 0;
-          dBikes = Number(liveOverviewRow.bikes) || 0;
-          dComm = Number(liveOverviewRow.commercial) || 0;
-          dEcon = Number(liveOverviewRow.economy) || 0;
-          dPrem = Number(liveOverviewRow.premium) || 0;
-          dLux = Number(liveOverviewRow.luxury) || 0;
-          dUltra = Number(liveOverviewRow.ultra_luxury) || 0;
-          dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
-          dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
-          dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
-        } else if (dayHist.length > 0) {
-          const latestSnap = dayHist[dayHist.length - 1];
-          dayTotal = Number(latestSnap.total_vehicles) || 0;
-          dBikes = Number(latestSnap.bikes) || 0;
-          dComm = Number(latestSnap.commercial) || 0;
-          dEcon = Number(latestSnap.economy) || 0;
-          dPrem = Number(latestSnap.premium) || 0;
-          dLux = Number(latestSnap.luxury) || 0;
-          dUltra = Number(latestSnap.ultra_luxury) || 0;
-          dReach = Number(latestSnap.estimated_reach) || Math.round(dayTotal * 2.4);
-          dAvgDwell = Number(latestSnap.avg_exposure_time) || 0;
-          dMaxDwell = Number(latestSnap.max_exposure_time) || 0;
-
-          const hMap = new Map();
-          dayHist.forEach(snap => {
-            if (snap.istHour !== null && snap.istHour !== undefined) {
-              const c = Number(snap.total_vehicles) || 0;
-              if (!hMap.has(snap.istHour) || c > hMap.get(snap.istHour)) {
-                hMap.set(snap.istHour, c);
-              }
+        if (dateStr === todayIST) {
+          // ── PRESENT DAY DATA: Retrieved directly from traffic_hour table by SUMming all hours ──
+          if (hSumV > 0) {
+            dayTotal = hSumV;
+            dBikes = hSumBikes;
+            dComm = hSumComm;
+            dEcon = hSumEcon;
+            dPrem = hSumPrem;
+            dLux = hSumLux;
+            dUltra = hSumUltra;
+            dReach = hSumReach || Math.round(dayTotal * 2.4);
+            dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
+            dMaxDwell = hMaxDwell;
+          } else if (liveOverviewRow && Number(liveOverviewRow.total_vehicles) > 0) {
+            dayTotal = Number(liveOverviewRow.total_vehicles) || 0;
+            dBikes = Number(liveOverviewRow.bikes) || 0;
+            dComm = Number(liveOverviewRow.commercial) || 0;
+            dEcon = Number(liveOverviewRow.economy) || 0;
+            dPrem = Number(liveOverviewRow.premium) || 0;
+            dLux = Number(liveOverviewRow.luxury) || 0;
+            dUltra = Number(liveOverviewRow.ultra_luxury) || 0;
+            dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
+            dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
+            dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
+          }
+        } else {
+          // ── PAST DAYS DATA: Retrieved from traffic_day table (plus traffic_hour past data integration) ──
+          if (dayRow && Number(dayRow.total_vehicles) > 0) {
+            // Check if traffic_hour has more complete past hourly data
+            if (hSumV > Number(dayRow.total_vehicles)) {
+              dayTotal = hSumV;
+              dBikes = hSumBikes;
+              dComm = hSumComm;
+              dEcon = hSumEcon;
+              dPrem = hSumPrem;
+              dLux = hSumLux;
+              dUltra = hSumUltra;
+              dReach = hSumReach || Math.round(dayTotal * 2.4);
+              dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : (Number(dayRow.avg_exposure_time) || 0);
+              dMaxDwell = Math.max(hMaxDwell, Number(dayRow.max_exposure_time) || 0);
+            } else {
+              dayTotal = Number(dayRow.total_vehicles) || 0;
+              dBikes = Number(dayRow.bikes) || 0;
+              dComm = Number(dayRow.commercial) || 0;
+              dEcon = Number(dayRow.economy) || 0;
+              dPrem = Number(dayRow.premium) || 0;
+              dLux = Number(dayRow.luxury) || 0;
+              dUltra = Number(dayRow.ultra_luxury) || 0;
+              dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
+              dAvgDwell = Number(dayRow.avg_exposure_time) || 0;
+              dMaxDwell = Number(dayRow.max_exposure_time) || 0;
             }
-          });
-          hMap.forEach((c, h) => {
-            if (c > dayMaxCount) {
-              dayMaxCount = c;
-              dayPeakHour = h;
-            }
-          });
+          } else if (hSumV > 0) {
+            // Past day has records in traffic_hour even if missing from traffic_day
+            dayTotal = hSumV;
+            dBikes = hSumBikes;
+            dComm = hSumComm;
+            dEcon = hSumEcon;
+            dPrem = hSumPrem;
+            dLux = hSumLux;
+            dUltra = hSumUltra;
+            dReach = hSumReach || (dayTotal > 0 ? Math.round(dayTotal * 2.4) : 0);
+            dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
+            dMaxDwell = hMaxDwell;
+          } else if (dayHist.length > 0) {
+            const latestSnap = dayHist[dayHist.length - 1];
+            dayTotal = Number(latestSnap.total_vehicles) || 0;
+            dBikes = Number(latestSnap.bikes) || 0;
+            dComm = Number(latestSnap.commercial) || 0;
+            dEcon = Number(latestSnap.economy) || 0;
+            dPrem = Number(latestSnap.premium) || 0;
+            dLux = Number(latestSnap.luxury) || 0;
+            dUltra = Number(latestSnap.ultra_luxury) || 0;
+            dReach = Number(latestSnap.estimated_reach) || Math.round(dayTotal * 2.4);
+            dAvgDwell = Number(latestSnap.avg_exposure_time) || 0;
+            dMaxDwell = Number(latestSnap.max_exposure_time) || 0;
+          }
         }
 
         total7DayVehicles += dayTotal;

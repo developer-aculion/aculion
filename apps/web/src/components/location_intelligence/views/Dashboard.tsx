@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { locationService } from "../../../services/location.service";
@@ -20,7 +20,9 @@ import {
   Sparkles,
   HelpCircle,
   RefreshCw,
-  Layers
+  Layers,
+  Tv,
+  Compass
 } from "lucide-react";
 
 // ── Comprehensive Regional Landmark / Hub Dictionary for Instant Coordinate Resolution ──
@@ -77,6 +79,21 @@ function resolveLocalArea(lat: number, lng: number): string {
 export default function Dashboard({ selectedBillboard }: { selectedBillboard?: any }) {
   const queryClient = useQueryClient();
 
+  // ── Fetch all registered billboards from DB ──
+  const {
+    data: billboards = [],
+    isLoading: isBillboardsLoading,
+  } = useQuery<Billboard[]>({
+    queryKey: ["billboards"],
+    queryFn: billboardService.getBillboards,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Determine initial active billboard code ──
+  const initialCode = selectedBillboard?.billboard_code || selectedBillboard?.id || "ACU-BB-0001";
+  const [activeBillboardCode, setActiveBillboardCode] = useState<string>(initialCode);
+
+  // ── Calculate initial coordinates ──
   const initialLat = selectedBillboard?.latitude ? Number(selectedBillboard.latitude) : 13.0827;
   const initialLng = selectedBillboard?.longitude ? Number(selectedBillboard.longitude) : 80.2707;
 
@@ -98,21 +115,84 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
   const [longitude, setLongitude] = useState(initialLng);
   const [radius, setRadius] = useState(1000);
 
-  // Sync coords when selectedBillboard prop changes
+  // ── Find active billboard object from DB records ──
+  const activeBillboard = useMemo(() => {
+    if (activeBillboardCode === "custom") return null;
+    return billboards.find(
+      (b: any) => b.billboard_code === activeBillboardCode || b.id === activeBillboardCode
+    ) || (selectedBillboard && (selectedBillboard.billboard_code === activeBillboardCode || selectedBillboard.id === activeBillboardCode) ? selectedBillboard : null);
+  }, [billboards, activeBillboardCode, selectedBillboard]);
+
+  // ── Sync coordinates when selectedBillboard prop changes ──
   useEffect(() => {
-    if (selectedBillboard?.latitude && selectedBillboard?.longitude) {
-      const lat = Number(selectedBillboard.latitude);
-      const lng = Number(selectedBillboard.longitude);
-      setLatitude(lat);
-      setLongitude(lng);
-      setCandidateLat(lat);
-      setCandidateLng(lng);
-      setCandidateLatStr(lat.toFixed(6));
-      setCandidateLngStr(lng.toFixed(6));
+    if (selectedBillboard) {
+      const code = selectedBillboard.billboard_code || selectedBillboard.id;
+      if (code) {
+        setActiveBillboardCode(code);
+      }
+
+      if (selectedBillboard.latitude && selectedBillboard.longitude) {
+        const lat = Number(selectedBillboard.latitude);
+        const lng = Number(selectedBillboard.longitude);
+        setLatitude(lat);
+        setLongitude(lng);
+        setCandidateLat(lat);
+        setCandidateLng(lng);
+        setCandidateLatStr(lat.toFixed(6));
+        setCandidateLngStr(lng.toFixed(6));
+      } else if (code) {
+        // Query database table for exact coordinates using billboard code / id
+        billboardService.getBillboardByCode(code).then((dbBb) => {
+          if (dbBb && dbBb.latitude && dbBb.longitude) {
+            const lat = Number(dbBb.latitude);
+            const lng = Number(dbBb.longitude);
+            setLatitude(lat);
+            setLongitude(lng);
+            setCandidateLat(lat);
+            setCandidateLng(lng);
+            setCandidateLatStr(lat.toFixed(6));
+            setCandidateLngStr(lng.toFixed(6));
+          }
+        }).catch((err) => console.warn("[Dashboard] Error fetching billboard coords from DB:", err));
+      }
     }
   }, [selectedBillboard]);
 
-  // Dynamic reverse-geocoding whenever candidate coordinates change
+  // ── Sync with DB billboards list when loaded ──
+  useEffect(() => {
+    if (billboards.length > 0) {
+      // If currently selected billboard matches a DB record, extract its exact latitude & longitude
+      const match = billboards.find(
+        (b: any) => b.billboard_code === activeBillboardCode || b.id === activeBillboardCode
+      );
+
+      if (match && match.latitude && match.longitude) {
+        const lat = Number(match.latitude);
+        const lng = Number(match.longitude);
+        setLatitude(lat);
+        setLongitude(lng);
+        setCandidateLat(lat);
+        setCandidateLng(lng);
+        setCandidateLatStr(lat.toFixed(6));
+        setCandidateLngStr(lng.toFixed(6));
+      } else if (!selectedBillboard && activeBillboardCode === "ACU-BB-0001" && billboards[0]) {
+        // Default to first billboard from DB
+        const first = billboards[0];
+        const code = first.billboard_code || first.id;
+        setActiveBillboardCode(code);
+        const lat = Number(first.latitude) || 13.0827;
+        const lng = Number(first.longitude) || 80.2707;
+        setLatitude(lat);
+        setLongitude(lng);
+        setCandidateLat(lat);
+        setCandidateLng(lng);
+        setCandidateLatStr(lat.toFixed(6));
+        setCandidateLngStr(lng.toFixed(6));
+      }
+    }
+  }, [billboards]);
+
+  // ── Dynamic reverse-geocoding whenever candidate coordinates change ──
   useEffect(() => {
     if (isNaN(candidateLat) || isNaN(candidateLng)) return;
 
@@ -163,9 +243,33 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
     return () => clearTimeout(debounceTimer);
   }, [candidateLat, candidateLng]);
 
+  // ── Handle Billboard Selector change ──
+  const handleBillboardSelect = (bbCodeOrId: string) => {
+    setActiveBillboardCode(bbCodeOrId);
+    if (bbCodeOrId === "custom") {
+      return;
+    }
+
+    const found = billboards.find(
+      (b: any) => b.billboard_code === bbCodeOrId || b.id === bbCodeOrId
+    );
+
+    if (found && found.latitude && found.longitude) {
+      const lat = Number(found.latitude);
+      const lng = Number(found.longitude);
+      setCandidateLat(lat);
+      setCandidateLng(lng);
+      setCandidateLatStr(lat.toFixed(6));
+      setCandidateLngStr(lng.toFixed(6));
+      setLatitude(lat);
+      setLongitude(lng);
+    }
+  };
+
   // ── Handle manual Latitude change ──
   const handleLatChange = (val: string) => {
     setCandidateLatStr(val);
+    setActiveBillboardCode("custom");
     const num = parseFloat(val);
     if (!isNaN(num) && num >= -90 && num <= 90) {
       setCandidateLat(num);
@@ -175,6 +279,7 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
   // ── Handle manual Longitude change ──
   const handleLngChange = (val: string) => {
     setCandidateLngStr(val);
+    setActiveBillboardCode("custom");
     const num = parseFloat(val);
     if (!isNaN(num) && num >= -180 && num <= 180) {
       setCandidateLng(num);
@@ -185,6 +290,7 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
   const handleLocationPicked = (lat: number, lng: number) => {
     const roundedLat = parseFloat(lat.toFixed(6));
     const roundedLng = parseFloat(lng.toFixed(6));
+    setActiveBillboardCode("custom");
     setCandidateLat(roundedLat);
     setCandidateLng(roundedLng);
     setCandidateLatStr(roundedLat.toFixed(6));
@@ -198,6 +304,18 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
     setLatitude(finalLat);
     setLongitude(finalLng);
     setRadius(radius);
+
+    // Check if coordinates match a registered billboard
+    const match = billboards.find(
+      (b: any) =>
+        Math.abs(Number(b.latitude) - finalLat) < 0.0001 &&
+        Math.abs(Number(b.longitude) - finalLng) < 0.0001
+    );
+    if (match) {
+      setActiveBillboardCode(match.billboard_code || match.id);
+    } else {
+      setActiveBillboardCode("custom");
+    }
   };
 
   // ── Analytics query — refetches whenever latitude/longitude/radius changes ──
@@ -213,25 +331,19 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
     refetchOnWindowFocus: false,
   });
 
-  // ── Fetch all registered billboards ──
-  const {
-    data: billboards = [],
-  } = useQuery<Billboard[]>({
-    queryKey: ["billboards"],
-    queryFn: billboardService.getBillboards,
-    staleTime: 5 * 60 * 1000,
-  });
-
   // ── Listen for chatbot analyze actions ──
   useEffect(() => {
     const handleChatAnalyzeSite = (e: any) => {
       const { latitude: lat, longitude: lng } = e.detail;
-      setCandidateLat(lat);
-      setCandidateLng(lng);
-      setCandidateLatStr(Number(lat).toFixed(6));
-      setCandidateLngStr(Number(lng).toFixed(6));
-      setLatitude(lat);
-      setLongitude(lng);
+      const numLat = Number(lat);
+      const numLng = Number(lng);
+      setCandidateLat(numLat);
+      setCandidateLng(numLng);
+      setCandidateLatStr(numLat.toFixed(6));
+      setCandidateLngStr(numLng.toFixed(6));
+      setLatitude(numLat);
+      setLongitude(numLng);
+      setActiveBillboardCode("custom");
     };
     window.addEventListener("chat-analyze-site", handleChatAnalyzeSite);
     return () => {
@@ -254,15 +366,15 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
           <div className="bg-[#0e1628]/95 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
             <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
               
-              {/* Left: Dynamic Area Badge */}
+              {/* Left: Dynamic Area Badge & Billboard Context */}
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
                 <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-lg shadow-blue-500/10">
                   <MapPin size={22} className={isResolvingArea ? "animate-bounce text-cyan-400" : "text-blue-400"} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 leading-none">
-                      Location Area
+                      Location Overview
                     </span>
                     {isResolvingArea ? (
                       <span className="text-[9px] text-cyan-400 animate-pulse font-mono font-bold">
@@ -270,21 +382,57 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                       </span>
                     ) : (
                       <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Live GPS
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> GPS: {latitude.toFixed(6)}°N, {longitude.toFixed(6)}°E
+                      </span>
+                    )}
+                    {activeBillboard && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono font-bold">
+                        Asset: {activeBillboard.billboard_code || activeBillboard.id}
                       </span>
                     )}
                   </div>
-                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate mt-1" title={resolvedAreaName}>
-                    {resolvedAreaName || "Anna Nagar Shanthi Colony"}
+                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate mt-1" title={activeBillboard?.billboard_name || resolvedAreaName}>
+                    {activeBillboard ? `${activeBillboard.billboard_name || activeBillboard.name} • ${resolvedAreaName}` : resolvedAreaName || "Anna Nagar Shanthi Colony"}
                   </h2>
                 </div>
               </div>
 
-              {/* Right: Controls Container (LAT, LNG, RADIUS, PICK, ANALYZE) */}
+              {/* Right: Controls Container (BILLBOARD SELECTOR, LAT, LNG, RADIUS, PICK, ANALYZE) */}
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-[#080d1a]/85 p-2 border border-white/10 rounded-xl">
                 
+                {/* Billboard Asset Selector Dropdown */}
+                <div className="relative shrink-0 w-full sm:w-[210px]">
+                  <select
+                    value={activeBillboardCode}
+                    onChange={(e) => handleBillboardSelect(e.target.value)}
+                    className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-7 pr-7 py-2 text-xs font-bold focus:outline-none hover:border-blue-500 focus:border-blue-500 cursor-pointer w-full text-white truncate"
+                    title="Select Billboard Asset to load its database coordinates"
+                  >
+                    {billboards.length > 0 ? (
+                      billboards.map((b: any) => {
+                        const bCode = b.billboard_code || b.id;
+                        const bName = b.billboard_name || b.name || "Billboard";
+                        return (
+                          <option key={bCode} value={bCode} className="bg-[#0e1628] text-white">
+                            {bCode}: {bName}
+                          </option>
+                        );
+                      })
+                    ) : (
+                      <option value="ACU-BB-0001" className="bg-[#0e1628] text-white">
+                        ACU-BB-0001: Testing Billboard -1
+                      </option>
+                    )}
+                    <option value="custom" className="bg-[#0e1628] text-amber-300">
+                      📍 Custom GPS Coordinates
+                    </option>
+                  </select>
+                  <Tv className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
+                </div>
+
                 {/* Latitude Input */}
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[135px] focus-within:border-blue-500 transition-colors">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[130px] focus-within:border-blue-500 transition-colors">
                   <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
                   <input
                     type="number"
@@ -298,7 +446,7 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 </div>
 
                 {/* Longitude Input */}
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[135px] focus-within:border-blue-500 transition-colors">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[130px] focus-within:border-blue-500 transition-colors">
                   <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
                   <input
                     type="number"
@@ -312,11 +460,11 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 </div>
 
                 {/* Radius Selector */}
-                <div className="relative w-full sm:w-[100px] shrink-0">
+                <div className="relative w-full sm:w-[95px] shrink-0">
                   <select
                     value={radius}
                     onChange={(e) => setRadius(Number(e.target.value))}
-                    className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-3 pr-7 py-2 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white"
+                    className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-2.5 pr-6 py-2 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white"
                   >
                     <option value="500">500 m</option>
                     <option value="1000">1.0 km</option>
@@ -324,14 +472,14 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                     <option value="2000">2.0 km</option>
                     <option value="3000">3.0 km</option>
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
                 </div>
 
                 {/* Pick on Map Toggle Button */}
                 <button
                   type="button"
                   onClick={() => setIsMapPickingActive(!isMapPickingActive)}
-                  className={`flex items-center justify-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-black transition-all duration-200 shrink-0 w-full sm:w-auto cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-black transition-all duration-200 shrink-0 w-full sm:w-auto cursor-pointer ${
                     isMapPickingActive
                       ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
                       : "border-white/10 bg-[#121829] hover:bg-white/10 text-white/70 hover:text-white"
@@ -347,7 +495,7 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                   type="button"
                   onClick={handleAnalyzeSubmit}
                   disabled={isAnalyticsLoading || isAnalyticsFetching}
-                  className="flex items-center justify-center gap-1.5 px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 w-full sm:w-auto cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 w-full sm:w-auto cursor-pointer disabled:opacity-50"
                 >
                   {isAnalyticsLoading || isAnalyticsFetching ? (
                     <RefreshCw size={13} className="animate-spin" />
@@ -393,12 +541,24 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
               selectedLng={candidateLng}
               billboards={billboards}
               onAnalyzeSite={(lat, lng) => {
-                setCandidateLat(lat);
-                setCandidateLng(lng);
-                setCandidateLatStr(lat.toFixed(6));
-                setCandidateLngStr(lng.toFixed(6));
-                setLatitude(lat);
-                setLongitude(lng);
+                const roundedLat = parseFloat(lat.toFixed(6));
+                const roundedLng = parseFloat(lng.toFixed(6));
+                const match = billboards.find(
+                  (b: any) =>
+                    Math.abs(Number(b.latitude) - roundedLat) < 0.0001 &&
+                    Math.abs(Number(b.longitude) - roundedLng) < 0.0001
+                );
+                if (match) {
+                  setActiveBillboardCode(match.billboard_code || match.id);
+                } else {
+                  setActiveBillboardCode("custom");
+                }
+                setCandidateLat(roundedLat);
+                setCandidateLng(roundedLng);
+                setCandidateLatStr(roundedLat.toFixed(6));
+                setCandidateLngStr(roundedLng.toFixed(6));
+                setLatitude(roundedLat);
+                setLongitude(roundedLng);
               }}
             />
           </div>
