@@ -160,6 +160,13 @@ export default function LiveDashboard({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mainMediaView, setMainMediaView] = useState('map');
   const [timeFilter, setTimeFilter] = useState('24H');
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 640 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileScreen(window.innerWidth < 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Prevent background scrolling on mobile when sidebar drawer is open
   useEffect(() => {
@@ -1369,24 +1376,24 @@ export default function LiveDashboard({
           {/* ═══════════════════════════════════════════════════
              TOP BAR (TARGET REFERENCE DESIGN 1)
           ═══════════════════════════════════════════════════ */}
-          <header className="min-h-[64px] sm:h-[76px] border-b border-white/10 px-4 sm:px-6 lg:px-8 py-3 sm:py-0 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-[#080c16] flex-shrink-0 w-full">
+          <header className="min-h-[60px] sm:h-[76px] border-b border-white/10 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-0 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-3 bg-[#080c16] flex-shrink-0 w-full">
             {/* Left: Hamburger Button & Greeting */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               {/* Hamburger Button (Visible on Tablet & Mobile) */}
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 text-white/80 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl flex items-center justify-center w-10 h-10 transition-all cursor-pointer flex-shrink-0"
+                className="lg:hidden p-2 text-white/80 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 transition-all cursor-pointer flex-shrink-0"
                 aria-label="Open navigation"
               >
-                <i className="fa-solid fa-bars text-base" />
+                <i className="fa-solid fa-bars text-sm sm:text-base" />
               </button>
 
               <div className="flex flex-col justify-center min-w-0">
-                <h1 className="text-base sm:text-lg lg:text-xl font-heading text-white tracking-tight flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                  <span className="font-normal text-white/60 text-sm sm:text-base lg:text-lg">Welcome back,</span>
-                  <span className="font-bold text-white text-base sm:text-lg lg:text-xl">{userName}</span>
-                  <span className="text-base sm:text-lg select-none">👋</span>
+                <h1 className="text-sm sm:text-lg lg:text-xl font-heading text-white tracking-tight flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <span className="font-normal text-white/60 text-xs sm:text-base lg:text-lg">Welcome back,</span>
+                  <span className="font-bold text-white text-sm sm:text-lg lg:text-xl truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">{userName}</span>
+                  <span className="text-sm sm:text-lg select-none shrink-0">👋</span>
                 </h1>
                 <p className="text-[11px] sm:text-xs text-white/40 font-medium leading-none mt-1 hidden sm:block whitespace-nowrap">
                   Here's what's happening across your media today.
@@ -1395,29 +1402,22 @@ export default function LiveDashboard({
             </div>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
-              <div className="h-10 flex items-center gap-2 bg-[#121829] border border-white/10 rounded-xl px-3.5 text-xs text-white/80 font-medium">
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-nowrap shrink-0">
+              <div className="h-9 sm:h-10 flex items-center gap-1.5 sm:gap-2 bg-[#121829] border border-white/10 rounded-xl px-2.5 sm:px-3.5 text-xs text-white/80 font-medium shrink-0">
                 <i className="fa-regular fa-calendar text-blue-400 text-xs shrink-0" />
-                <span className="font-mono whitespace-nowrap">Today, {formattedDate}</span>
+                <span className="font-mono whitespace-nowrap text-[11px] sm:text-xs">Today, {formattedDate}</span>
               </div>
 
-              {user?.role === 'Administrator' ? (
-                <button
-                  onClick={onAddNewMedia || onBackToProfile}
-                  className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
-                >
-                  <i className="fa-solid fa-plus text-xs shrink-0" />
-                  <span>Add Media</span>
-                </button>
-              ) : (
-                <button
-                  onClick={onBackToProfile}
-                  className="h-10 px-4 rounded-xl bg-[#121829] hover:bg-[#1a223a] text-cyan-400 text-xs font-semibold shadow-lg border border-cyan-500/30 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
-                >
-                  <i className="fa-solid fa-headset text-xs text-cyan-400 shrink-0" />
-                  <span>Contact Aculion to Add Media</span>
-                </button>
-              )}
+              {/* Primary Action Button: Compact + Add on mobile, + Add Media on desktop */}
+              <button
+                type="button"
+                onClick={onAddNewMedia || onBackToProfile}
+                className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 border border-blue-400/30 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                title={isMobileScreen ? 'Add' : 'Add Media'}
+              >
+                <i className="fa-solid fa-plus text-xs shrink-0" />
+                <span className="font-semibold text-xs">{isMobileScreen ? 'Add' : 'Add Media'}</span>
+              </button>
             </div>
           </header>
 

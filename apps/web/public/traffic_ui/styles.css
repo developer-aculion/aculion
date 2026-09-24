@@ -346,33 +346,14 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 
 .header-left {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 0;
+    min-width: 0;
 }
 
 .toggle-sidebar-btn {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    cursor: pointer;
-    border-radius: 12px;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-heading);
-    font-size: 13px;
-    font-weight: 500;
-    transition: var(--transition-smooth);
-    box-sizing: border-box;
-}
-
-.toggle-sidebar-btn:hover {
-    border-color: var(--color-electric-blue);
-    background: rgba(30, 136, 255, 0.12);
-    color: var(--color-cyan);
+    display: none !important;
 }
 
 .header-titles h1 {
@@ -2007,7 +1988,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     }
 
     .header-left {
-        gap: 10px;
+        gap: 0;
         width: 100%;
         align-items: flex-start;
     }
