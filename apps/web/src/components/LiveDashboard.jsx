@@ -2298,11 +2298,6 @@ export default function LiveDashboard({
              FOOTER STATUS BAR
           ═══════════════════════════════════════════════════ */}
           <footer className="min-h-[40px] border-t border-white/10 px-4 sm:px-6 py-2.5 sm:py-0 flex flex-col sm:flex-row items-center justify-between gap-2 bg-[#05070f] text-[10px] text-white/35 flex-shrink-0 w-full text-center sm:text-left">
-            <div className="flex items-center gap-1.5 font-semibold text-[#22c55e]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
-              All hardware nodes operational
-            </div>
-            
             <div className="font-medium text-white/30 text-center truncate px-2">
               Aculion Location Intelligence Platform <span className="mx-2 text-white/10">|</span> Real-time human & mobility insights
             </div>

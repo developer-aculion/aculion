@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { CalendarRange, Hourglass, TrendingUp, RefreshCw, Zap, Award, Sparkles } from "lucide-react";
+import { CalendarRange, Hourglass, TrendingUp, RefreshCw, Zap, Award, BarChart3, LayoutGrid } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  CartesianGrid
+} from "recharts";
 import { billboardService } from "../../../services/billboard.service";
 
 interface WeeklyPeakTrafficHourCardProps {
@@ -42,6 +52,7 @@ export default function WeeklyPeakTrafficHourCard({
     days: []
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<"chart" | "grid">("chart");
 
   const fetchWeeklyPeak = async () => {
     if (!billboardCode) {
@@ -66,6 +77,18 @@ export default function WeeklyPeakTrafficHourCard({
   useEffect(() => {
     fetchWeeklyPeak();
   }, [billboardCode]);
+
+  // Transform days for Recharts Bar Chart
+  const chartData = weeklyData.days.map((d) => ({
+    name: `${d.dayName} ${d.date.slice(5)}`,
+    dayName: d.dayName,
+    date: d.date,
+    totalVehicles: d.totalVehicles,
+    peakCount: d.peakCount,
+    peakHourStr: d.peakHourStr,
+    avgDensity: d.avgDensity,
+    isWeeklyPeak: d.isWeeklyPeak
+  }));
 
   return (
     <div
@@ -97,15 +120,45 @@ export default function WeeklyPeakTrafficHourCard({
           </div>
         </div>
 
-        <button
-          onClick={fetchWeeklyPeak}
-          disabled={loading}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
-          title="Refresh weekly peak analysis"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin text-cyan-400" : "text-slate-400"} />
-          <span>{loading ? "Calculating..." : "Refresh"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div className="flex items-center bg-slate-900/80 border border-white/10 rounded-xl p-0.5">
+            <button
+              onClick={() => setViewMode("chart")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "chart"
+                  ? "bg-cyan-500 text-slate-950 shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Bar Chart View"
+            >
+              <BarChart3 size={12} />
+              <span className="hidden sm:inline">Chart</span>
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "grid"
+                  ? "bg-cyan-500 text-slate-950 shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="7-Day Cards View"
+            >
+              <LayoutGrid size={12} />
+              <span className="hidden sm:inline">Cards</span>
+            </button>
+          </div>
+
+          <button
+            onClick={fetchWeeklyPeak}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+            title="Refresh weekly peak analysis"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin text-cyan-400" : "text-slate-400"} />
+            <span>{loading ? "Calculating..." : "Refresh"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content Layout */}
@@ -158,67 +211,141 @@ export default function WeeklyPeakTrafficHourCard({
           </div>
         </div>
 
-        {/* Right Columns: 7-Day Day-by-Day Peak Hour Cards Breakdown */}
+        {/* Right Columns: Bar Chart or 7-Day Day-by-Day Cards */}
         <div className="lg:col-span-2 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              7-Day Peak Hour Breakdown
+              {viewMode === "chart" ? "7-Day Traffic Flow & Peak Comparison" : "7-Day Peak Hour Breakdown"}
             </span>
             <span className="text-[11px] font-semibold text-slate-400">
               Weekly Total: <strong className="font-mono text-white">{weeklyData.weeklyTotalVehicles.toLocaleString("en-IN")}</strong> veh
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-            {weeklyData.days.map((day) => {
-              const hasData = day.peakCount > 0;
-              return (
-                <div
-                  key={day.date}
-                  className={`relative rounded-xl p-3 flex flex-col justify-between transition-all duration-200 border ${
-                    day.isWeeklyPeak
-                      ? "bg-[#00f0ff]/10 border-cyan-400/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] ring-1 ring-cyan-400/30"
-                      : hasData
-                      ? "bg-slate-900/70 border-white/10 hover:border-blue-500/30 hover:bg-slate-900/90"
-                      : "bg-slate-950/40 border-white/5 opacity-60"
-                  }`}
-                >
-                  {day.isWeeklyPeak && (
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-cyan-500 text-[8px] font-black text-slate-950 uppercase tracking-tighter whitespace-nowrap shadow">
-                      Peak Day
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-white font-mono uppercase">
-                        {day.dayName}
-                      </span>
-                      <span className="text-[9px] font-medium text-slate-400">
-                        {day.date.slice(5)}
-                      </span>
-                    </div>
-
-                    <div className="mt-2">
-                      <div className="text-[12px] font-black font-mono text-cyan-300 leading-tight">
-                        {day.peakHourStr}
+          {viewMode === "chart" ? (
+            /* Recharts Bar Chart */
+            <div className="h-[210px] w-full bg-slate-900/60 border border-white/10 rounded-xl p-3 flex flex-col justify-between">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                    tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-[#0b1220]/95 border border-cyan-500/40 rounded-xl p-3 shadow-2xl backdrop-blur-md text-xs font-sans">
+                            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1.5 mb-1.5">
+                              <span className="font-bold text-white font-mono">{d.dayName} ({d.date})</span>
+                              {d.isWeeklyPeak && (
+                                <span className="px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950 font-black text-[9px] uppercase">
+                                  Weekly Peak
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1 text-[11px]">
+                              <div className="flex justify-between gap-4">
+                                <span className="text-slate-400">Total Day Vehicles:</span>
+                                <span className="font-mono font-bold text-white">{d.totalVehicles.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-slate-400">Peak Mobility Window:</span>
+                                <span className="font-mono font-bold text-cyan-300">{d.peakHourStr}</span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-slate-400">Peak Hour Volume:</span>
+                                <span className="font-mono font-bold text-emerald-400">{d.peakCount.toLocaleString("en-IN")} veh</span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-slate-400">Density:</span>
+                                <span className="font-mono font-bold text-emerald-300">{d.avgDensity > 0 ? `${d.avgDensity} v/m` : "--"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="totalVehicles" radius={[6, 6, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.isWeeklyPeak ? "#00f0ff" : entry.totalVehicles > 0 ? "#1e88ff" : "#1e293b"}
+                        stroke={entry.isWeeklyPeak ? "#38bdf8" : "transparent"}
+                        strokeWidth={entry.isWeeklyPeak ? 1.5 : 0}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            /* 7-Day Day-by-Day Peak Hour Cards Breakdown */
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+              {weeklyData.days.map((day) => {
+                const hasData = day.peakCount > 0;
+                return (
+                  <div
+                    key={day.date}
+                    className={`relative rounded-xl p-3 flex flex-col justify-between transition-all duration-200 border ${
+                      day.isWeeklyPeak
+                        ? "bg-[#00f0ff]/10 border-cyan-400/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] ring-1 ring-cyan-400/30"
+                        : hasData
+                        ? "bg-slate-900/70 border-white/10 hover:border-blue-500/30 hover:bg-slate-900/90"
+                        : "bg-slate-950/40 border-white/5 opacity-60"
+                    }`}
+                  >
+                    {day.isWeeklyPeak && (
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-cyan-500 text-[8px] font-black text-slate-950 uppercase tracking-tighter whitespace-nowrap shadow">
+                        Peak Day
                       </div>
-                      <div className="text-[10px] text-slate-400 font-semibold mt-1">
-                        {hasData ? `${day.peakCount.toLocaleString("en-IN")} veh` : "0 veh"}
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-white font-mono uppercase">
+                          {day.dayName}
+                        </span>
+                        <span className="text-[9px] font-medium text-slate-400">
+                          {day.date.slice(5)}
+                        </span>
                       </div>
+
+                      <div className="mt-2">
+                        <div className="text-[12px] font-black font-mono text-cyan-300 leading-tight">
+                          {day.peakHourStr}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-1">
+                          {hasData ? `${day.peakCount.toLocaleString("en-IN")} veh` : "0 veh"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[9.5px]">
+                      <span className="text-slate-400">Density:</span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {day.avgDensity > 0 ? `${day.avgDensity} v/m` : "--"}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[9.5px]">
-                    <span className="text-slate-400">Density:</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      {day.avgDensity > 0 ? `${day.avgDensity} v/m` : "--"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

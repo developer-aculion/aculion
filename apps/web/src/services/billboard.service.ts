@@ -224,6 +224,7 @@ export const billboardService = {
 
   /**
    * Fetch all 24-hour aggregated records from 'traffic_hour' for a specific billboard and day.
+   * If traffic_hour is empty or incomplete, aggregates from traffic_overview_history using IST hours.
    */
   getHourlyTraffic: async (billboardCode: string, statDate?: string): Promise<any[]> => {
     if (!billboardCode) return [];
@@ -239,22 +240,68 @@ export const billboardService = {
         .or(`date.eq.${targetDate},stat_date.eq.${targetDate}`)
         .order("hour", { ascending: true });
 
-      if (error) {
-        console.warn("[billboardService] Notice querying traffic_hour:", error);
-      } else if (data && data.length > 0) {
-        return data;
+      if (!error && data && data.length > 0) {
+        let maxCount = 0;
+        for (const r of data) {
+          if (Number(r.total_vehicles) > maxCount) maxCount = Number(r.total_vehicles);
+        }
+        if (maxCount > 0) {
+          return data;
+        }
       }
 
-      // 2. Fallback: Check traffic_overview_history if traffic_hour cron hasn't aggregated yet
+      // 2. Fallback: Aggregate from traffic_overview_history by IST hour
       const { data: histData, error: histError } = await supabase
         .from("traffic_overview_history")
-        .select("*")
+        .select("recorded_at, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
         .eq("billboard_code", billboardCode)
         .eq("stat_date", targetDate)
-        .order("hour", { ascending: true });
+        .order("recorded_at", { ascending: true })
+        .limit(1000);
 
       if (!histError && histData && histData.length > 0) {
-        return histData;
+        const hourMap = new Map<number, any>();
+        for (const row of histData) {
+          if (!row.recorded_at) continue;
+          const dt = new Date(row.recorded_at);
+          // Convert to IST hour (UTC + 5:30)
+          const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+          const count = Number(row.total_vehicles) || 0;
+          if (!hourMap.has(istHour) || count > (Number(hourMap.get(istHour).total_vehicles) || 0)) {
+            hourMap.set(istHour, {
+              ...row,
+              hour: istHour,
+              total_vehicles: count,
+              flow_rate: row.flow_rate || 0
+            });
+          }
+        }
+        const hourList = Array.from(hourMap.values()).sort((a, b) => a.hour - b.hour);
+        if (hourList.length > 0) {
+          return hourList;
+        }
+      }
+
+      // 3. Fallback: If querying today and live traffic exists in traffic_overview
+      if (targetDate === todayIST) {
+        const { data: liveData } = await supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .order("last_updated", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (liveData && Number(liveData.total_vehicles) > 0) {
+          const dt = liveData.last_updated ? new Date(liveData.last_updated) : new Date();
+          const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+          return [{
+            ...liveData,
+            hour: istHour,
+            total_vehicles: Number(liveData.total_vehicles),
+            flow_rate: Number(liveData.flow_rate) || 0
+          }];
+        }
       }
 
       return [];
@@ -356,9 +403,10 @@ export const billboardService = {
 
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
+      const todayDate = dates[dates.length - 1];
 
-      // Query traffic_hour and traffic_day for this billboard in the 7-day window
-      const [hourRes, dayRes] = await Promise.all([
+      // Query traffic_hour, traffic_day, and traffic_overview in parallel
+      const [hourRes, dayRes, overviewRes] = await Promise.all([
         supabase
           .from("traffic_hour")
           .select("*")
@@ -373,11 +421,19 @@ export const billboardService = {
           .eq("billboard_code", billboardCode)
           .gte("date", minDate)
           .lte("date", maxDate)
-          .order("date", { ascending: true })
+          .order("date", { ascending: true }),
+        supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .order("last_updated", { ascending: false })
+          .limit(1)
+          .maybeSingle()
       ]);
 
       const hourRows = hourRes.data || [];
       const dayRows = dayRes.data || [];
+      const liveOverview = overviewRes.data || null;
 
       // Map day rows by date
       const dayMap = new Map<string, any>();
@@ -420,7 +476,20 @@ export const billboardService = {
           }
         }
 
-        const dayTotal = Number(dayRow?.total_vehicles) || dayCalculatedTotal || 0;
+        let dayTotal = Number(dayRow?.total_vehicles) || dayCalculatedTotal || 0;
+
+        // If today and no traffic_day record yet, incorporate live overview data
+        if (dateStr === todayDate && liveOverview && Number(liveOverview.total_vehicles) > 0) {
+          if (dayTotal === 0 || Number(liveOverview.total_vehicles) > dayTotal) {
+            dayTotal = Number(liveOverview.total_vehicles);
+          }
+          if (dayMaxCount === 0) {
+            const dt = liveOverview.last_updated ? new Date(liveOverview.last_updated) : new Date();
+            dayPeakHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+            dayMaxCount = Number(liveOverview.total_vehicles);
+          }
+        }
+
         weeklyTotal += dayTotal;
 
         if (dayMaxCount > overallMaxCount) {
