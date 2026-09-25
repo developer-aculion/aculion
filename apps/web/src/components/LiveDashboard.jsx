@@ -226,6 +226,50 @@ export default function LiveDashboard({
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportsList, setReportsList] = useState([]);
 
+  const applyDatePreset = (presetKey) => {
+    const now = new Date();
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    if (presetKey === '7d') {
+      const startD = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+      const startStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(startD);
+      setReportStartDate(startStr);
+      setReportEndDate(todayStr);
+      setReportType('weekly');
+    } else if (presetKey === '1d') {
+      setReportStartDate(todayStr);
+      setReportEndDate(todayStr);
+      setReportType('daily');
+    } else if (presetKey === '30d') {
+      const startD = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
+      const startStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(startD);
+      setReportStartDate(startStr);
+      setReportEndDate(todayStr);
+      setReportType('monthly');
+    }
+  };
+
+  const handleScopeChange = (scope) => {
+    setReportType(scope);
+    const endObj = reportEndDate ? new Date(reportEndDate + 'T12:00:00+05:30') : new Date();
+    if (scope === 'daily') {
+      setReportStartDate(reportEndDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
+    } else if (scope === 'weekly') {
+      const startD = new Date(endObj.getTime() - 6 * 24 * 60 * 60 * 1000);
+      setReportStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(startD));
+    } else if (scope === 'monthly') {
+      const startD = new Date(endObj.getTime() - 29 * 24 * 60 * 60 * 1000);
+      setReportStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(startD));
+    }
+  };
+
+  const getSelectedDayCount = () => {
+    if (!reportStartDate || !reportEndDate) return 1;
+    const s = new Date(reportStartDate + 'T12:00:00+05:30');
+    const e = new Date(reportEndDate + 'T12:00:00+05:30');
+    const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(1, diff);
+  };
+
   const buildLiveAlerts = React.useCallback((telemetry) => {
     const code = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0004';
     const camCode = selectedBillboard?.camera_ff_code || 'CAM-FF-004';
@@ -2798,7 +2842,38 @@ export default function LiveDashboard({
                   {/* Query config panel */}
                   <form onSubmit={handleGenerateReport} className="bg-slate-900/60 border border-white/10 rounded-xl p-4 flex flex-col justify-between shadow-lg h-full">
                     <div className="flex flex-col gap-3">
-                      <span className="text-[10px] text-white/45 uppercase font-medium">Report Configuration</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-white/45 uppercase font-medium">Report Configuration</span>
+                        <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+                          {getSelectedDayCount()}-Day Scope Selected
+                        </span>
+                      </div>
+
+                      {/* Quick Date Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap bg-white/[0.02] border border-white/5 p-2 rounded-lg">
+                        <span className="text-[9px] text-white/40 mr-0.5 font-medium">Quick Presets:</span>
+                        <button
+                          type="button"
+                          onClick={() => applyDatePreset('7d')}
+                          className={`px-2.5 py-1 rounded text-[9.5px] font-semibold transition-all !shadow-none !outline-none ${reportType === 'weekly' && getSelectedDayCount() === 7 ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
+                        >
+                          Last 7 Days (Weekly)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyDatePreset('1d')}
+                          className={`px-2.5 py-1 rounded text-[9.5px] font-semibold transition-all !shadow-none !outline-none ${reportType === 'daily' || getSelectedDayCount() === 1 ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
+                        >
+                          Today (1-Day)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyDatePreset('30d')}
+                          className={`px-2.5 py-1 rounded text-[9.5px] font-semibold transition-all !shadow-none !outline-none ${reportType === 'monthly' && getSelectedDayCount() >= 28 ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
+                        >
+                          Last 30 Days (Monthly)
+                        </button>
+                      </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1">
@@ -2825,11 +2900,13 @@ export default function LiveDashboard({
                         <label className="text-[10px] text-white/50">Frequency Scope</label>
                         <select
                           value={reportType}
-                          onChange={(e) => setReportType(e.target.value)}
+                          onChange={(e) => handleScopeChange(e.target.value)}
                           className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none"
                         >
-                          <option value="weekly">Weekly Summary</option>
-                          <option value="monthly">Monthly Comprehensive</option>
+                          <option value="weekly">Weekly Summary (7-Day)</option>
+                          <option value="daily">Single-Day Snapshot (1-Day)</option>
+                          <option value="monthly">Monthly Comprehensive (30-Day)</option>
+                          <option value="custom">Custom Date Range</option>
                         </select>
                       </div>
 
