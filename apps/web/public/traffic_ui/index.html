@@ -62,12 +62,11 @@
                 <div class="filter-group">
                     <label>Vehicle Category</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" id="catEconomy" checked> Bike</label>
-                        <label><input type="checkbox" id="catPremium" checked> Commercial</label>
-                        <label><input type="checkbox" id="catLuxury" checked> Economy</label>
-                        <label><input type="checkbox" id="catUltra" checked> Premium</label>
-                        <label><input type="checkbox" id="catBikes" checked> Luxury</label>
-                        <label><input type="checkbox" id="catCommercial" checked> Ultra Luxury</label>
+                        <label><input type="checkbox" id="catBikes" checked> Bike</label>
+                        <label><input type="checkbox" id="catCommercial" checked> Commercial</label>
+                        <label><input type="checkbox" id="catEconomy" checked> Economy</label>
+                        <label><input type="checkbox" id="catPremium" checked> Premium</label>
+                        <label><input type="checkbox" id="catLuxury" checked> Luxury</label>
                     </div>
                 </div>
 
@@ -397,79 +396,14 @@
 
                         <div class="classification-list">
                             <!-- Bike -->
-                            <div class="class-item" id="class-economy">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🏍</span>
-                                        <span class="class-label">Bike</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-economy">0</span>
-                                        <span class="class-pct" id="pct-economy">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Commercial -->
-                            <div class="class-item" id="class-premium">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚚</span>
-                                        <span class="class-label">Commercial</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-premium">0</span>
-                                        <span class="class-pct" id="pct-premium">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Economy -->
-                            <div class="class-item" id="class-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚗</span>
-                                        <span class="class-label">Economy</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-luxury">0</span>
-                                        <span class="class-pct" id="pct-luxury">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Premium -->
-                            <div class="class-item" id="class-ultra-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚙</span>
-                                        <span class="class-label">Premium</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-ultra">0</span>
-                                        <span class="class-pct" id="pct-ultra">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Luxury -->
                             <div class="class-item" id="class-bikes">
                                 <div class="class-info">
                                     <div class="class-name">
-                                        <span class="class-emoji">🏎</span>
-                                        <span class="class-label">Luxury</span>
+                                        <span class="class-emoji">🏍</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Bike</span>
+                                            <span class="class-desc">Two-Wheelers &amp; Scooters</span>
+                                        </div>
                                     </div>
                                     <div class="class-stats">
                                         <span class="class-count" id="count-bikes">0</span>
@@ -481,12 +415,15 @@
                                 </div>
                             </div>
 
-                            <!-- Ultra Luxury -->
+                            <!-- Commercial -->
                             <div class="class-item" id="class-commercial">
                                 <div class="class-info">
                                     <div class="class-name">
-                                        <span class="class-emoji">👑</span>
-                                        <span class="class-label">Ultra Luxury</span>
+                                        <span class="class-emoji">🚚</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Commercial</span>
+                                            <span class="class-desc">Freight vehicles and public transport</span>
+                                        </div>
                                     </div>
                                     <div class="class-stats">
                                         <span class="class-count" id="count-commercial">0</span>
@@ -495,6 +432,66 @@
                                 </div>
                                 <div class="progress-bar-container">
                                     <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Economy -->
+                            <div class="class-item" id="class-economy">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚗</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Economy</span>
+                                            <span class="class-desc">Cars under 15 Lakhs</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-economy">0</span>
+                                        <span class="class-pct" id="pct-economy">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Premium -->
+                            <div class="class-item" id="class-premium">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚙</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Premium</span>
+                                            <span class="class-desc">15L to 1 Cr</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-premium">0</span>
+                                        <span class="class-pct" id="pct-premium">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Luxury -->
+                            <div class="class-item" id="class-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏎</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Luxury</span>
+                                            <span class="class-desc">1 Cr and above</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-luxury">0</span>
+                                        <span class="class-pct" id="pct-luxury">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
                                 </div>
                             </div>
                         </div>

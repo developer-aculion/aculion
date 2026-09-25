@@ -941,17 +941,33 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 .class-name {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .class-emoji {
-    font-size: 18px;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.class-label-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
 }
 
 .class-label {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.class-desc {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    opacity: 0.75;
+    line-height: 1.1;
 }
 
 .class-stats {
@@ -988,12 +1004,11 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 }
 
 /* Vehicle class gradients */
-.economy-bg { background: linear-gradient(90deg, var(--color-economy) 0%, #006ce6 100%); }
-.premium-bg { background: linear-gradient(90deg, var(--color-premium) 0%, #0099cc 100%); }
-.luxury-bg { background: linear-gradient(90deg, var(--color-luxury) 0%, #6d28d9 100%); }
-.ultra-bg { background: linear-gradient(90deg, var(--color-ultra) 0%, #d97706 100%); }
-.bikes-bg { background: linear-gradient(90deg, var(--color-bikes) 0%, #047857 100%); }
-.commercial-bg { background: linear-gradient(90deg, var(--color-commercial) 0%, #c2410c 100%); }
+.bikes-bg { background: linear-gradient(90deg, #1E88FF 0%, #006ce6 100%); }
+.commercial-bg { background: linear-gradient(90deg, #00C4FF 0%, #0284C7 100%); }
+.economy-bg { background: linear-gradient(90deg, #8B5CF6 0%, #6D28D9 100%); }
+.premium-bg { background: linear-gradient(90deg, #F59E0B 0%, #D97706 100%); }
+.luxury-bg { background: linear-gradient(90deg, #10B981 0%, #047857 100%); }
 
 /* --- Vehicle Distribution Donut --- */
 .donut-chart-container {

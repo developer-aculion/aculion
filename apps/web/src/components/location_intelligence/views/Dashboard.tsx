@@ -363,30 +363,26 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
           {/* ═══════════════════════════════════════════════════════════════
              1. TOP LOCATION INTELLIGENCE CONTROL BAR (ABOVE KPI CARDS)
           ═══════════════════════════════════════════════════════════════ */}
-          <div className="bg-[#0e1628]/95 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
-            <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
-              
-              {/* Left: Dynamic Area Badge & Billboard Context */}
-              <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-lg shadow-blue-500/10">
-                  <MapPin size={22} className={isResolvingArea ? "animate-bounce text-cyan-400" : "text-blue-400"} />
+          <div className="bg-[#0e1628]/95 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl flex flex-col gap-4">
+            
+            {/* Top Row: Location Identity & Metadata Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-white/5">
+              {/* Left: Icon + Area Name & Status */}
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-md shadow-blue-500/10">
+                  <MapPin size={20} className={isResolvingArea ? "animate-bounce text-cyan-400" : "text-blue-400"} />
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center flex-wrap gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 leading-none">
                       Location Overview
                     </span>
-                    {isResolvingArea ? (
-                      <span className="text-[9px] text-cyan-400 animate-pulse font-mono font-bold">
-                        • Resolving Coords...
-                      </span>
-                    ) : (
-                      <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> GPS: {latitude.toFixed(6)}°N, {longitude.toFixed(6)}°E
-                      </span>
-                    )}
+                    <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      GPS: {latitude.toFixed(6)}°N, {longitude.toFixed(6)}°E
+                    </span>
                     {activeBillboard && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono font-bold">
+                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono font-bold whitespace-nowrap">
                         Asset: {activeBillboard.billboard_code || activeBillboard.id}
                       </span>
                     )}
@@ -397,116 +393,127 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 </div>
               </div>
 
-              {/* Right: Controls Container (BILLBOARD SELECTOR, LAT, LNG, RADIUS, PICK, ANALYZE) */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-[#080d1a]/85 p-2 border border-white/10 rounded-xl">
-                
-                {/* Billboard Asset Selector Dropdown */}
-                <div className="relative shrink-0 w-full sm:w-[210px]">
-                  <select
-                    value={activeBillboardCode}
-                    onChange={(e) => handleBillboardSelect(e.target.value)}
-                    className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-7 pr-7 py-2 text-xs font-bold focus:outline-none hover:border-blue-500 focus:border-blue-500 cursor-pointer w-full text-white truncate"
-                    title="Select Billboard Asset to load its database coordinates"
-                  >
-                    {billboards.length > 0 ? (
-                      billboards.map((b: any) => {
-                        const bCode = b.billboard_code || b.id;
-                        const bName = b.billboard_name || b.name || "Billboard";
-                        return (
-                          <option key={bCode} value={bCode} className="bg-[#0e1628] text-white">
-                            {bCode}: {bName}
-                          </option>
-                        );
-                      })
-                    ) : (
-                      <option value="ACU-BB-0001" className="bg-[#0e1628] text-white">
-                        ACU-BB-0001: Testing Billboard -1
-                      </option>
-                    )}
-                    <option value="custom" className="bg-[#0e1628] text-amber-300">
-                      📍 Custom GPS Coordinates
-                    </option>
-                  </select>
-                  <Tv className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400 pointer-events-none" />
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
-                </div>
+              {/* Right: Catchment Zone & GIS Radar Badge */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-white/50 font-mono hidden md:inline-block">
+                  Catchment Zone: <strong className="text-white">{radius >= 1000 ? `${(radius/1000).toFixed(1)} km` : `${radius}m`}</strong>
+                </span>
+                <span className="text-[9px] px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono font-bold flex items-center gap-1">
+                  <Compass size={12} className="text-blue-400" /> Live GIS Radar
+                </span>
+              </div>
+            </div>
 
-                {/* Latitude Input */}
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[130px] focus-within:border-blue-500 transition-colors">
-                  <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={candidateLatStr}
-                    onChange={(e) => handleLatChange(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAnalyzeSubmit()}
-                    placeholder="Latitude"
-                    className="bg-transparent border-none text-xs sm:text-sm w-full focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-
-                {/* Longitude Input */}
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-full sm:w-[130px] focus-within:border-blue-500 transition-colors">
-                  <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={candidateLngStr}
-                    onChange={(e) => handleLngChange(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAnalyzeSubmit()}
-                    placeholder="Longitude"
-                    className="bg-transparent border-none text-xs sm:text-sm w-full focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-
-                {/* Radius Selector */}
-                <div className="relative w-full sm:w-[95px] shrink-0">
-                  <select
-                    value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                    className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-2.5 pr-6 py-2 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white"
-                  >
-                    <option value="500">500 m</option>
-                    <option value="1000">1.0 km</option>
-                    <option value="1500">1.5 km</option>
-                    <option value="2000">2.0 km</option>
-                    <option value="3000">3.0 km</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
-                </div>
-
-                {/* Pick on Map Toggle Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsMapPickingActive(!isMapPickingActive)}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-black transition-all duration-200 shrink-0 w-full sm:w-auto cursor-pointer ${
-                    isMapPickingActive
-                      ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                      : "border-white/10 bg-[#121829] hover:bg-white/10 text-white/70 hover:text-white"
-                  }`}
-                  title="Click anywhere on the map to pick coordinates"
+            {/* Bottom Row: Unified Interactive Controls Toolbar */}
+            <div className="flex flex-wrap items-center gap-2.5 bg-[#080d1a]/90 p-2 sm:p-2.5 border border-white/10 rounded-xl">
+              
+              {/* Billboard Asset Selector Dropdown */}
+              <div className="relative flex-1 min-w-[200px]">
+                <select
+                  value={activeBillboardCode}
+                  onChange={(e) => handleBillboardSelect(e.target.value)}
+                  className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-8 pr-8 py-2 text-xs font-bold focus:outline-none hover:border-blue-500 focus:border-blue-500 cursor-pointer w-full text-white truncate transition-colors"
+                  title="Select Billboard Asset to load its database coordinates"
                 >
-                  <Crosshair size={14} className={isMapPickingActive ? "animate-spin" : ""} />
-                  <span>{isMapPickingActive ? "Picking Active" : "Pick on Map"}</span>
-                </button>
-
-                {/* Analyze Action Button */}
-                <button
-                  type="button"
-                  onClick={handleAnalyzeSubmit}
-                  disabled={isAnalyticsLoading || isAnalyticsFetching}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 w-full sm:w-auto cursor-pointer disabled:opacity-50"
-                >
-                  {isAnalyticsLoading || isAnalyticsFetching ? (
-                    <RefreshCw size={13} className="animate-spin" />
+                  {billboards.length > 0 ? (
+                    billboards.map((b: any) => {
+                      const bCode = b.billboard_code || b.id;
+                      const bName = b.billboard_name || b.name || "Billboard";
+                      return (
+                        <option key={bCode} value={bCode} className="bg-[#0e1628] text-white">
+                          {bCode}: {bName}
+                        </option>
+                      );
+                    })
                   ) : (
-                    <Play size={13} className="fill-current" />
+                    <option value="ACU-BB-0001" className="bg-[#0e1628] text-white">
+                      ACU-BB-0001: Testing Billboard -1
+                    </option>
                   )}
-                  <span>{isAnalyticsLoading || isAnalyticsFetching ? "Analyzing..." : "Analyze"}</span>
-                </button>
+                  <option value="custom" className="bg-[#0e1628] text-amber-300 font-bold">
+                    📍 Custom GPS Coordinates
+                  </option>
+                </select>
+                <Tv className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400 pointer-events-none" />
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
               </div>
 
+              {/* Latitude Input */}
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-[125px] xs:w-[135px] focus-within:border-blue-500 transition-colors">
+                <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={candidateLatStr}
+                  onChange={(e) => handleLatChange(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyzeSubmit()}
+                  placeholder="Latitude"
+                  className="bg-transparent border-none text-xs sm:text-sm w-full focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+
+              {/* Longitude Input */}
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-[125px] xs:w-[135px] focus-within:border-blue-500 transition-colors">
+                <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={candidateLngStr}
+                  onChange={(e) => handleLngChange(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyzeSubmit()}
+                  placeholder="Longitude"
+                  className="bg-transparent border-none text-xs sm:text-sm w-full focus:outline-none font-mono font-bold text-white p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+
+              {/* Radius Selector */}
+              <div className="relative shrink-0 w-[95px]">
+                <select
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                  className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-3 pr-6 py-2 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white transition-colors"
+                >
+                  <option value="500">500 m</option>
+                  <option value="1000">1.0 km</option>
+                  <option value="1500">1.5 km</option>
+                  <option value="2000">2.0 km</option>
+                  <option value="3000">3.0 km</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
+              </div>
+
+              {/* Pick on Map Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsMapPickingActive(!isMapPickingActive)}
+                className={`flex items-center justify-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-black transition-all duration-200 shrink-0 cursor-pointer ${
+                  isMapPickingActive
+                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                    : "border-white/10 bg-[#121829] hover:bg-white/10 text-white/70 hover:text-white"
+                }`}
+                title="Click anywhere on the map to pick coordinates"
+              >
+                <Crosshair size={14} className={isMapPickingActive ? "animate-spin" : ""} />
+                <span>{isMapPickingActive ? "Picking Active" : "Pick on Map"}</span>
+              </button>
+
+              {/* Analyze Action Button */}
+              <button
+                type="button"
+                onClick={handleAnalyzeSubmit}
+                disabled={isAnalyticsLoading || isAnalyticsFetching}
+                className="flex items-center justify-center gap-1.5 px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer disabled:opacity-50 ml-auto sm:ml-0"
+              >
+                {isAnalyticsLoading || isAnalyticsFetching ? (
+                  <RefreshCw size={13} className="animate-spin" />
+                ) : (
+                  <Play size={13} className="fill-current" />
+                )}
+                <span>{isAnalyticsLoading || isAnalyticsFetching ? "Analyzing..." : "Analyze"}</span>
+              </button>
+
             </div>
+
           </div>
 
           {/* ═══════════════════════════════════════════════════════════════

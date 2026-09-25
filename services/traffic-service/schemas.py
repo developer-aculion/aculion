@@ -11,7 +11,7 @@ class TrafficRecord(BaseModel):
     economy: int
     premium: int
     luxury: int
-    ultra_luxury: int
+    ultra_luxury: Optional[int] = 0
     commercial: int
     avg_exposure_time: float
     max_exposure_time: float

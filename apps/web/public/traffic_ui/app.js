@@ -26,12 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
             flowRate: 0.0,
             accuracy: 98.7,
             classes: {
-                economy: { name: 'Bike', count: 0, pct: 0, color: '#1E88FF' },
-                premium: { name: 'Commercial', count: 0, pct: 0, color: '#00C4FF' },
-                luxury: { name: 'Economy', count: 0, pct: 0, color: '#8B5CF6' },
-                ultra: { name: 'Premium', count: 0, pct: 0, color: '#F59E0B' },
-                bikes: { name: 'Luxury', count: 0, pct: 0, color: '#10B981' },
-                commercial: { name: 'Ultra Luxury', count: 0, pct: 0, color: '#F97316' }
+                bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
+                commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
+                economy: { name: 'Economy', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
+                premium: { name: 'Premium', desc: '15L to 1 Cr', count: 0, pct: 0, color: '#F59E0B' },
+                luxury: { name: 'Luxury', desc: '1 Cr and above', count: 0, pct: 0, color: '#10B981' }
             },
             dwellStats: {
                 avg: 0.0,
@@ -70,12 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
             roadType: 'all',
             dateRange: 'today',
             categories: {
+                bikes: true,
+                commercial: true,
                 economy: true,
                 premium: true,
-                luxury: true,
-                ultra: true,
-                bikes: true,
-                commercial: true
+                luxury: true
             },
             timeInterval: '1h',
             dayType: 'all',
@@ -110,12 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         filterWeather: document.getElementById('filterWeather'),
 
         // Checkboxes
+        catBikes: document.getElementById('catBikes'),
+        catCommercial: document.getElementById('catCommercial'),
         catEconomy: document.getElementById('catEconomy'),
         catPremium: document.getElementById('catPremium'),
         catLuxury: document.getElementById('catLuxury'),
-        catUltra: document.getElementById('catUltra'),
-        catBikes: document.getElementById('catBikes'),
-        catCommercial: document.getElementById('catCommercial'),
 
         // KPI values
         kpiVehicles: document.getElementById('kpi-vehicles-value'),
@@ -128,28 +125,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Class counts and bars
         counts: {
+            bikes: document.getElementById('count-bikes'),
+            commercial: document.getElementById('count-commercial'),
             economy: document.getElementById('count-economy'),
             premium: document.getElementById('count-premium'),
-            luxury: document.getElementById('count-luxury'),
-            ultra: document.getElementById('count-ultra'),
-            bikes: document.getElementById('count-bikes'),
-            commercial: document.getElementById('count-commercial')
+            luxury: document.getElementById('count-luxury')
         },
         pcts: {
+            bikes: document.getElementById('pct-bikes'),
+            commercial: document.getElementById('pct-commercial'),
             economy: document.getElementById('pct-economy'),
             premium: document.getElementById('pct-premium'),
-            luxury: document.getElementById('pct-luxury'),
-            ultra: document.getElementById('pct-ultra'),
-            bikes: document.getElementById('pct-bikes'),
-            commercial: document.getElementById('pct-commercial')
+            luxury: document.getElementById('pct-luxury')
         },
         bars: {
+            bikes: document.getElementById('bar-bikes'),
+            commercial: document.getElementById('bar-commercial'),
             economy: document.getElementById('bar-economy'),
             premium: document.getElementById('bar-premium'),
-            luxury: document.getElementById('bar-luxury'),
-            ultra: document.getElementById('bar-ultra'),
-            bikes: document.getElementById('bar-bikes'),
-            commercial: document.getElementById('bar-commercial')
+            luxury: document.getElementById('bar-luxury')
         },
 
         // Dwell Stats
@@ -320,12 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elements.filterWeather) state.filters.weather = elements.filterWeather.value;
 
             // Checkboxes
+            if (elements.catBikes) state.filters.categories.bikes = elements.catBikes.checked;
+            if (elements.catCommercial) state.filters.categories.commercial = elements.catCommercial.checked;
             if (elements.catEconomy) state.filters.categories.economy = elements.catEconomy.checked;
             if (elements.catPremium) state.filters.categories.premium = elements.catPremium.checked;
             if (elements.catLuxury) state.filters.categories.luxury = elements.catLuxury.checked;
-            if (elements.catUltra) state.filters.categories.ultra = elements.catUltra.checked;
-            if (elements.catBikes) state.filters.categories.bikes = elements.catBikes.checked;
-            if (elements.catCommercial) state.filters.categories.commercial = elements.catCommercial.checked;
 
             fetchFromSupabaseDirectly(state.filters.location);
             showNotification("Filters Applied Successfully");
@@ -351,12 +344,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elements.filterDensity) elements.filterDensity.value = 'all';
             if (elements.filterWeather) elements.filterWeather.value = 'all';
 
+            if (elements.catBikes) elements.catBikes.checked = true;
+            if (elements.catCommercial) elements.catCommercial.checked = true;
             if (elements.catEconomy) elements.catEconomy.checked = true;
             if (elements.catPremium) elements.catPremium.checked = true;
             if (elements.catLuxury) elements.catLuxury.checked = true;
-            if (elements.catUltra) elements.catUltra.checked = true;
-            if (elements.catBikes) elements.catBikes.checked = true;
-            if (elements.catCommercial) elements.catCommercial.checked = true;
 
             if (defaultCam) {
                 updateLocationConfig(defaultCam);
@@ -506,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     topCount = item.count;
                     topClass = item.name;
                 }
-                if (['luxury', 'ultra', 'premium'].includes(k)) {
+                if (['luxury', 'premium'].includes(k)) {
                     highValueCount += item.count;
                 }
             });
@@ -1027,14 +1019,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const classes = state.stats.classes;
         const options = {
             series: [
+                classes.bikes.count,
+                classes.commercial.count,
                 classes.economy.count,
                 classes.premium.count,
-                classes.luxury.count,
-                classes.ultra.count,
-                classes.bikes.count,
-                classes.commercial.count
+                classes.luxury.count
             ],
-            labels: ['Bike', 'Commercial', 'Economy', 'Premium', 'Luxury', 'Ultra Luxury'],
+            labels: ['Bike', 'Commercial', 'Economy', 'Premium', 'Luxury'],
             chart: {
                 type: 'donut',
                 width: '100%',
@@ -1050,8 +1041,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 '#00C4FF',
                 '#8B5CF6',
                 '#F59E0B',
-                '#10B981',
-                '#F97316'
+                '#10B981'
             ],
             stroke: {
                 show: true,
@@ -1239,8 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Ultra Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
             ],
             chart: {
                 type: 'line',
@@ -1260,8 +1249,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 '#00C4FF',
                 '#8B5CF6',
                 '#F59E0B',
-                '#10B981',
-                '#F97316'
+                '#10B981'
             ],
             stroke: {
                 curve: 'smooth',
@@ -1409,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = color;
             ctx.font = `bold ${Math.max(8, Math.round(11 * this.scale))}px monospace`;
 
-            const emojis = { economy: '🏍', premium: '🚚', luxury: '🚗', ultra: '🚙', bikes: '🏎', commercial: '👑' };
+            const emojis = { bikes: '🏍', commercial: '🚚', economy: '🚗', premium: '🚙', luxury: '🏎' };
             const tagText = `${emojis[this.type] || '🚗'} ID:${this.id} [${this.confidence}%]`;
             ctx.fillText(tagText, this.x - width / 2, this.y - height / 2 - 4);
 
@@ -1501,13 +1489,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Manage vehicle spawning only when totalVehicles > 0
             if (state.spawnChance > 0 && Math.random() < state.spawnChance) {
                 const rand = Math.random() * 100;
-                let vehicleClass = 'luxury';
-                if (rand < 52) vehicleClass = 'luxury';
-                else if (rand < 81) vehicleClass = 'economy';
-                else if (rand < 94) vehicleClass = 'ultra';
-                else if (rand < 99) vehicleClass = 'premium';
-                else if (rand < 99.8) vehicleClass = 'bikes';
-                else vehicleClass = 'commercial';
+                let vehicleClass = 'economy';
+                if (rand < 45) vehicleClass = 'bikes';
+                else if (rand < 70) vehicleClass = 'commercial';
+                else if (rand < 88) vehicleClass = 'economy';
+                else if (rand < 97) vehicleClass = 'premium';
+                else vehicleClass = 'luxury';
 
                 if (state.filters.categories[vehicleClass]) {
                     vehicles.push(new SimulatedVehicle(vehicleClass));
@@ -1566,12 +1553,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newCats.length > 10) newCats.shift();
 
         const counts = [
+            Math.round(classes.bikes.count / 40 + (Math.random() - 0.5) * 3),
+            Math.round(classes.commercial.count / 40 + (Math.random() - 0.5) * 2),
             Math.round(classes.economy.count / 40 + (Math.random() - 0.5) * 5),
             Math.round(classes.premium.count / 40 + (Math.random() - 0.5) * 3),
-            Math.round(classes.luxury.count / 40 + (Math.random() - 0.5) * 2),
-            Math.round(classes.ultra.count / 40 + (Math.random() - 0.5) * 1),
-            Math.round(classes.bikes.count / 40 + (Math.random() - 0.5) * 3),
-            Math.round(classes.commercial.count / 40 + (Math.random() - 0.5) * 2)
+            Math.round(classes.luxury.count / 40 + (Math.random() - 0.5) * 2)
         ];
 
         const normalizedCounts = counts.map(val => Math.max(0, val));
@@ -1990,9 +1976,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const commercialCount = Number(data.commercial) || 0;
         const economyCount = Number(data.economy) || 0;
         const premiumCount = Number(data.premium) || 0;
-        const luxuryCount = Number(data.luxury) || 0;
-        const ultraLuxuryCount = Number(data.ultra_luxury) || 0;
-        const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + luxuryCount + ultraLuxuryCount;
+        const luxuryCount = (Number(data.luxury) || 0) + (Number(data.ultra_luxury) || 0);
+        const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + luxuryCount;
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
         const avgDwell = Number(data.avg_exposure_time) || 0.0;
         const flowRate = Number(data.flow_rate) || 0.0;
@@ -2000,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const peakDensity = (totalVehicles === 0) ? '-- veh/min' : (data.peak_density || (data.peak_count ? `${(data.peak_count / 60).toFixed(1)} veh/min` : '-- veh/min'));
 
         // Check if incoming data actually differs from currently rendered state
-        const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}_${ultraLuxuryCount}`;
+        const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}`;
         const hasDataChanged = (lastRenderedStateKey !== stateKey);
 
         // Set stats
@@ -2011,18 +1996,22 @@ document.addEventListener('DOMContentLoaded', () => {
         state.stats.estimatedReach = Number(data.estimated_reach) || (totalVehicles > 0 ? Math.round(totalVehicles * 2.4) : 0);
         state.stats.flowRate = flowRate;
 
-        state.stats.classes.economy.count = bikeCount;          // Bike
-        state.stats.classes.premium.count = commercialCount;     // Commercial
-        state.stats.classes.luxury.count = economyCount;         // Economy
-        state.stats.classes.ultra.count = premiumCount;          // Premium
-        state.stats.classes.bikes.count = luxuryCount;           // Luxury
-        state.stats.classes.commercial.count = ultraLuxuryCount; // Ultra Luxury
+        state.stats.classes.bikes.count = bikeCount;          // Bike
+        state.stats.classes.commercial.count = commercialCount; // Commercial
+        state.stats.classes.economy.count = economyCount;       // Economy
+        state.stats.classes.premium.count = premiumCount;       // Premium
+        state.stats.classes.luxury.count = luxuryCount;         // Luxury
 
         // Calculate percentages dynamically from sum
         const totalDivisor = calculatedSum > 0 ? calculatedSum : (totalVehicles > 0 ? totalVehicles : 1);
         Object.keys(state.stats.classes).forEach(key => {
             const count = state.stats.classes[key].count;
-            state.stats.classes[key].pct = totalVehicles > 0 ? Math.round((count / totalDivisor) * 100) : 0;
+            const pct = totalVehicles > 0 ? Math.round((count / totalDivisor) * 100) : 0;
+            state.stats.classes[key].pct = pct;
+
+            if (elements.counts && elements.counts[key]) elements.counts[key].textContent = count.toLocaleString();
+            if (elements.pcts && elements.pcts[key]) elements.pcts[key].textContent = `${pct}%`;
+            if (elements.bars && elements.bars[key]) elements.bars[key].style.width = `${pct}%`;
         });
 
         if (state.stats.dwellStats) {
@@ -2103,12 +2092,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Refresh Donut Chart without animation flicker
             if (state.charts.donut) {
                 state.charts.donut.updateSeries([
+                    state.stats.classes.bikes.count,
+                    state.stats.classes.commercial.count,
                     state.stats.classes.economy.count,
                     state.stats.classes.premium.count,
-                    state.stats.classes.luxury.count,
-                    state.stats.classes.ultra.count,
-                    state.stats.classes.bikes.count,
-                    state.stats.classes.commercial.count
+                    state.stats.classes.luxury.count
                 ], false);
             }
 
@@ -2122,20 +2110,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }));
                     state.charts.trendLine.updateSeries(updatedSeries, false);
                 } else {
-                    const bBase = Math.max(1, Math.round(state.stats.classes.economy.count / 45));
-                    const cBase = Math.max(1, Math.round(state.stats.classes.premium.count / 45));
-                    const eBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
-                    const pBase = Math.max(1, Math.round(state.stats.classes.ultra.count / 45));
-                    const lBase = Math.max(1, Math.round(state.stats.classes.bikes.count / 45));
-                    const uBase = Math.max(1, Math.round(state.stats.classes.commercial.count / 45));
+                    const bBase = Math.max(1, Math.round(state.stats.classes.bikes.count / 45));
+                    const cBase = Math.max(1, Math.round(state.stats.classes.commercial.count / 45));
+                    const eBase = Math.max(1, Math.round(state.stats.classes.economy.count / 45));
+                    const pBase = Math.max(1, Math.round(state.stats.classes.premium.count / 45));
+                    const lBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
 
                     const updatedSeries = [
                         { name: 'Bike', data: [bBase*0.6, bBase*0.8, bBase*0.75, bBase*0.9, bBase*1.1, bBase*0.95, bBase*1.2, bBase*1.4, bBase*1.3, bBase].map(Math.round) },
                         { name: 'Commercial', data: [cBase*0.7, cBase*0.9, cBase*1.0, cBase*0.95, cBase*0.8, cBase*0.75, cBase*0.9, cBase*1.1, cBase*1.0, cBase].map(Math.round) },
                         { name: 'Economy', data: [eBase*0.6, eBase*0.75, eBase*0.7, eBase*0.85, eBase*0.95, eBase*0.8, eBase*1.05, eBase*1.2, eBase*1.1, eBase].map(Math.round) },
                         { name: 'Premium', data: [pBase*0.5, pBase*0.6, pBase*0.7, pBase*0.65, pBase*0.85, pBase*0.8, pBase*0.95, pBase*1.15, pBase*1.0, pBase].map(Math.round) },
-                        { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) },
-                        { name: 'Ultra Luxury', data: [uBase*0.4, uBase*0.5, uBase*0.6, uBase*0.5, uBase*0.7, uBase*0.4, uBase*1.0, uBase*1.2, uBase*0.8, uBase].map(Math.round) }
+                        { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) }
                     ];
                     state.charts.trendLine.updateSeries(updatedSeries, false);
                 }

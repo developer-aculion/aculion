@@ -720,7 +720,6 @@ export default function LiveDashboard({
       let totalEconomy = 0;
       let totalPremium = 0;
       let totalLuxury = 0;
-      let totalUltraLuxury = 0;
       let totalReach = 0;
       let dwellWeightedSum = 0;
       let maxDwell7Day = 0;
@@ -741,7 +740,7 @@ export default function LiveDashboard({
 
         let dayMaxCount = 0;
         let dayPeakHour = null;
-        let hSumV = 0, hSumBikes = 0, hSumComm = 0, hSumEcon = 0, hSumPrem = 0, hSumLux = 0, hSumUltra = 0, hSumReach = 0, hDwellSum = 0, hMaxDwell = 0;
+        let hSumV = 0, hSumBikes = 0, hSumComm = 0, hSumEcon = 0, hSumPrem = 0, hSumLux = 0, hSumReach = 0, hDwellSum = 0, hMaxDwell = 0;
 
         for (const h of dayHours) {
           const count = Number(h.total_vehicles) || 0;
@@ -750,8 +749,7 @@ export default function LiveDashboard({
           hSumComm += Number(h.commercial) || 0;
           hSumEcon += Number(h.economy) || 0;
           hSumPrem += Number(h.premium) || 0;
-          hSumLux += Number(h.luxury) || 0;
-          hSumUltra += Number(h.ultra_luxury) || 0;
+          hSumLux += (Number(h.luxury) || 0) + (Number(h.ultra_luxury) || 0);
           hSumReach += Number(h.estimated_reach) || 0;
           const avgDw = Number(h.avg_exposure_time) || 0;
           hDwellSum += avgDw * count;
@@ -762,7 +760,7 @@ export default function LiveDashboard({
           }
         }
 
-        let dayTotal = 0, dBikes = 0, dComm = 0, dEcon = 0, dPrem = 0, dLux = 0, dUltra = 0, dReach = 0, dAvgDwell = 0, dMaxDwell = 0;
+        let dayTotal = 0, dBikes = 0, dComm = 0, dEcon = 0, dPrem = 0, dLux = 0, dReach = 0, dAvgDwell = 0, dMaxDwell = 0;
 
         if (dateStr === todayIST) {
           // ── PRESENT DAY DATA: Retrieved directly from traffic_hour table by SUMming all hours ──
@@ -773,7 +771,6 @@ export default function LiveDashboard({
             dEcon = hSumEcon;
             dPrem = hSumPrem;
             dLux = hSumLux;
-            dUltra = hSumUltra;
             dReach = hSumReach || Math.round(dayTotal * 2.4);
             dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
             dMaxDwell = hMaxDwell;
@@ -783,8 +780,7 @@ export default function LiveDashboard({
             dComm = Number(liveOverviewRow.commercial) || 0;
             dEcon = Number(liveOverviewRow.economy) || 0;
             dPrem = Number(liveOverviewRow.premium) || 0;
-            dLux = Number(liveOverviewRow.luxury) || 0;
-            dUltra = Number(liveOverviewRow.ultra_luxury) || 0;
+            dLux = (Number(liveOverviewRow.luxury) || 0) + (Number(liveOverviewRow.ultra_luxury) || 0);
             dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
             dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
             dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
@@ -800,7 +796,6 @@ export default function LiveDashboard({
               dEcon = hSumEcon;
               dPrem = hSumPrem;
               dLux = hSumLux;
-              dUltra = hSumUltra;
               dReach = hSumReach || Math.round(dayTotal * 2.4);
               dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : (Number(dayRow.avg_exposure_time) || 0);
               dMaxDwell = Math.max(hMaxDwell, Number(dayRow.max_exposure_time) || 0);
@@ -810,8 +805,7 @@ export default function LiveDashboard({
               dComm = Number(dayRow.commercial) || 0;
               dEcon = Number(dayRow.economy) || 0;
               dPrem = Number(dayRow.premium) || 0;
-              dLux = Number(dayRow.luxury) || 0;
-              dUltra = Number(dayRow.ultra_luxury) || 0;
+              dLux = (Number(dayRow.luxury) || 0) + (Number(dayRow.ultra_luxury) || 0);
               dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
               dAvgDwell = Number(dayRow.avg_exposure_time) || 0;
               dMaxDwell = Number(dayRow.max_exposure_time) || 0;
@@ -824,7 +818,6 @@ export default function LiveDashboard({
             dEcon = hSumEcon;
             dPrem = hSumPrem;
             dLux = hSumLux;
-            dUltra = hSumUltra;
             dReach = hSumReach || (dayTotal > 0 ? Math.round(dayTotal * 2.4) : 0);
             dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
             dMaxDwell = hMaxDwell;
@@ -835,8 +828,7 @@ export default function LiveDashboard({
             dComm = Number(latestSnap.commercial) || 0;
             dEcon = Number(latestSnap.economy) || 0;
             dPrem = Number(latestSnap.premium) || 0;
-            dLux = Number(latestSnap.luxury) || 0;
-            dUltra = Number(latestSnap.ultra_luxury) || 0;
+            dLux = (Number(latestSnap.luxury) || 0) + (Number(latestSnap.ultra_luxury) || 0);
             dReach = Number(latestSnap.estimated_reach) || Math.round(dayTotal * 2.4);
             dAvgDwell = Number(latestSnap.avg_exposure_time) || 0;
             dMaxDwell = Number(latestSnap.max_exposure_time) || 0;
@@ -849,7 +841,6 @@ export default function LiveDashboard({
         totalEconomy += dEcon;
         totalPremium += dPrem;
         totalLuxury += dLux;
-        totalUltraLuxury += dUltra;
         totalReach += dReach;
         dwellWeightedSum += dAvgDwell * dayTotal;
         if (dMaxDwell > maxDwell7Day) maxDwell7Day = dMaxDwell;
@@ -877,19 +868,18 @@ export default function LiveDashboard({
       const avgDwell7Day = total7DayVehicles > 0 ? Number((dwellWeightedSum / total7DayVehicles).toFixed(1)) : 0.0;
       const overallWeeklyPeakWindow = overallMaxCount > 0 ? billboardService.formatPeakHourWindow(overallPeakHour) : '—';
 
-      const sumVehicles = totalBikes + totalCommercial + totalEconomy + totalPremium + totalLuxury + totalUltraLuxury;
+      const sumVehicles = totalBikes + totalCommercial + totalEconomy + totalPremium + totalLuxury;
       const divisorV = sumVehicles > 0 ? sumVehicles : (total7DayVehicles > 0 ? total7DayVehicles : 1);
 
-      const highEndV = totalPremium + totalLuxury + totalUltraLuxury;
+      const highEndV = totalPremium + totalLuxury;
       const highEndPct = divisorV > 0 ? ((highEndV / divisorV) * 100).toFixed(1) : '0.0';
 
       const categories = [
-        { name: 'Bike', desc: 'Two-Wheelers & Couriers', count: totalBikes, pct: total7DayVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
-        { name: 'Commercial', desc: 'Freight, Vans & Logistics', count: totalCommercial, pct: total7DayVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
-        { name: 'Economy', desc: 'Hatchbacks & Mass Commuters', count: totalEconomy, pct: total7DayVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
-        { name: 'Premium', desc: 'Executive Sedans & Compact SUVs', count: totalPremium, pct: total7DayVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
-        { name: 'Luxury', desc: 'High-End Sedans & Premium SUVs', count: totalLuxury, pct: total7DayVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' },
-        { name: 'Ultra Luxury', desc: 'Supercars & Exclusive Flagships', count: totalUltraLuxury, pct: total7DayVehicles > 0 ? +((totalUltraLuxury / divisorV) * 100).toFixed(1) : 0, color: '#EA580C' }
+        { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: totalBikes, pct: total7DayVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
+        { name: 'Commercial', desc: 'Freight vehicles and public transport', count: totalCommercial, pct: total7DayVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
+        { name: 'Economy', desc: 'Cars under 15 Lakhs', count: totalEconomy, pct: total7DayVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
+        { name: 'Premium', desc: '15L to 1 Cr', count: totalPremium, pct: total7DayVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
+        { name: 'Luxury', desc: '1 Cr and above', count: totalLuxury, pct: total7DayVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
       ];
 
       // ── Step 2: Compute Location Intelligence & Geospatial Analytics ─
@@ -1263,7 +1253,7 @@ export default function LiveDashboard({
       fillRect(margin, y, contentW, affluenceBoxH, '#f8fafc');
       strokeRect(margin, y, contentW, affluenceBoxH, '#e2e8f0');
       setFont('normal', 6.2, '#334155');
-      text(`• High Affluence Demographics: Out of ${total7DayVehicles.toLocaleString()} recorded vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium, Luxury, and Ultra-Luxury tiers.`, margin + 3.5, y + 4.8);
+      text(`• High Affluence Demographics: Out of ${total7DayVehicles.toLocaleString()} recorded vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium and Luxury tiers (₹15L to >₹1 Cr).`, margin + 3.5, y + 4.8);
       text(`  This elevated proportion reflects high-disposable-income consumers, senior executives, and affluent residential commuters.`, margin + 3.5, y + 8.8);
       text(`• Exposure & Dwell Velocity: Commuters maintain an average dwell duration of ${avgDwell7Day} seconds (Peak single-vehicle exposure: ${maxDwell7Day.toFixed(1)}s).`, margin + 3.5, y + 13.0);
       text(`• Peak Mobility Intensity: Maximum throughput peaked on ${overallPeakDayName} (${overallPeakDate}) during ${overallWeeklyPeakWindow} with ${overallMaxCount.toLocaleString()} vehicles.`, margin + 3.5, y + 17.2);
