@@ -486,18 +486,22 @@ export default function LiveDashboard({
   };
 
   // Report generator runner - automatically triggers PDF download
-  const handleGenerateReport = async (e) => {
+  const handleGenerateReport = async (e, customPayload = null) => {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
     setGeneratingReport(true);
     setReportSuccess(false);
     try {
+      const targetCode = customPayload?.billboardCode || customPayload?.billboard_code || selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001';
       const idStr = `REP-${Math.floor(1000 + Math.random() * 9000)}`;
       const newRep = {
         id: idStr,
         name: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Audience Intelligence & ROI Report`,
         format: 'PDF',
+        billboardCode: targetCode,
+        startDate: customPayload?.startDate || (activeNav === 'reports' ? reportStartDate : null),
+        endDate: customPayload?.endDate || (activeNav === 'reports' ? reportEndDate : null),
         date: new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }),
         size: '2.4 MB'
       };
@@ -516,7 +520,7 @@ export default function LiveDashboard({
     const handleIframeMsg = (e) => {
       if (e.data) {
         if (e.data.type === 'ACULION_GENERATE_REPORT_PDF' || e.data.type === 'DOWNLOAD_REPORT') {
-          handleGenerateReport();
+          handleGenerateReport(null, e.data);
         } else if (e.data.type === 'ACULION_REFRESH_TRAFFIC_DATA' || e.data.type === 'REQUEST_TRAFFIC_REFRESH') {
           fetchDbTrafficOverview(true);
         }
@@ -1302,7 +1306,7 @@ export default function LiveDashboard({
 
       // Explicit documentation note for vehicle classification tiers
       setFont('normal', 4.4, '#94a3b8');
-      text('* Luxury category includes all verified luxury & ultra-luxury vehicle telemetry (₹1 Cr+).', tableX + 3, tableY + 1.2);
+      text('* Luxury category includes all verified luxury & ultra-luxury vehicle telemetry (Rs. 1 Cr+).', tableX + 3, tableY + 1.2);
 
       y += pieBoxH + 4.5;
 
@@ -1319,7 +1323,7 @@ export default function LiveDashboard({
       setFont('normal', 6.0, '#334155');
 
       if (!isZeroTelemetry) {
-        text(`• High Affluence Demographics: Out of ${totalVehiclesSum.toLocaleString()} verified vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium and Luxury tiers (₹15L to >₹1 Cr).`, margin + 3.5, y + 4.8);
+        text(`• High Affluence Demographics: Out of ${totalVehiclesSum.toLocaleString()} verified vehicles, ${highEndPct}% (${highEndV.toLocaleString()} vehicles) belong to Premium and Luxury tiers (Rs. 15L to > Rs. 1 Cr).`, margin + 3.5, y + 4.8);
         text(`  This elevated proportion reflects high-disposable-income consumers, senior corporate decision-makers, and affluent residential commuters.`, margin + 3.5, y + 8.8);
         text(`• Exposure & Dwell Velocity: Commuters maintain an average dwell duration of ${avgDwellCalculated} seconds (Peak single-vehicle exposure: ${maxDwellOverall.toFixed(1)}s).`, margin + 3.5, y + 13.0);
         text(`• Peak Mobility Intensity: Maximum throughput peaked during ${overallPeakMobilityWindow} with ${peakHourWindowVolume.toLocaleString()} vehicles — the highest-traffic hour to align your creative and offers.`, margin + 3.5, y + 17.2);
@@ -1490,7 +1494,7 @@ export default function LiveDashboard({
       fillRect(landBoxX + 2, noteY, halfW - 4, 9.5, '#f1f5f9');
       strokeRect(landBoxX + 2, noteY, halfW - 4, 9.5, '#e2e8f0');
       setFont('bold', 4.8, '#b45309');
-      text('ⓘ What is included in "Specialized Uses" land-use?', landBoxX + 4, noteY + 3.4);
+      text('Note: What is included in "Specialized Uses" land-use?', landBoxX + 4, noteY + 3.4);
       setFont('normal', 4.4, '#64748b');
       text('Includes transportation facilities, civic infrastructure, utilities, and mixed unzoned plots.', landBoxX + 4, noteY + 7.0);
 
