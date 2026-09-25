@@ -7,17 +7,17 @@ import transparentLogo from '../assets/aculion_logo_transparent.png';
 import { supabase } from '../services/supabase';
 import { billboardService } from '../services/billboard.service';
 import { generateMockAnalytics } from '../services/location.service';
-import { 
-  AreaChart, 
-  Area, 
+import {
+  AreaChart,
+  Area,
   BarChart,
   Bar,
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
   Cell
 } from 'recharts';
 
@@ -125,12 +125,12 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function LiveDashboard({ 
-  navigateTo, 
-  selectedBillboard, 
-  billboards = [], 
-  user, 
-  onSelectBillboard, 
+export default function LiveDashboard({
+  navigateTo,
+  selectedBillboard,
+  billboards = [],
+  user,
+  onSelectBillboard,
   onAddNewMedia,
   onBackToProfile,
   baseDashboardPath = '/dashboard',
@@ -142,17 +142,17 @@ export default function LiveDashboard({
     const dashIdx = parts.indexOf('dashboard');
     const seg = dashIdx >= 0 ? (parts[dashIdx + 1] || '') : '';
     const map = {
-      'front-camera':          'front_camera',
+      'front-camera': 'front_camera',
       'audience-intelligence': 'traffic',
-      'traffic-overview':      'traffic',
-      'location-overview':     'overview',
+      'traffic-overview': 'traffic',
+      'location-overview': 'overview',
       'corridor-intelligence': 'corridor',
-      'zone-comparison':       'zone',
-      'historical-trends':     'historical',
-      'live-view':             'live',
-      'alerts':                'alerts',
-      'reports':               'reports',
-      'settings':              'settings',
+      'zone-comparison': 'zone',
+      'historical-trends': 'historical',
+      'live-view': 'live',
+      'alerts': 'alerts',
+      'reports': 'reports',
+      'settings': 'settings',
     };
     return map[seg] || 'traffic';
   };
@@ -168,7 +168,7 @@ export default function LiveDashboard({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // Prevent background scrolling on mobile when sidebar drawer is open
   useEffect(() => {
     if (sidebarOpen) {
@@ -180,7 +180,7 @@ export default function LiveDashboard({
       document.body.style.overflow = '';
     };
   }, [sidebarOpen]);
-  
+
   const getSeed = () => {
     const str = selectedBillboard?.billboard_code || selectedBillboard?.id || 'default';
     let hash = 0;
@@ -318,7 +318,7 @@ export default function LiveDashboard({
             .order("last_updated", { ascending: false })
             .limit(1)
             .maybeSingle();
-          
+
           if (fallbackRes.data && fallbackRes.data.billboard_code === targetBbCode && Number(fallbackRes.data.total_vehicles) > 0) {
             data = fallbackRes.data;
           } else {
@@ -530,14 +530,25 @@ export default function LiveDashboard({
   // Download clean 3-page report with pure white background, Location Intelligence charts & verified database telemetry
   const downloadReportAsPDF = async (rep) => {
     try {
-      const bbCode = selectedBillboard?.billboard_code || selectedBillboard?.id || 'ACU-BB-0001';
+      let bbCode = rep?.billboardCode || rep?.billboard_code || selectedBillboard?.billboard_code;
+      if (!bbCode && selectedBillboard?.id && typeof selectedBillboard.id === 'string' && selectedBillboard.id.startsWith('ACU-')) {
+        bbCode = selectedBillboard.id;
+      }
+      if (!bbCode && selectedBillboard?.id) {
+        try {
+          const { data: bRec } = await supabase.from('billboards').select('billboard_code').eq('id', selectedBillboard.id).maybeSingle();
+          if (bRec?.billboard_code) bbCode = bRec.billboard_code;
+        } catch (e) {}
+      }
+      if (!bbCode) bbCode = 'ACU-BB-0001';
+
       const bbName = selectedBillboard?.billboard_name || selectedBillboard?.name || 'Testing Billboard -1';
       const landmark = selectedBillboard?.location_landmark || selectedBillboard?.street_address || selectedBillboard?.location || 'Prime Corridor';
       const city = selectedBillboard?.city || 'Chennai';
       const ownerName = user?.name || selectedBillboard?.owner_name || 'Aculion Media Partner';
       const companyName = user?.company || selectedBillboard?.company_name || 'Aculion Traffic Intelligence';
       const bbType = selectedBillboard?.type || selectedBillboard?.billboard_type || 'Digital Billboard';
-      
+
       let targetLat = Number(selectedBillboard?.latitude);
       let targetLng = Number(selectedBillboard?.longitude);
       let targetRadius = Number(selectedBillboard?.radius) || 1000;
@@ -568,7 +579,7 @@ export default function LiveDashboard({
       let liveOverviewRow = null;
       let historyRows = [];
 
-      // Strategy 1: Supabase JS Client Query
+      // Strategy 1: Supabase JS Client Query (matched strictly by billboard_code and plain date)
       try {
         const [dayRes, hourRes, liveRes, histRes] = await Promise.all([
           supabase
@@ -659,11 +670,13 @@ export default function LiveDashboard({
       }
 
       // Determine date range for report
+      const explicitStart = rep?.startDate || rep?.start_date || (activeNav === 'reports' ? reportStartDate : null);
+      const explicitEnd = rep?.endDate || rep?.end_date || (activeNav === 'reports' ? reportEndDate : null);
+
       let dates = [];
-      if (reportStartDate && reportEndDate && reportStartDate <= reportEndDate && activeNav === 'reports') {
-        // User explicitly specified start and end dates in Report Compiler
-        const cur = new Date(reportStartDate + 'T12:00:00+05:30');
-        const end = new Date(reportEndDate + 'T12:00:00+05:30');
+      if (explicitStart && explicitEnd && explicitStart <= explicitEnd) {
+        const cur = new Date(explicitStart + 'T12:00:00+05:30');
+        const end = new Date(explicitEnd + 'T12:00:00+05:30');
         while (cur <= end) {
           dates.push(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(cur));
           cur.setDate(cur.getDate() + 1);
@@ -760,9 +773,21 @@ export default function LiveDashboard({
         let dayTotal = 0, dBikes = 0, dComm = 0, dEcon = 0, dPrem = 0, dLux = 0, dReach = 0, dAvgDwell = 0, dMaxDwell = 0;
         let hasRecordedData = false;
 
-        if (dateStr === todayIST) {
-          // ── PRESENT DAY: Retrieved from traffic_hour SUM or traffic_overview ──
-          if (hSumV > 0) {
+        // ── Primary Source: traffic_day table (confirmed daily rollup) ──
+        if (dayRow && Number(dayRow.total_vehicles) > 0) {
+          dayTotal = Number(dayRow.total_vehicles);
+          dBikes = Number(dayRow.bikes) || 0;
+          dComm = Number(dayRow.commercial) || 0;
+          dEcon = Number(dayRow.economy) || 0;
+          dPrem = Number(dayRow.premium) || 0;
+          dLux = (Number(dayRow.luxury) || 0) + (Number(dayRow.ultra_luxury) || 0);
+          dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
+          dAvgDwell = Number(dayRow.avg_exposure_time) || (dayTotal > 0 && hDwellSum > 0 ? hDwellSum / dayTotal : 0);
+          dMaxDwell = Number(dayRow.max_exposure_time) || hMaxDwell;
+          hasRecordedData = true;
+
+          // If hourly sum has higher live running count today, incorporate live hourly counts
+          if (hSumV > dayTotal) {
             dayTotal = hSumV;
             dBikes = hSumBikes;
             dComm = hSumComm;
@@ -770,69 +795,33 @@ export default function LiveDashboard({
             dPrem = hSumPrem;
             dLux = hSumLux;
             dReach = hSumReach || Math.round(dayTotal * 2.4);
-            dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
-            dMaxDwell = hMaxDwell;
-            hasRecordedData = true;
-          } else if (liveOverviewRow && Number(liveOverviewRow.total_vehicles) > 0) {
-            dayTotal = Number(liveOverviewRow.total_vehicles) || 0;
-            dBikes = Number(liveOverviewRow.bikes) || 0;
-            dComm = Number(liveOverviewRow.commercial) || 0;
-            dEcon = Number(liveOverviewRow.economy) || 0;
-            dPrem = Number(liveOverviewRow.premium) || 0;
-            dLux = (Number(liveOverviewRow.luxury) || 0) + (Number(liveOverviewRow.ultra_luxury) || 0);
-            dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
-            dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
-            dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
-            hasRecordedData = true;
-          } else if (dayRow && Number(dayRow.total_vehicles) > 0) {
-            dayTotal = Number(dayRow.total_vehicles) || 0;
-            dBikes = Number(dayRow.bikes) || 0;
-            dComm = Number(dayRow.commercial) || 0;
-            dEcon = Number(dayRow.economy) || 0;
-            dPrem = Number(dayRow.premium) || 0;
-            dLux = (Number(dayRow.luxury) || 0) + (Number(dayRow.ultra_luxury) || 0);
-            dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
-            dAvgDwell = Number(dayRow.avg_exposure_time) || 0;
-            dMaxDwell = Number(dayRow.max_exposure_time) || 0;
-            hasRecordedData = true;
+            dAvgDwell = hDwellSum / dayTotal;
+            dMaxDwell = Math.max(hMaxDwell, dMaxDwell);
           }
-        } else {
-          // ── PAST DAYS: Retrieved from traffic_day (plus traffic_hour join) ──
-          if (dayRow && Number(dayRow.total_vehicles) > 0) {
-            if (hSumV > Number(dayRow.total_vehicles)) {
-              dayTotal = hSumV;
-              dBikes = hSumBikes;
-              dComm = hSumComm;
-              dEcon = hSumEcon;
-              dPrem = hSumPrem;
-              dLux = hSumLux;
-              dReach = hSumReach || Math.round(dayTotal * 2.4);
-              dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : (Number(dayRow.avg_exposure_time) || 0);
-              dMaxDwell = Math.max(hMaxDwell, Number(dayRow.max_exposure_time) || 0);
-            } else {
-              dayTotal = Number(dayRow.total_vehicles) || 0;
-              dBikes = Number(dayRow.bikes) || 0;
-              dComm = Number(dayRow.commercial) || 0;
-              dEcon = Number(dayRow.economy) || 0;
-              dPrem = Number(dayRow.premium) || 0;
-              dLux = (Number(dayRow.luxury) || 0) + (Number(dayRow.ultra_luxury) || 0);
-              dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
-              dAvgDwell = Number(dayRow.avg_exposure_time) || (dayTotal > 0 && hDwellSum > 0 ? hDwellSum / dayTotal : 0);
-              dMaxDwell = Number(dayRow.max_exposure_time) || hMaxDwell;
-            }
-            hasRecordedData = true;
-          } else if (hSumV > 0) {
-            dayTotal = hSumV;
-            dBikes = hSumBikes;
-            dComm = hSumComm;
-            dEcon = hSumEcon;
-            dPrem = hSumPrem;
-            dLux = hSumLux;
-            dReach = hSumReach || Math.round(dayTotal * 2.4);
-            dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
-            dMaxDwell = hMaxDwell;
-            hasRecordedData = true;
-          }
+        } else if (hSumV > 0) {
+          // ── Secondary Source: traffic_hour table (hourly rollup) ──
+          dayTotal = hSumV;
+          dBikes = hSumBikes;
+          dComm = hSumComm;
+          dEcon = hSumEcon;
+          dPrem = hSumPrem;
+          dLux = hSumLux;
+          dReach = hSumReach || Math.round(dayTotal * 2.4);
+          dAvgDwell = dayTotal > 0 ? (hDwellSum / dayTotal) : 0;
+          dMaxDwell = hMaxDwell;
+          hasRecordedData = true;
+        } else if (dateStr === todayIST && liveOverviewRow && Number(liveOverviewRow.total_vehicles) > 0) {
+          // ── Tertiary Source: traffic_overview running count for today ──
+          dayTotal = Number(liveOverviewRow.total_vehicles) || 0;
+          dBikes = Number(liveOverviewRow.bikes) || 0;
+          dComm = Number(liveOverviewRow.commercial) || 0;
+          dEcon = Number(liveOverviewRow.economy) || 0;
+          dPrem = Number(liveOverviewRow.premium) || 0;
+          dLux = (Number(liveOverviewRow.luxury) || 0) + (Number(liveOverviewRow.ultra_luxury) || 0);
+          dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
+          dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
+          dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
+          hasRecordedData = true;
         }
 
         if (hasRecordedData && dayTotal > 0) {
@@ -869,8 +858,29 @@ export default function LiveDashboard({
         };
       });
 
+      // ── Automated Sanity Check & Failsafe ──
+      // If totalVehiclesSum calculated as 0, but raw traffic_day rows exist with data:
+      if (totalVehiclesSum === 0 && dayRows.some(r => Number(r.total_vehicles) > 0)) {
+        console.warn("[downloadReportAsPDF] Sanity check: re-aggregating from raw traffic_day rows");
+        dayRows.forEach(r => {
+          const v = Number(r.total_vehicles) || 0;
+          if (v > 0) {
+            totalVehiclesSum += v;
+            totalBikes += Number(r.bikes || 0);
+            totalCommercial += Number(r.commercial || 0);
+            totalEconomy += Number(r.economy || 0);
+            totalPremium += Number(r.premium || 0);
+            totalLuxury += (Number(r.luxury || 0) + Number(r.ultra_luxury || 0));
+            totalReach += Number(r.estimated_reach) || Math.round(v * 2.4);
+            dwellWeightedSum += (Number(r.avg_exposure_time) || 0) * v;
+            maxDwellOverall = Math.max(maxDwellOverall, Number(r.max_exposure_time) || 0);
+            activeDaysWithDataCount++;
+          }
+        });
+      }
+
       const avgDwellCalculated = totalVehiclesSum > 0 ? Number((dwellWeightedSum / totalVehiclesSum).toFixed(1)) : 0.0;
-      
+
       // Determine overall Peak Mobility Window across all 24 hours
       let peakHourWindowIndex = -1;
       let peakHourWindowVolume = 0;
@@ -881,7 +891,7 @@ export default function LiveDashboard({
         }
       });
 
-      const overallPeakMobilityWindow = peakHourWindowIndex >= 0 
+      const overallPeakMobilityWindow = peakHourWindowIndex >= 0
         ? billboardService.formatPeakHourWindow(peakHourWindowIndex)
         : (overallPeakDayHour !== null ? billboardService.formatPeakHourWindow(overallPeakDayHour) : '5:00 PM – 6:00 PM');
 
@@ -896,7 +906,7 @@ export default function LiveDashboard({
         { name: 'Commercial', desc: 'Freight vehicles and public transport', count: totalCommercial, pct: sumVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
         { name: 'Economy', desc: 'Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
         { name: 'Premium', desc: '15L to 1 Cr', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
-        { name: 'Luxury', desc: '1 Cr and above', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
+        { name: 'Luxury', desc: '1 Cr and above (incl. Ultra Luxury)', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
       ];
 
       // ── Step 2: Location-Specific Geospatial Site Intelligence (1000m Buffer Zone) ──
@@ -1184,29 +1194,29 @@ export default function LiveDashboard({
       const isZeroTelemetry = totalVehiclesSum === 0;
 
       const kpiBoxes = [
-        { 
-          label: `TOTAL ${dayCountLabel} VEHICLES`, 
-          val: isZeroTelemetry ? 'No Telemetry' : totalVehiclesSum.toLocaleString(), 
-          sub: 'Verified Live Traffic Count', 
-          col: '#0284c7' 
+        {
+          label: `TOTAL ${dayCountLabel} VEHICLES`,
+          val: isZeroTelemetry ? 'No Telemetry' : totalVehiclesSum.toLocaleString(),
+          sub: 'Verified Live Traffic Count',
+          col: '#0284c7'
         },
-        { 
-          label: `${dayCountLabel} AUDIENCE REACH`, 
-          val: isZeroTelemetry ? '—' : totalReach.toLocaleString(), 
-          sub: 'Gross Impressions (2.4x Multiplier)', 
-          col: '#059669' 
+        {
+          label: `${dayCountLabel} AUDIENCE REACH`,
+          val: isZeroTelemetry ? '—' : totalReach.toLocaleString(),
+          sub: 'Gross Impressions (2.4x Multiplier)',
+          col: '#059669'
         },
-        { 
-          label: 'AVERAGE DWELL DURATION', 
-          val: avgDwellCalculated > 0 ? `${avgDwellCalculated}s` : (isZeroTelemetry ? '—' : '0.0s'), 
-          sub: maxDwellOverall > 0 ? `Max Exposure: ${maxDwellOverall.toFixed(1)}s` : 'Max Exposure: —', 
-          col: '#2563eb' 
+        {
+          label: 'AVERAGE DWELL DURATION',
+          val: avgDwellCalculated > 0 ? `${avgDwellCalculated}s` : (isZeroTelemetry ? '—' : '0.0s'),
+          sub: maxDwellOverall > 0 ? `Max Exposure: ${maxDwellOverall.toFixed(1)}s` : 'Max Exposure: —',
+          col: '#2563eb'
         },
-        { 
-          label: 'PEAK MOBILITY WINDOW', 
-          val: overallPeakMobilityWindow, 
-          sub: overallMaxDayCount > 0 ? `Peak Surge: ${overallMaxDayCount.toLocaleString()} veh` : 'Optimal Brand Placement', 
-          col: '#d97706' 
+        {
+          label: 'PEAK MOBILITY WINDOW',
+          val: overallPeakMobilityWindow,
+          sub: overallMaxDayCount > 0 ? `Peak Surge: ${overallMaxDayCount.toLocaleString()} veh` : 'Optimal Brand Placement',
+          col: '#d97706'
         }
       ];
 
@@ -1289,6 +1299,10 @@ export default function LiveDashboard({
 
         tableY += 7.5;
       });
+
+      // Explicit documentation note for vehicle classification tiers
+      setFont('normal', 4.4, '#94a3b8');
+      text('* Luxury category includes all verified luxury & ultra-luxury vehicle telemetry (₹1 Cr+).', tableX + 3, tableY + 1.2);
 
       y += pieBoxH + 4.5;
 
@@ -1805,12 +1819,12 @@ export default function LiveDashboard({
     }
     return acc + (b.status === 'Active' ? 245000 : 80000);
   }, 0);
-  const formattedImpressionsVal = rawImpressionsSum >= 1000000 
+  const formattedImpressionsVal = rawImpressionsSum >= 1000000
     ? `${(rawImpressionsSum / 1000000).toFixed(2)}M`
     : `${(rawImpressionsSum / 1000).toFixed(0)}K`;
 
   // 3. Vehicles Detected (live telemetry state)
-  const formattedVehiclesVal = dbTrafficData 
+  const formattedVehiclesVal = dbTrafficData
     ? (dbTrafficData.total_vehicles >= 1000 ? `${(dbTrafficData.total_vehicles / 1000).toFixed(1)}K` : `${dbTrafficData.total_vehicles}`)
     : '0';
 
@@ -1819,7 +1833,7 @@ export default function LiveDashboard({
   const premiumPctVal = Math.min(100, Math.round((digitalScreensCount / (totalMediasCount || 1)) * 43) || 43);
 
   // 5. Avg. Dwell Time
-  const formattedDwellVal = dbTrafficData 
+  const formattedDwellVal = dbTrafficData
     ? `${dbTrafficData.avg_exposure_time} sec`
     : '0 sec';
 
@@ -1897,7 +1911,7 @@ export default function LiveDashboard({
 
   return (
     <div className="w-full h-screen bg-[#0a0e1a] text-white flex flex-col font-sans select-none overflow-hidden relative">
-      
+
       {/* ═══════════════════════════════════════════════════
          MAIN BODY DECOUPLED COLUMNS
       ═══════════════════════════════════════════════════ */}
@@ -1905,7 +1919,7 @@ export default function LiveDashboard({
 
         {/* Backdrop for Mobile/Tablet Sidebar Drawer */}
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
@@ -1913,23 +1927,22 @@ export default function LiveDashboard({
         )}
 
         {/* ── SIDEBAR (Left Column - 260px width) ── */}
-        <aside className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-[260px] max-w-[85vw] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0 transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}>
-          
+        <aside className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-[260px] max-w-[85vw] border-r border-white/10 bg-[#080b15] flex flex-col justify-between overflow-hidden h-full flex-shrink-0 transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}>
+
           {/* Logo brand section */}
           <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-            <div 
-              className="flex items-center gap-[12px] cursor-pointer" 
+            <div
+              className="flex items-center gap-[12px] cursor-pointer"
               onClick={(e) => {
                 setSidebarOpen(false);
                 if (navigateTo) navigateTo(e, '/');
               }}
             >
               <div style={{ width: '44px', height: '50px', overflow: 'hidden', flexShrink: 0 }}>
-                <img 
-                  src={transparentLogo} 
-                  alt="Aculion Symbol" 
+                <img
+                  src={transparentLogo}
+                  alt="Aculion Symbol"
                   style={{ height: '50px', width: 'auto', maxWidth: 'none', display: 'block' }}
                 />
               </div>
@@ -1973,26 +1986,25 @@ export default function LiveDashboard({
                       // Map nav id → URL slug
                       const slugMap = {
                         front_camera: 'front-camera',
-                        traffic:      'audience-intelligence',
-                        overview:     'location-overview',
-                        corridor:     'corridor-intelligence',
-                        zone:         'zone-comparison',
-                        historical:   'historical-trends',
-                        live:         'live-view',
-                        alerts:       'alerts',
-                        reports:      'reports',
-                        settings:     'settings',
+                        traffic: 'audience-intelligence',
+                        overview: 'location-overview',
+                        corridor: 'corridor-intelligence',
+                        zone: 'zone-comparison',
+                        historical: 'historical-trends',
+                        live: 'live-view',
+                        alerts: 'alerts',
+                        reports: 'reports',
+                        settings: 'settings',
                       };
                       const viewSlug = slugMap[item.id] || item.id;
                       window.history.pushState(null, '', `${baseDashboardPath}/${viewSlug}`);
                       setActiveNav(item.id);
                     }
                   }}
-                  className={`w-full h-10 flex items-center justify-between px-3.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-150 cursor-pointer border ${
-                    isActive 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 border-blue-500/40' 
-                      : 'border-transparent text-white/60 hover:text-white hover:bg-white/[0.04]'
-                  }`}
+                  className={`w-full h-10 flex items-center justify-between px-3.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-150 cursor-pointer border ${isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 border-blue-500/40'
+                    : 'border-transparent text-white/60 hover:text-white hover:bg-white/[0.04]'
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0">
@@ -2001,9 +2013,8 @@ export default function LiveDashboard({
                     <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className={`shrink-0 ml-auto inline-flex items-center justify-center h-5 px-2 rounded text-[9px] font-bold uppercase tracking-wider leading-none ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                    }`}>
+                    <span className={`shrink-0 ml-auto inline-flex items-center justify-center h-5 px-2 rounded text-[9px] font-bold uppercase tracking-wider leading-none ${isActive ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      }`}>
                       {item.badge}
                     </span>
                   )}
@@ -2176,7 +2187,7 @@ export default function LiveDashboard({
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-semibold text-white/50">Avg. Dwell Time</span>
                       <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
-                <i className="fa-solid fa-stopwatch" />
+                        <i className="fa-solid fa-stopwatch" />
                       </div>
                     </div>
                     <div className="mt-3">
@@ -2190,10 +2201,10 @@ export default function LiveDashboard({
 
                 {/* ── 2. MAIN MIDDLE SECTION (2 COLUMNS) ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
+
                   {/* Left Column: Media Performance Map (2 cols width) */}
                   <div className="lg:col-span-2 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-xl min-h-[420px]">
-                    
+
                     {/* Map Header & View Switcher */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -2208,18 +2219,16 @@ export default function LiveDashboard({
                       <div className="flex items-center bg-white/[0.04] p-1 rounded-xl border border-white/10 gap-1">
                         <button
                           onClick={() => setMainMediaView('map')}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            mainMediaView === 'map' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
-                          }`}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${mainMediaView === 'map' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
+                            }`}
                         >
                           <i className="fa-solid fa-map-location-dot mr-1.5" />
                           Map View
                         </button>
                         <button
                           onClick={() => setMainMediaView('cctv')}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            mainMediaView === 'cctv' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
-                          }`}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${mainMediaView === 'cctv' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
+                            }`}
                         >
                           <i className="fa-solid fa-video mr-1.5" />
                           Live CCTV Feed
@@ -2234,10 +2243,10 @@ export default function LiveDashboard({
                           <svg className="w-full h-full" viewBox="0 0 600 310" preserveAspectRatio="xMidYMid slice">
                             <defs>
                               <pattern id="gridMapTarget" width="25" height="25" patternUnits="userSpaceOnUse">
-                                <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1"/>
+                                <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1" />
                               </pattern>
                               <filter id="shadowPin" x="-20%" y="-20%" width="140%" height="140%">
-                                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.6"/>
+                                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.6" />
                               </filter>
                             </defs>
 
@@ -2376,8 +2385,8 @@ export default function LiveDashboard({
 
                     <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
                       {sortedTopMedias.slice(0, 5).map((media, idx) => (
-                        <div 
-                          key={media.id || idx} 
+                        <div
+                          key={media.id || idx}
                           onClick={() => onSelectBillboard && onSelectBillboard(media)}
                           className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl p-2.5 flex items-center justify-between transition-all cursor-pointer"
                         >
@@ -2405,15 +2414,15 @@ export default function LiveDashboard({
 
                 {/* ── 3. BOTTOM SECTION (3 COLUMNS) ── */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-                  
+
                   {/* Panel 1: Performance Overview Chart (5 cols) */}
                   <div className="lg:col-span-5 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-bold text-white font-heading">Performance Overview</h3>
                       <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/10 text-[10px]">
                         {['1H', '6H', '12H', '24H'].map((tf) => (
-                          <button 
-                            key={tf} 
+                          <button
+                            key={tf}
                             onClick={() => setTimeFilter(tf)}
                             className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${timeFilter === tf ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}
                           >
@@ -2437,8 +2446,8 @@ export default function LiveDashboard({
 
                     <div className="h-[180px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart 
-                          data={activeChartData} 
+                        <AreaChart
+                          data={activeChartData}
                           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                         >
                           <defs>
@@ -2456,7 +2465,7 @@ export default function LiveDashboard({
                             </linearGradient>
                           </defs>
                           <XAxis dataKey="time" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000}K`} />
+                          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}K`} />
                           <Tooltip content={<CustomTooltip />} />
                           <Area type="monotone" dataKey="Impressions" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" />
                           <Area type="monotone" dataKey="Vehicles" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#colorVeh)" />
@@ -2469,7 +2478,7 @@ export default function LiveDashboard({
                   {/* Panel 2: Media Health Donut Chart (3 cols) */}
                   <div className="lg:col-span-3 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
                     <h3 className="text-sm font-bold text-white font-heading mb-2">Media Health</h3>
-                    
+
                     <div className="flex items-center justify-center gap-4 flex-1">
                       <div className="relative w-28 h-28 flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
@@ -2667,16 +2676,15 @@ export default function LiveDashboard({
               <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 min-w-0 overflow-y-auto">
                 <div className="flex flex-wrap items-center justify-between gap-2 flex-shrink-0 font-sans">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Historical Trend Analytics</h3>
-                  
+
                   {/* Select Trend Toggles */}
                   <div className="flex flex-wrap bg-[#121829] border border-white/10 rounded p-0.5 text-[9.5px]">
                     {['day', 'week', 'month', 'year'].map(opt => (
                       <button
                         key={opt}
                         onClick={() => setHistoricalFilter(opt)}
-                        className={`px-3 py-1 rounded font-semibold transition-all uppercase !border-none !shadow-none cursor-pointer ${
-                          historicalFilter === opt ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'
-                        }`}
+                        className={`px-3 py-1 rounded font-semibold transition-all uppercase !border-none !shadow-none cursor-pointer ${historicalFilter === opt ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -2690,12 +2698,12 @@ export default function LiveDashboard({
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={
-                          historicalFilter === 'day' 
-                            ? HISTORICAL_DAILY 
-                            : historicalFilter === 'week' 
-                              ? HISTORICAL_WEEKLY 
-                              : historicalFilter === 'month' 
-                                ? HISTORICAL_MONTHLY 
+                          historicalFilter === 'day'
+                            ? HISTORICAL_DAILY
+                            : historicalFilter === 'week'
+                              ? HISTORICAL_WEEKLY
+                              : historicalFilter === 'month'
+                                ? HISTORICAL_MONTHLY
                                 : HISTORICAL_YEARLY
                         }
                         margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
@@ -2744,13 +2752,12 @@ export default function LiveDashboard({
                     {alerts.map(alert => alert.active && (
                       <div key={alert.id} className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-3 rounded-lg hover:bg-white/[0.02] transition-all">
                         <div className="flex items-center gap-3">
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                            alert.type === 'CRITICAL' 
-                              ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
-                              : alert.type === 'WARNING' 
-                                ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' 
-                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${alert.type === 'CRITICAL'
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            : alert.type === 'WARNING'
+                              ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            }`}>
                             {alert.type}
                           </span>
                           <div className="flex flex-col text-[11px]">
@@ -2788,33 +2795,33 @@ export default function LiveDashboard({
                   <form onSubmit={handleGenerateReport} className="bg-slate-900/60 border border-white/10 rounded-xl p-4 flex flex-col justify-between shadow-lg h-full">
                     <div className="flex flex-col gap-3">
                       <span className="text-[10px] text-white/45 uppercase font-medium">Report Configuration</span>
-                      
+
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1">
                           <label className="text-[9px] text-white/50">Start Date</label>
-                          <input 
-                            type="date" 
-                            value={reportStartDate} 
+                          <input
+                            type="date"
+                            value={reportStartDate}
                             onChange={(e) => setReportStartDate(e.target.value)}
-                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" 
+                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-[9px] text-white/50">End Date</label>
-                          <input 
-                            type="date" 
-                            value={reportEndDate} 
+                          <input
+                            type="date"
+                            value={reportEndDate}
                             onChange={(e) => setReportEndDate(e.target.value)}
-                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none" 
+                            className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none"
                           />
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-white/50">Frequency Scope</label>
-                        <select 
-                          value={reportType} 
-                          onChange={(e) => setReportType(e.target.value)} 
+                        <select
+                          value={reportType}
+                          onChange={(e) => setReportType(e.target.value)}
                           className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11px] text-white/80 focus:outline-none"
                         >
                           <option value="weekly">Weekly Summary</option>
@@ -2836,8 +2843,8 @@ export default function LiveDashboard({
                     </div>
 
                     <div className="mt-4">
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         disabled={generatingReport}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-[11px] border-none shadow-md transition-all flex items-center justify-center gap-1.5"
                       >
@@ -2898,8 +2905,8 @@ export default function LiveDashboard({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-white/50">Telemetry refresh rate</label>
-                      <select 
-                        value={settings.refreshInterval} 
+                      <select
+                        value={settings.refreshInterval}
                         onChange={(e) => setSettings({ ...settings, refreshInterval: e.target.value })}
                         className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11.5px] text-white/80 focus:outline-none"
                       >
@@ -2911,8 +2918,8 @@ export default function LiveDashboard({
 
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-white/50">Vector Map Visual Style</label>
-                      <select 
-                        value={settings.mapStyle} 
+                      <select
+                        value={settings.mapStyle}
                         onChange={(e) => setSettings({ ...settings, mapStyle: e.target.value })}
                         className="bg-[#121829] border border-white/10 rounded px-2.5 py-1.5 text-[11.5px] text-white/80 focus:outline-none"
                       >
@@ -2924,21 +2931,21 @@ export default function LiveDashboard({
 
                   <div className="border-t border-white/5 pt-3 flex flex-col gap-2.5">
                     <label className="flex items-center gap-2.5 text-[11px] cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.overlayBoxes} 
+                      <input
+                        type="checkbox"
+                        checked={settings.overlayBoxes}
                         onChange={(e) => setSettings({ ...settings, overlayBoxes: e.target.checked })}
-                        className="rounded border-white/10 bg-slate-800 w-3.5 h-3.5 cursor-pointer" 
+                        className="rounded border-white/10 bg-slate-800 w-3.5 h-3.5 cursor-pointer"
                       />
                       <span>Show live AI tracking bounding box labels on CCTV feeds</span>
                     </label>
 
                     <label className="flex items-center gap-2.5 text-[11px] cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.notifications} 
+                      <input
+                        type="checkbox"
+                        checked={settings.notifications}
                         onChange={(e) => setSettings({ ...settings, notifications: e.target.checked })}
-                        className="rounded border-white/10 bg-slate-800 w-3.5 h-3.5 cursor-pointer" 
+                        className="rounded border-white/10 bg-slate-800 w-3.5 h-3.5 cursor-pointer"
                       />
                       <span>Enable audio signals and visual indicators for critical threshold alerts</span>
                     </label>
@@ -2952,8 +2959,8 @@ export default function LiveDashboard({
                         </>
                       )}
                     </span>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded text-[11px] border-none shadow-md transition-all !shadow-none !outline-none"
                     >
                       Apply Settings

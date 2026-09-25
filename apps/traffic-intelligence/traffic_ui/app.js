@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
                 economy: { name: 'Economy', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
-                premium: { name: 'Premium', desc: '15L to 1 Cr', count: 0, pct: 0, color: '#F59E0B' },
-                luxury: { name: 'Luxury', desc: '1 Cr and above', count: 0, pct: 0, color: '#10B981' }
+                premium: { name: 'Premium', desc: 'Cars between 15 lakh to 60 lakh', count: 0, pct: 0, color: '#F59E0B' },
+                luxury: { name: 'Luxury', desc: 'Above 60 lakh', count: 0, pct: 0, color: '#10B981' }
             },
             dwellStats: {
                 avg: 0.0,
