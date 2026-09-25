@@ -363,26 +363,26 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
           {/* ═══════════════════════════════════════════════════════════════
              1. TOP LOCATION INTELLIGENCE CONTROL BAR (ABOVE KPI CARDS)
           ═══════════════════════════════════════════════════════════════ */}
-          <div className="bg-[#0e1628]/95 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl flex flex-col gap-4">
+          <div className="bg-[#0b1222]/95 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl space-y-4">
             
             {/* Top Row: Location Identity & Metadata Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-white/[0.08]">
               {/* Left: Icon + Area Name & Status */}
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-md shadow-blue-500/10">
-                  <MapPin size={20} className={isResolvingArea ? "animate-bounce text-cyan-400" : "text-blue-400"} />
+                <div className="w-11 h-11 rounded-xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400 shrink-0 shadow-lg shadow-blue-500/10">
+                  <MapPin size={22} className={isResolvingArea ? "animate-bounce text-cyan-400" : "text-blue-400"} />
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center flex-wrap gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 leading-none">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-blue-400 leading-none">
                       Location Overview
                     </span>
-                    <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 whitespace-nowrap">
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 whitespace-nowrap shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       GPS: {latitude.toFixed(6)}°N, {longitude.toFixed(6)}°E
                     </span>
                     {activeBillboard && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono font-bold whitespace-nowrap">
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono font-bold whitespace-nowrap shrink-0">
                         Asset: {activeBillboard.billboard_code || activeBillboard.id}
                       </span>
                     )}
@@ -394,25 +394,25 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
               </div>
 
               {/* Right: Catchment Zone & GIS Radar Badge */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-white/50 font-mono hidden md:inline-block">
+              <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
+                <span className="text-xs text-white/60 font-mono hidden md:inline-block px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/5">
                   Catchment Zone: <strong className="text-white">{radius >= 1000 ? `${(radius/1000).toFixed(1)} km` : `${radius}m`}</strong>
                 </span>
-                <span className="text-[9px] px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono font-bold flex items-center gap-1">
-                  <Compass size={12} className="text-blue-400" /> Live GIS Radar
+                <span className="text-[10px] px-3 py-1 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-400/30 font-mono font-bold inline-flex items-center gap-1.5 shadow-sm">
+                  <Compass size={13} className="text-blue-400 animate-spin" style={{ animationDuration: '6s' }} /> Live GIS Radar
                 </span>
               </div>
             </div>
 
             {/* Bottom Row: Unified Interactive Controls Toolbar */}
-            <div className="flex flex-wrap items-center gap-2.5 bg-[#080d1a]/90 p-2 sm:p-2.5 border border-white/10 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 bg-[#070d1a]/90 p-2.5 sm:p-3 border border-white/10 rounded-xl items-center">
               
-              {/* Billboard Asset Selector Dropdown */}
-              <div className="relative flex-1 min-w-[200px]">
+              {/* 1. Billboard Asset Selector Dropdown (lg: col-span-4) */}
+              <div className="relative lg:col-span-4 w-full">
                 <select
                   value={activeBillboardCode}
                   onChange={(e) => handleBillboardSelect(e.target.value)}
-                  className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-8 pr-8 py-2 text-xs font-bold focus:outline-none hover:border-blue-500 focus:border-blue-500 cursor-pointer w-full text-white truncate transition-colors"
+                  className="appearance-none bg-[#111827] border border-white/10 rounded-lg pl-9 pr-8 py-2.5 text-xs font-bold focus:outline-none hover:border-blue-500 focus:border-blue-500 cursor-pointer w-full text-white truncate transition-colors shadow-inner"
                   title="Select Billboard Asset to load its database coordinates"
                 >
                   {billboards.length > 0 ? (
@@ -434,13 +434,13 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                     📍 Custom GPS Coordinates
                   </option>
                 </select>
-                <Tv className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-400 pointer-events-none" />
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
+                <Tv className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
               </div>
 
-              {/* Latitude Input */}
-              <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-[125px] xs:w-[135px] focus-within:border-blue-500 transition-colors">
-                <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
+              {/* 2. Latitude Input (lg: col-span-2) */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#111827] border border-white/10 rounded-lg lg:col-span-2 w-full focus-within:border-blue-500 transition-colors shadow-inner">
+                <span className="text-[11px] font-black text-blue-400 tracking-wider uppercase shrink-0">LAT</span>
                 <input
                   type="number"
                   step="any"
@@ -452,9 +452,9 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 />
               </div>
 
-              {/* Longitude Input */}
-              <div className="flex items-center gap-1.5 px-3 py-2 bg-[#121829] border border-white/10 rounded-lg shrink-0 w-[125px] xs:w-[135px] focus-within:border-blue-500 transition-colors">
-                <span className="text-xs font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
+              {/* 3. Longitude Input (lg: col-span-2) */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#111827] border border-white/10 rounded-lg lg:col-span-2 w-full focus-within:border-blue-500 transition-colors shadow-inner">
+                <span className="text-[11px] font-black text-blue-400 tracking-wider uppercase shrink-0">LNG</span>
                 <input
                   type="number"
                   step="any"
@@ -466,12 +466,12 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 />
               </div>
 
-              {/* Radius Selector */}
-              <div className="relative shrink-0 w-[95px]">
+              {/* 4. Radius Selector (lg: col-span-1) */}
+              <div className="relative lg:col-span-1 w-full">
                 <select
                   value={radius}
                   onChange={(e) => setRadius(Number(e.target.value))}
-                  className="appearance-none bg-[#121829] border border-white/10 rounded-lg pl-3 pr-6 py-2 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white transition-colors"
+                  className="appearance-none bg-[#111827] border border-white/10 rounded-lg pl-3 pr-6 py-2.5 text-xs font-black focus:outline-none hover:border-blue-500 cursor-pointer w-full text-white transition-colors shadow-inner text-center"
                 >
                   <option value="500">500 m</option>
                   <option value="1000">1.0 km</option>
@@ -482,34 +482,34 @@ export default function Dashboard({ selectedBillboard }: { selectedBillboard?: a
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
               </div>
 
-              {/* Pick on Map Toggle Button */}
+              {/* 5. Pick on Map Toggle Button (lg: col-span-2) */}
               <button
                 type="button"
                 onClick={() => setIsMapPickingActive(!isMapPickingActive)}
-                className={`flex items-center justify-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-black transition-all duration-200 shrink-0 cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 border rounded-lg text-xs font-black transition-all duration-200 lg:col-span-2 w-full cursor-pointer shadow-md ${
                   isMapPickingActive
-                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                    : "border-white/10 bg-[#121829] hover:bg-white/10 text-white/70 hover:text-white"
+                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]"
+                    : "border-white/10 bg-[#111827] hover:bg-white/10 text-white/80 hover:text-white"
                 }`}
                 title="Click anywhere on the map to pick coordinates"
               >
                 <Crosshair size={14} className={isMapPickingActive ? "animate-spin" : ""} />
-                <span>{isMapPickingActive ? "Picking Active" : "Pick on Map"}</span>
+                <span className="truncate">{isMapPickingActive ? "Picking Active" : "Pick on Map"}</span>
               </button>
 
-              {/* Analyze Action Button */}
+              {/* 6. Analyze Action Button (lg: col-span-1) */}
               <button
                 type="button"
                 onClick={handleAnalyzeSubmit}
                 disabled={isAnalyticsLoading || isAnalyticsFetching}
-                className="flex items-center justify-center gap-1.5 px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer disabled:opacity-50 ml-auto sm:ml-0"
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-500/30 hover:opacity-95 active:scale-95 transition-all duration-150 lg:col-span-1 w-full cursor-pointer disabled:opacity-50"
               >
                 {isAnalyticsLoading || isAnalyticsFetching ? (
                   <RefreshCw size={13} className="animate-spin" />
                 ) : (
                   <Play size={13} className="fill-current" />
                 )}
-                <span>{isAnalyticsLoading || isAnalyticsFetching ? "Analyzing..." : "Analyze"}</span>
+                <span>{isAnalyticsLoading || isAnalyticsFetching ? "..." : "Analyze"}</span>
               </button>
 
             </div>

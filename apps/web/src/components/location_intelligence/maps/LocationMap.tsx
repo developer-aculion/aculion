@@ -7,15 +7,21 @@ import { ZoomIn, ZoomOut, Maximize2, Layers } from "lucide-react";
 // ---------------------------------------------------------------------------
 // Tile URL helpers & High-availability tile endpoints
 // ---------------------------------------------------------------------------
+const CARTO_KEY = (import.meta as any).env?.VITE_CARTO_API_KEY || "";
+
 const getDarkTileUrl = () => {
-  return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
+  if (CARTO_KEY && CARTO_KEY !== "your_carto_api_key_here") {
+    return `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?api_key=${encodeURIComponent(CARTO_KEY)}`;
+  }
+  // High-performance, watermark-free Dark GIS Canvas (No API key needed)
+  return "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
 };
 
 const getTileUrl = (type: "satellite" | "dark") => {
   if (type === "satellite") {
     return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   }
-  return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
+  return getDarkTileUrl();
 };
 
 interface LocationMapProps {

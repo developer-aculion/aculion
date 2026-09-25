@@ -10,10 +10,17 @@ import { ZoomIn, ZoomOut, Maximize2, Search, Layers } from "lucide-react";
 // ---------------------------------------------------------------------------
 const CARTO_KEY = (import.meta as any).env?.VITE_CARTO_API_KEY || "";
 
+const getDarkTileUrl = () => {
+  if (CARTO_KEY && CARTO_KEY !== "your_carto_api_key_here") {
+    return `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?api_key=${encodeURIComponent(CARTO_KEY)}`;
+  }
+  return "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+};
+
 const TILE_URLS: Record<string, string> = {
   satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+  dark: getDarkTileUrl(),
+  light: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
 };
 
 interface LocationMapProps {
