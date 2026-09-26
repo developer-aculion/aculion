@@ -1771,15 +1771,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             theme: { mode: 'dark' },
-            colors: ['#1E88FF', '#00F0FF'],
+            colors: ['#00F0FF', '#00F0FF'],
             stroke: {
-                width: [0, 3.0],
+                width: [0, 2.8],
                 curve: 'smooth',
                 lineCap: 'round'
             },
             plotOptions: {
                 bar: {
-                    columnWidth: '38%',
+                    columnWidth: '36%',
                     borderRadius: 5,
                     borderRadiusApplication: 'end'
                 }
@@ -1790,10 +1790,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     shade: 'dark',
                     type: 'vertical',
                     shadeIntensity: 0.5,
-                    gradientToColors: ['#00F0FF', undefined],
+                    gradientToColors: ['#1E88FF', undefined],
                     inverseColors: false,
-                    opacityFrom: [0.75, 1],
-                    opacityTo: [0.22, 1],
+                    opacityFrom: [0.65, 1],
+                    opacityTo: [0.15, 1],
                     stops: [0, 100]
                 }
             },
@@ -1945,8 +1945,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Ultra Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
             ],
             chart: {
                 type: 'line',
@@ -1963,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dynamicAnimation: { enabled: true, speed: 400 }
                 }
             },
-            colors: ['#1E88FF', '#00C4FF', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444'],
+            colors: ['#1E88FF', '#00C4FF', '#8B5CF6', '#F59E0B', '#10B981'],
             stroke: {
                 curve: 'smooth',
                 width: 2.8,
@@ -2024,8 +2023,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                    { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                    { name: 'Ultra Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+                    { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
                 ]
             }, false, false);
             return;
@@ -2036,7 +2034,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const recent = sorted.slice(-10);
 
             const categories = [];
-            const bikes = [], commercial = [], economy = [], premium = [], luxury = [], ultraLuxury = [];
+            const bikes = [], commercial = [], economy = [], premium = [], luxury = [];
 
             recent.forEach(r => {
                 const dt = new Date(r.recorded_at || r.last_updated || Date.now());
@@ -2052,8 +2050,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 commercial.push(Number(r.commercial) || 0);
                 economy.push(Number(r.economy) || 0);
                 premium.push(Number(r.premium) || 0);
-                luxury.push(Number(r.luxury) || 0);
-                ultraLuxury.push(Number(r.ultra_luxury) || 0);
+                luxury.push((Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0));
             });
 
             state.charts.trendLine.updateOptions({
@@ -2063,8 +2060,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     { name: 'Commercial', data: commercial },
                     { name: 'Economy', data: economy },
                     { name: 'Premium', data: premium },
-                    { name: 'Luxury', data: luxury },
-                    { name: 'Ultra Luxury', data: ultraLuxury }
+                    { name: 'Luxury', data: luxury }
                 ]
             }, false, false);
             return;
@@ -2076,7 +2072,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const eBase = Math.max(1, Math.round((state.stats.classes.economy.count || 0) / 45));
         const pBase = Math.max(1, Math.round((state.stats.classes.premium.count || 0) / 45));
         const lBase = Math.max(1, Math.round((state.stats.classes.luxury.count || 0) / 45));
-        const uBase = Math.max(0, Math.round((state.stats.classes.ultra_luxury?.count || 0) / 45));
 
         const categories = generateTimeWindowCategories(10, 30);
 
@@ -2085,8 +2080,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'Commercial', data: [cBase * 0.7, cBase * 0.9, cBase * 1.0, cBase * 0.95, cBase * 0.8, cBase * 0.75, cBase * 0.9, cBase * 1.1, cBase * 1.0, cBase].map(Math.round) },
             { name: 'Economy', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
             { name: 'Premium', data: [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round) },
-            { name: 'Luxury', data: [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round) },
-            { name: 'Ultra Luxury', data: [uBase * 0.5, uBase * 0.6, uBase * 0.6, uBase * 0.75, uBase * 0.7, uBase * 0.6, uBase * 0.9, uBase * 1.2, uBase * 0.9, uBase].map(Math.round) }
+            { name: 'Luxury', data: [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round) }
         ];
 
         state.charts.trendLine.updateOptions({
@@ -2125,18 +2119,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const eBase = Math.max(1, Math.round((classes.economy.count || 0) / 45));
         const pBase = Math.max(1, Math.round((classes.premium.count || 0) / 45));
         const lBase = Math.max(1, Math.round((classes.luxury.count || 0) / 45));
-        const uBase = Math.max(0, Math.round((classes.ultra_luxury?.count || 0) / 45));
 
         const counts = [
             Math.max(0, Math.round(bBase + (Math.random() - 0.5) * Math.max(2, bBase * 0.12))),
             Math.max(0, Math.round(cBase + (Math.random() - 0.5) * Math.max(2, cBase * 0.12))),
             Math.max(0, Math.round(eBase + (Math.random() - 0.5) * Math.max(2, eBase * 0.12))),
             Math.max(0, Math.round(pBase + (Math.random() - 0.5) * Math.max(2, pBase * 0.12))),
-            Math.max(0, Math.round(lBase + (Math.random() - 0.5) * Math.max(2, lBase * 0.12))),
-            Math.max(0, Math.round(uBase + (Math.random() - 0.5) * Math.max(1, uBase * 0.12)))
+            Math.max(0, Math.round(lBase + (Math.random() - 0.5) * Math.max(2, lBase * 0.12)))
         ];
 
-        const updatedSeries = seriesData.map((series, idx) => {
+        const updatedSeries = seriesData.slice(0, 5).map((series, idx) => {
             const data = [...series.data];
             data.push(counts[idx]);
             if (data.length > 10) data.shift();
