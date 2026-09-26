@@ -6,10 +6,20 @@ import logging
 import threading
 import datetime
 from urllib.parse import urlparse
-import cv2
-import numpy as np
+
+try:
+    import cv2
+    import numpy as np
+    HAS_OPENCV = True
+except ImportError:
+    cv2 = None
+    np = None
+    HAS_OPENCV = False
 
 logger = logging.getLogger("traffic-service.camera_streamer")
+if not HAS_OPENCV:
+    logger.warning("OpenCV (opencv-python-headless) is not installed. Camera streaming will operate in diagnostic standby mode.")
+
 
 def mask_rtsp_url(url: str) -> str:
     """Mask password in RTSP URL for safe UI display and logs."""
@@ -67,6 +77,12 @@ class RTSPCameraWorker:
         os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;3000000"
 
         while self.running:
+            if not HAS_OPENCV:
+                self.state = "offline"
+                self.error_message = "OpenCV (opencv-python-headless) not installed."
+                time.sleep(5.0)
+                continue
+
             # 1. Verify host and port reachability
             if not self._check_host():
                 self.state = "offline"
@@ -214,8 +230,24 @@ async def generate_mjpeg_stream(url: str):
     frame_count = 0
 
     try:
+        # Fallback 1x1 black JPEG frame if OpenCV is not installed
+        fallback_jpeg = (
+            b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00'
+            b'\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19'
+            b'\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342'
+            b'\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05'
+            b'\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08'
+            b'\t\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9'
+        )
+
         while True:
             worker.touch()
+            if not HAS_OPENCV:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + fallback_jpeg + b'\r\n')
+                await asyncio.sleep(2.0)
+                continue
+
             now = time.time()
 
             # Check if we have a fresh live camera frame (< 3.0s old)

@@ -7,8 +7,6 @@ import time
 import datetime
 from urllib.parse import urlparse
 from typing import List, Optional
-import cv2
-import numpy as np
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from realtime_manager import manager, MOCK_CAMERAS, generate_mock_record
