@@ -326,16 +326,16 @@
                         <div class="card-header">
                             <div class="header-info">
                                 <h2>Vehicle Traffic — Last 7 Days</h2>
-                                <p class="card-subtitle">Daily detected vehicle volume with highlighted trends</p>
+                                <p class="card-subtitle">Daily detected vehicle volume sourced from traffic_day</p>
                             </div>
                             <div class="chart-header-actions">
-                                <div class="trend-filter-pill active">
-                                    <i data-lucide="calendar" class="pill-icon"></i>
-                                    <span>Last 7 Days</span>
-                                </div>
                                 <div class="trend-summary-stat-box">
                                     <span class="trend-stat-label">7-Day Total:</span>
                                     <span class="trend-stat-value" id="trend-7day-total">0</span>
+                                </div>
+                                <div class="trend-summary-stat-box">
+                                    <span class="trend-stat-label">Daily Avg:</span>
+                                    <span class="trend-stat-value" id="trend-7day-avg">0</span>
                                 </div>
                             </div>
                         </div>
@@ -406,51 +406,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Vehicle Value Mix (Semi-Circle Donut Chart) -->
-                    <div class="glass-panel analytics-card" id="value-mix-card">
-                        <div class="card-header">
-                            <div class="header-info">
-                                <h2>Vehicle Value Mix</h2>
-                                <p class="card-subtitle">High-value vehicle segment composition</p>
-                            </div>
-                        </div>
-                        <div class="semi-donut-chart-container">
-                            <div id="vehicleValueMixChart"></div>
-                        </div>
-                        <!-- Semi-Donut Dynamic Legend Strip -->
-                        <div class="value-mix-legend" id="valueMixLegend">
-                            <div class="mix-legend-item">
-                                <span class="legend-color-dot" style="background-color: #8B5CF6;"></span>
-                                <span class="mix-legend-label">Economy</span>
-                                <span class="mix-legend-count" id="mix-count-economy">0</span>
-                                <span class="mix-legend-pct" id="mix-pct-economy">(0%)</span>
-                            </div>
-                            <div class="mix-legend-item">
-                                <span class="legend-color-dot" style="background-color: #F59E0B;"></span>
-                                <span class="mix-legend-label">Premium</span>
-                                <span class="mix-legend-count" id="mix-count-premium">0</span>
-                                <span class="mix-legend-pct" id="mix-pct-premium">(0%)</span>
-                            </div>
-                            <div class="mix-legend-item">
-                                <span class="legend-color-dot" style="background-color: #10B981;"></span>
-                                <span class="mix-legend-label">Luxury</span>
-                                <span class="mix-legend-count" id="mix-count-luxury">0</span>
-                                <span class="mix-legend-pct" id="mix-pct-luxury">(0%)</span>
-                            </div>
-                        </div>
-                        <!-- Dynamic Summary Sentence -->
-                        <div class="value-mix-summary-footer">
-                            <div class="summary-sentence-box">
-                                <span class="summary-sentence-text" id="value-mix-summary-text">
-                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.
-                                </span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Right Column: Peak Traffic Hour & Live Vehicle Classification -->
+                <!-- Right Column: Peak Traffic Analysis, Live Vehicle Classification & Vehicle Value Mix -->
                 <div class="analytics-col-right">
                     <!-- Peak Traffic Analysis (7x11 Heatmap) -->
                     <div class="glass-panel analytics-card" id="peak-traffic-hour-card">
@@ -596,6 +554,48 @@
                                 <div class="progress-bar-container">
                                     <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Value Mix (Semi-Circle Donut Chart) -->
+                    <div class="glass-panel analytics-card" id="value-mix-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Vehicle Value Mix</h2>
+                                <p class="card-subtitle">High-value vehicle segment composition</p>
+                            </div>
+                        </div>
+                        <div class="semi-donut-chart-container">
+                            <div id="vehicleValueMixChart"></div>
+                        </div>
+                        <!-- Semi-Donut Dynamic Legend Strip -->
+                        <div class="value-mix-legend" id="valueMixLegend">
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #8B5CF6;"></span>
+                                <span class="mix-legend-label">Economy</span>
+                                <span class="mix-legend-count" id="mix-count-economy">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-economy">(0%)</span>
+                            </div>
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #F59E0B;"></span>
+                                <span class="mix-legend-label">Premium</span>
+                                <span class="mix-legend-count" id="mix-count-premium">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-premium">(0%)</span>
+                            </div>
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #10B981;"></span>
+                                <span class="mix-legend-label">Luxury</span>
+                                <span class="mix-legend-count" id="mix-count-luxury">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-luxury">(0%)</span>
+                            </div>
+                        </div>
+                        <!-- Dynamic Summary Sentence -->
+                        <div class="value-mix-summary-footer">
+                            <div class="summary-sentence-box">
+                                <span class="summary-sentence-text" id="value-mix-summary-text">
+                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.
+                                </span>
                             </div>
                         </div>
                     </div>
