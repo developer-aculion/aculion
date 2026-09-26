@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <!-- CSS Style -->
     <link rel="stylesheet" href="styles.css">
     <!-- Lucide Icons -->
@@ -15,6 +18,7 @@
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar Filters (Collapsible) -->
@@ -29,10 +33,10 @@
                     <i data-lucide="x"></i>
                 </button>
             </div>
-            
+
             <div class="sidebar-scroll-area">
                 <h3 class="sidebar-title">Analytics Filters</h3>
-                
+
                 <div class="filter-group">
                     <label for="filterLocation">Location</label>
                     <select id="filterLocation">
@@ -63,12 +67,11 @@
                 <div class="filter-group">
                     <label>Vehicle Category</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" id="catEconomy" checked> Bike</label>
-                        <label><input type="checkbox" id="catPremium" checked> Commercial</label>
-                        <label><input type="checkbox" id="catLuxury" checked> Economy</label>
-                        <label><input type="checkbox" id="catUltra" checked> Premium</label>
-                        <label><input type="checkbox" id="catBikes" checked> Luxury</label>
-                        <label><input type="checkbox" id="catCommercial" checked> Ultra Luxury</label>
+                        <label><input type="checkbox" id="catBikes" checked> Bike</label>
+                        <label><input type="checkbox" id="catCommercial" checked> Commercial</label>
+                        <label><input type="checkbox" id="catEconomy" checked> Economy</label>
+                        <label><input type="checkbox" id="catPremium" checked> Premium</label>
+                        <label><input type="checkbox" id="catLuxury" checked> Luxury</label>
                     </div>
                 </div>
 
@@ -127,19 +130,22 @@
                         <div class="title-row">
                             <h1>Traffic Intelligence</h1>
                         </div>
-                        <p class="subtitle">Real-time vehicle movement analytics and audience insights for Outdoor Media Intelligence.</p>
+                        <p class="subtitle">Real-time vehicle movement analytics and audience insights for Outdoor Media
+                            Intelligence.</p>
                     </div>
                 </div>
-                
+
                 <div class="header-right">
                     <div class="header-selectors">
                         <div class="custom-dropdown location-dropdown-container" id="locationDropdown">
-                            <button type="button" class="selector-box custom-dropdown-toggle" id="locationDropdownToggle" aria-haspopup="listbox" aria-expanded="false">
+                            <button type="button" class="selector-box custom-dropdown-toggle"
+                                id="locationDropdownToggle" aria-haspopup="listbox" aria-expanded="false">
                                 <i data-lucide="map-pin" class="selector-icon"></i>
-                                <span class="dropdown-selected-text" id="selectedLocationText">Active Billboard (ACU-BB)</span>
+                                <span class="dropdown-selected-text" id="selectedLocationText">Active Billboard
+                                    (ACU-BB)</span>
                                 <i data-lucide="chevron-down" class="dropdown-chevron"></i>
                             </button>
-                            
+
                             <div class="custom-dropdown-menu" id="locationDropdownMenu" role="listbox">
                                 <div class="custom-dropdown-item active" data-value="active-cam" role="option">
                                     <span class="item-text">Active Billboard (ACU-BB)</span>
@@ -151,22 +157,27 @@
                                 <option value="active-cam" selected>Active Billboard (ACU-BB)</option>
                             </select>
                         </div>
-                        
-                        <div class="selector-box datetime-range-wrapper" id="dateRangeSelectorBox" style="cursor: pointer; position: relative;">
+
+                        <div class="selector-box datetime-range-wrapper" id="dateRangeSelectorBox"
+                            style="cursor: pointer; position: relative;">
                             <i data-lucide="calendar" class="selector-icon"></i>
                             <span class="range-display" id="dateRangeDisplay">Today, Real-time Feed</span>
-                            <input type="date" id="datePickerInput" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; left: 0; bottom: 0;" />
+                            <input type="date" id="datePickerInput"
+                                style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; left: 0; bottom: 0;" />
                         </div>
                     </div>
-                    
+
                     <div class="header-actions">
                         <span class="update-timestamp" id="lastUpdatedTime">Last updated at --:--:--</span>
-                        <button class="btn-icon-small" id="refreshBtn" title="Refresh Live Data (Auto-refreshes every 5s)" aria-label="Refresh data">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="refresh-icon">
-                                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                <path d="M3 3v5h5"/>
-                                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                                <path d="M16 16h5v5"/>
+                        <button class="btn-icon-small" id="refreshBtn"
+                            title="Refresh Live Data (Auto-refreshes every 5s)" aria-label="Refresh data">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                stroke-linejoin="round" class="refresh-icon">
+                                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                <path d="M3 3v5h5" />
+                                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                                <path d="M16 16h5v5" />
                             </svg>
                         </button>
                     </div>
@@ -371,7 +382,8 @@
                         <div class="card-header">
                             <div class="header-info">
                                 <h2>Traffic Density Heat Timeline</h2>
-                                <p class="card-subtitle">Hourly average traffic intensity and peak load distributions</p>
+                                <p class="card-subtitle">Hourly average traffic intensity and peak load distributions
+                                </p>
                             </div>
                         </div>
                         <div class="heatmap-outer-wrapper">
@@ -398,79 +410,14 @@
 
                         <div class="classification-list">
                             <!-- Bike -->
-                            <div class="class-item" id="class-economy">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🏍</span>
-                                        <span class="class-label">Bike</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-economy">0</span>
-                                        <span class="class-pct" id="pct-economy">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Commercial -->
-                            <div class="class-item" id="class-premium">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚚</span>
-                                        <span class="class-label">Commercial</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-premium">0</span>
-                                        <span class="class-pct" id="pct-premium">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Economy -->
-                            <div class="class-item" id="class-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚗</span>
-                                        <span class="class-label">Economy</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-luxury">0</span>
-                                        <span class="class-pct" id="pct-luxury">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Premium -->
-                            <div class="class-item" id="class-ultra-luxury">
-                                <div class="class-info">
-                                    <div class="class-name">
-                                        <span class="class-emoji">🚙</span>
-                                        <span class="class-label">Premium</span>
-                                    </div>
-                                    <div class="class-stats">
-                                        <span class="class-count" id="count-ultra">0</span>
-                                        <span class="class-pct" id="pct-ultra">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill ultra-bg" id="bar-ultra" style="width: 0%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Luxury -->
                             <div class="class-item" id="class-bikes">
                                 <div class="class-info">
                                     <div class="class-name">
-                                        <span class="class-emoji">🏎</span>
-                                        <span class="class-label">Luxury</span>
+                                        <span class="class-emoji">🏍</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Bike</span>
+                                            <span class="class-desc">Two-Wheelers &amp; Scooters</span>
+                                        </div>
                                     </div>
                                     <div class="class-stats">
                                         <span class="class-count" id="count-bikes">0</span>
@@ -482,12 +429,15 @@
                                 </div>
                             </div>
 
-                            <!-- Ultra Luxury -->
+                            <!-- Commercial -->
                             <div class="class-item" id="class-commercial">
                                 <div class="class-info">
                                     <div class="class-name">
-                                        <span class="class-emoji">👑</span>
-                                        <span class="class-label">Ultra Luxury</span>
+                                        <span class="class-emoji">🚚</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Commercial</span>
+                                            <span class="class-desc">Freight vehicles and public transport</span>
+                                        </div>
                                     </div>
                                     <div class="class-stats">
                                         <span class="class-count" id="count-commercial">0</span>
@@ -495,66 +445,69 @@
                                     </div>
                                 </div>
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 0%;"></div>
+                                    <div class="progress-bar-fill commercial-bg" id="bar-commercial" style="width: 0%;">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <!-- Weekly Peak Traffic Intelligence Section -->
-            <section class="analytics-row-weekly" id="weekly-peak-section">
-                <div class="glass-panel analytics-card weekly-peak-card" id="weekly-peak-traffic-card">
-                    <div class="card-header">
-                        <div class="header-info">
-                            <div class="header-title-flex">
-                                <h2>Weekly Peak Traffic Intelligence</h2>
-                                <span class="badge badge-weekly-range">7-Day Aggregation</span>
+                            <!-- Economy -->
+                            <div class="class-item" id="class-economy">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚗</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Economy</span>
+                                            <span class="class-desc">Cars under 15 Lakhs</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-economy">0</span>
+                                        <span class="class-pct" id="pct-economy">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill economy-bg" id="bar-economy" style="width: 0%;"></div>
+                                </div>
                             </div>
-                            <p class="card-subtitle">Overall weekly peak mobility window and 7-day daily throughput breakdown</p>
-                        </div>
-                        <div class="weekly-sync-badge">
-                            <span class="live-dot-pulse"></span>
-                            <span class="pulse-text" id="weekly-peak-status">Database Synced</span>
-                        </div>
-                    </div>
 
-                    <div class="weekly-peak-grid-container">
-                        <!-- Left Hero Spotlight: Overall Weekly Peak Window -->
-                        <div class="weekly-peak-hero-box">
-                            <div class="hero-header-tag">
-                                <i data-lucide="zap"></i>
-                                <span>OVERALL WEEKLY PEAK WINDOW</span>
-                            </div>
-                            <div class="hero-peak-window" id="weekly-overall-peak-hour">—</div>
-                            <div class="hero-peak-details">
-                                <div class="hero-detail-item">
-                                    <span class="detail-label">Peak Day:</span>
-                                    <span class="detail-val text-cyan" id="weekly-overall-peak-day">—</span>
+                            <!-- Premium -->
+                            <div class="class-item" id="class-premium">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🚙</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Premium</span>
+                                            <span class="class-desc">Cars between 15 lakhs to 60 Lakhs</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-premium">0</span>
+                                        <span class="class-pct" id="pct-premium">0%</span>
+                                    </div>
                                 </div>
-                                <div class="hero-detail-item">
-                                    <span class="detail-label">Peak Volume:</span>
-                                    <span class="detail-val text-white" id="weekly-overall-peak-volume">—</span>
-                                </div>
-                                <div class="hero-detail-item">
-                                    <span class="detail-label">Avg. Density:</span>
-                                    <span class="detail-val text-emerald" id="weekly-overall-peak-density">-- veh/min</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill premium-bg" id="bar-premium" style="width: 0%;"></div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Right Grid: 7-Day Day-by-Day Peak Hour Cards & Bar Chart -->
-                        <div class="weekly-days-wrapper">
-                            <div class="weekly-days-header">
-                                <span class="days-title">7-Day Mobility & Peak Hour Intelligence</span>
-                                <span class="weekly-total-text">Weekly Total: <strong id="weekly-total-vehicles-count">0</strong> veh</span>
-                            </div>
-                            <div class="weekly-chart-container" style="height: 130px; margin-bottom: 12px;">
-                                <div id="weeklyPeakBarChart"></div>
-                            </div>
-                            <div class="weekly-days-grid" id="weekly-days-grid">
-                                <!-- Populated dynamically by app.js -->
+                            <!-- Luxury -->
+                            <div class="class-item" id="class-luxury">
+                                <div class="class-info">
+                                    <div class="class-name">
+                                        <span class="class-emoji">🏎</span>
+                                        <div class="class-label-group">
+                                            <span class="class-label">Luxury</span>
+                                            <span class="class-desc">Cars above 60 lakhs</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-stats">
+                                        <span class="class-count" id="count-luxury">0</span>
+                                        <span class="class-pct" id="pct-luxury">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill luxury-bg" id="bar-luxury" style="width: 0%;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -566,4 +519,5 @@
     <!-- Main JavaScript App -->
     <script src="app.js"></script>
 </body>
+
 </html>

@@ -68,7 +68,8 @@ export const billboardService = {
     const { data, error } = await supabase
       .from("billboards")
       .select("*")
-      .eq("id", id)
+      .or(`id.eq.${id},billboard_code.eq.${id}`)
+      .limit(1)
       .maybeSingle();
 
     if (error) {
@@ -80,6 +81,25 @@ export const billboardService = {
       throw new Error(`Billboard with ID ${id} not found.`);
     }
 
+    return mapDbRecordToBillboard(data);
+  },
+
+  getBillboardByCode: async (code: string): Promise<Billboard | null> => {
+    if (!code) return null;
+    const { data, error } = await supabase
+      .from("billboards")
+      .select("*")
+      .or(`billboard_code.eq.${code},id.eq.${code}`)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[billboardService] Error fetching billboard by code:", error);
+      return null;
+    }
+
+    if (!data) return null;
     return mapDbRecordToBillboard(data);
   },
 
@@ -178,21 +198,22 @@ export const billboardService = {
   getTrafficOverview: async (billboardCode: string, statDate?: string): Promise<any> => {
     const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     const targetDate = statDate || todayIST;
-    let { data, error } = await supabase
-      .from("traffic_overview")
-      .select("*")
-      .eq("billboard_code", billboardCode)
-      .eq("stat_date", targetDate)
-      .order("last_updated", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[billboardService] Error fetching traffic overview:", error);
-      throw new Error(error.message || "Failed to fetch traffic overview.");
+    let data: any = null;
+    try {
+      const res = await supabase
+        .from("traffic_overview")
+        .select("*")
+        .eq("billboard_code", billboardCode)
+        .eq("stat_date", targetDate)
+        .order("last_updated", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (res.data) data = res.data;
+    } catch (err) {
+      console.warn("[billboardService] Notice fetching exact stat_date overview:", err);
     }
 
-    if (!data && targetDate === todayIST) {
+    if ((!data || Number(data.total_vehicles) === 0) && targetDate === todayIST) {
       try {
         const fallbackRes = await supabase
           .from("traffic_overview")
@@ -201,8 +222,24 @@ export const billboardService = {
           .order("last_updated", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (fallbackRes.data) {
+        if (fallbackRes.data && Number(fallbackRes.data.total_vehicles) > 0) {
           data = fallbackRes.data;
+        } else {
+          // Check traffic_overview_history for latest live snapshot
+          const histRes = await supabase
+            .from("traffic_overview_history")
+            .select("*")
+            .eq("billboard_code", billboardCode)
+            .order("recorded_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (histRes.data && Number(histRes.data.total_vehicles) > 0) {
+            data = {
+              ...histRes.data,
+              last_updated: histRes.data.recorded_at,
+              is_live: true
+            };
+          }
         }
       } catch (fbErr) {
         console.warn("[billboardService] Fallback query notice:", fbErr);
@@ -210,6 +247,10 @@ export const billboardService = {
     }
 
     return data;
+  },
+
+  getLatestTrafficData: async (billboardCode: string): Promise<any> => {
+    return billboardService.getTrafficOverview(billboardCode);
   },
 
   /**
@@ -253,32 +294,43 @@ export const billboardService = {
       // 2. Fallback: Aggregate from traffic_overview_history by IST hour
       const { data: histData, error: histError } = await supabase
         .from("traffic_overview_history")
-        .select("recorded_at, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
+        .select("recorded_at, stat_date, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
         .eq("billboard_code", billboardCode)
-        .eq("stat_date", targetDate)
         .order("recorded_at", { ascending: true })
-        .limit(1000);
+        .limit(2000);
 
       if (!histError && histData && histData.length > 0) {
-        const hourMap = new Map<number, any>();
-        for (const row of histData) {
-          if (!row.recorded_at) continue;
-          const dt = new Date(row.recorded_at);
-          // Convert to IST hour (UTC + 5:30)
-          const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
-          const count = Number(row.total_vehicles) || 0;
-          if (!hourMap.has(istHour) || count > (Number(hourMap.get(istHour).total_vehicles) || 0)) {
-            hourMap.set(istHour, {
-              ...row,
-              hour: istHour,
-              total_vehicles: count,
-              flow_rate: row.flow_rate || 0
-            });
+        const matchingHist = histData.filter((row: any) => {
+          if (row.stat_date === targetDate) return true;
+          if (row.recorded_at) {
+            const d = new Date(row.recorded_at);
+            const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+            return istStr === targetDate;
           }
-        }
-        const hourList = Array.from(hourMap.values()).sort((a, b) => a.hour - b.hour);
-        if (hourList.length > 0) {
-          return hourList;
+          return false;
+        });
+
+        if (matchingHist.length > 0) {
+          const hourMap = new Map<number, any>();
+          for (const row of matchingHist) {
+            if (!row.recorded_at) continue;
+            const dt = new Date(row.recorded_at);
+            // Convert to IST hour (UTC + 5:30)
+            const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+            const count = Number(row.total_vehicles) || 0;
+            if (!hourMap.has(istHour) || count > (Number(hourMap.get(istHour).total_vehicles) || 0)) {
+              hourMap.set(istHour, {
+                ...row,
+                hour: istHour,
+                total_vehicles: count,
+                flow_rate: row.flow_rate || 0
+              });
+            }
+          }
+          const hourList = Array.from(hourMap.values()).sort((a, b) => a.hour - b.hour);
+          if (hourList.length > 0) {
+            return hourList;
+          }
         }
       }
 

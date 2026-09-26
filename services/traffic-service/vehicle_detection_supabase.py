@@ -96,7 +96,7 @@ CONF_THRESHOLD = 0.25
 JSON_OUTPUT_FILE = "vehicle_counts.json"
 TRACKER_CONFIG = "custom_bytetrack.yaml"
 
-REQUIRED_CLASSES = ["bike", "commercial", "economic", "luxury", "premium", "ultra_luxury", "pedestrian"]
+REQUIRED_CLASSES = ["bike", "commercial", "economic", "luxury", "premium", "pedestrian"]
 MIN_FRAMES_FOR_VALID_TRACK = 3
 EXPOSURE_TIME_MULTIPLIER = 4.0
 
@@ -106,7 +106,6 @@ OCCUPANCY_MULTIPLIERS = {
     "economic": 2.0,
     "premium": 2.0,
     "luxury": 1.8,
-    "ultra_luxury": 1.8,
     "pedestrian": 1.0,
 }
 
@@ -134,11 +133,10 @@ RADXA_CODE = os.environ.get("RADXA_CODE") or "RADXA-01"
 
 LABEL_MAP = {
     "bike": "BIKE",
-    "commercial": "COMMERICAL_VEHICLES",
+    "commercial": "COMMERCIAL_VEHICLES",
     "economic": "ECONOMIC",
     "luxury": "LUXURY",
     "premium": "PREMIUM",
-    "ultra_luxury": "ULTRA_LUXURY",
     "pedestrian": "PEDESTRIAN",
 }
 
@@ -148,7 +146,6 @@ CLASS_COLORS = {
     "economic": (0, 255, 0),
     "luxury": (255, 0, 255),
     "premium": (0, 255, 255),
-    "ultra_luxury": (0, 0, 255),
     "pedestrian": (255, 255, 255)
 }
 DEFAULT_COLOR = (200, 200, 200)
@@ -342,8 +339,7 @@ def compute_analytics(
         "commercial": baseline_data.get("commercial", 0) if baseline_data else 0,
         "economic": baseline_data.get("economy", 0) if baseline_data else 0,
         "premium": baseline_data.get("premium", 0) if baseline_data else 0,
-        "luxury": baseline_data.get("luxury", 0) if baseline_data else 0,
-        "ultra_luxury": baseline_data.get("ultra_luxury", 0) if baseline_data else 0,
+        "luxury": ((baseline_data.get("luxury", 0) or 0) + (baseline_data.get("ultra_luxury", 0) or 0)) if baseline_data else 0,
         "pedestrian": 0
     }
 
@@ -353,7 +349,9 @@ def compute_analytics(
         if track_frame_counts.get(tid, 0) >= MIN_FRAMES_FOR_VALID_TRACK:
             best_cid = votes.most_common(1)[0][0]
             cls_name = class_names.get(best_cid, "economic").lower()
-            if cls_name in base_counts:
+            if cls_name in ["luxury", "ultra_luxury"]:
+                session_counts["luxury"] += 1
+            elif cls_name in base_counts:
                 session_counts[cls_name] += 1
             else:
                 session_counts["economic"] += 1
@@ -449,8 +447,8 @@ def build_supabase_payload(analytics, is_live, stat_date_str):
         "bikes": sc.get("bike", 0),
         "economy": sc.get("economic", 0),
         "premium": sc.get("premium", 0),
-        "luxury": sc.get("luxury", 0),
-        "ultra_luxury": sc.get("ultra_luxury", 0),
+        "luxury": sc.get("luxury", 0) + sc.get("ultra_luxury", 0),
+        "ultra_luxury": 0,
         "commercial": sc.get("commercial", 0),
         "avg_exposure_time": analytics["average_exposure_time_sec"],
         "max_exposure_time": analytics["max_exposure_time_sec"],
@@ -497,7 +495,7 @@ def push_to_supabase_history(analytics, stat_date_str=None):
         "economy": payload["economy"],
         "premium": payload["premium"],
         "luxury": payload["luxury"],
-        "ultra_luxury": payload["ultra_luxury"],
+        "ultra_luxury": 0,
         "commercial": payload["commercial"],
         "avg_exposure_time": payload["avg_exposure_time"],
         "max_exposure_time": payload["max_exposure_time"],

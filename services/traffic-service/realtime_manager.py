@@ -25,9 +25,8 @@ def generate_mock_record(camera_code: str) -> dict:
     bikes = int(total * random.uniform(0.4, 0.6))
     economy = int(total * random.uniform(0.2, 0.35))
     premium = int(total * random.uniform(0.08, 0.15))
-    luxury = int(total * random.uniform(0.02, 0.06))
-    ultra_luxury = int(total * random.uniform(0.0, 0.02))
-    commercial = total - (bikes + economy + premium + luxury + ultra_luxury)
+    luxury = int(total * random.uniform(0.02, 0.08))
+    commercial = total - (bikes + economy + premium + luxury)
     if commercial < 0:
         commercial = 0
         
@@ -40,7 +39,6 @@ def generate_mock_record(camera_code: str) -> dict:
         "economy": economy,
         "premium": premium,
         "luxury": luxury,
-        "ultra_luxury": ultra_luxury,
         "commercial": commercial,
         "avg_exposure_time": round(random.uniform(5.0, 15.0), 1),
         "max_exposure_time": round(random.uniform(20.0, 45.0), 1),
