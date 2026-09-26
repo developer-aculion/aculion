@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
                 economy: { name: 'Economy', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
                 premium: { name: 'Premium', desc: 'Cars between 15 lakh to 60 lakh', count: 0, pct: 0, color: '#F59E0B' },
-                luxury: { name: 'Luxury', desc: 'Above 60 lakh', count: 0, pct: 0, color: '#10B981' }
+                luxury: { name: 'Luxury', desc: 'Above 60 lakh', count: 0, pct: 0, color: '#10B981' },
+                ultra_luxury: { name: 'Ultra Luxury', desc: 'Exotic & Ultra-Luxury', count: 0, pct: 0, color: '#EF4444' }
             },
             dwellStats: {
                 avg: 0.0,
@@ -1640,9 +1641,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Vehicle Traffic — Last 7 Days Line Chart ---
+    // --- Vehicle Traffic — Last 7 Days Line Chart (Compact) ---
     function renderVehicleTrafficLast7DaysChart(daysData, weeklyTotal) {
-        const container = document.querySelector("#trafficTrendLineChart");
+        const container = document.querySelector("#vehicle7DaysLineChart");
         if (!container) return;
 
         let dataToRender = daysData;
@@ -1693,7 +1694,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chart: {
                 type: 'area',
                 width: '100%',
-                height: 280,
+                height: 180,
                 background: 'transparent',
                 foreColor: '#94a3b8',
                 toolbar: { show: false },
@@ -1701,13 +1702,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 animations: {
                     enabled: true,
                     easing: 'easeinout',
-                    speed: 700
+                    speed: 600
                 }
             },
             colors: ['#00f0ff'],
             stroke: {
                 curve: 'smooth',
-                width: 3.5,
+                width: 3.0,
                 lineCap: 'round'
             },
             fill: {
@@ -1724,38 +1725,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             markers: {
-                size: 5,
+                size: 4,
                 colors: ['#0b1220'],
                 strokeColors: '#00f0ff',
-                strokeWidth: 2.5,
-                hover: {
-                    size: 8,
-                    sizeOffset: 3
-                },
+                strokeWidth: 2,
+                hover: { size: 6 },
                 discrete: seriesData.length > 0 ? [{
                     seriesIndex: 0,
                     dataPointIndex: lastIndex,
                     fillColor: '#00f0ff',
                     strokeColor: '#ffffff',
-                    size: 8,
+                    size: 7,
                     shape: 'circle'
                 }] : []
             },
             grid: {
                 borderColor: 'rgba(255, 255, 255, 0.04)',
-                strokeDashArray: 4,
+                strokeDashArray: 3,
                 xaxis: { lines: { show: false } },
                 yaxis: { lines: { show: true } },
-                padding: { top: 12, right: 18, bottom: 0, left: 12 }
+                padding: { top: 8, right: 12, bottom: 0, left: 8 }
             },
             dataLabels: {
                 enabled: true,
                 formatter: function (val) {
-                    return formatCompactK(val);
+                    return val > 0 ? formatCompactK(val) : '';
                 },
-                offsetY: -8,
+                offsetY: -6,
                 style: {
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 700,
                     colors: ['#00f0ff']
@@ -1763,8 +1761,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 background: {
                     enabled: true,
                     foreColor: '#00f0ff',
-                    padding: 4,
-                    borderRadius: 4,
+                    padding: 3,
+                    borderRadius: 3,
                     borderWidth: 1,
                     borderColor: 'rgba(0, 240, 255, 0.35)',
                     opacity: 0.85,
@@ -1778,26 +1776,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: {
                     style: {
                         colors: '#94a3b8',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontFamily: 'Outfit, monospace',
                         fontWeight: 600
                     }
                 }
             },
             yaxis: {
-                title: {
-                    text: 'Total Vehicles Detected',
-                    style: {
-                        color: '#94a3b8',
-                        fontSize: '11px',
-                        fontFamily: 'Plus Jakarta Sans, sans-serif',
-                        fontWeight: 600
-                    }
-                },
                 labels: {
                     style: {
                         colors: '#94a3b8',
-                        fontSize: '10.5px',
+                        fontSize: '9.5px',
                         fontFamily: 'Outfit, monospace'
                     },
                     formatter: (val) => formatCompactK(val)
@@ -1812,30 +1801,177 @@ document.addEventListener('DOMContentLoaded', () => {
                     const isLatest = (dataPointIndex === lastIndex);
                     const pctShare = totalSum > 0 ? ((val / totalSum) * 100).toFixed(1) : 0;
                     return `
-                        <div style="background: rgba(11, 18, 32, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 8px; padding: 10px 14px; font-family: Outfit, sans-serif; font-size: 11.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
-                            <div style="font-weight: 700; color: #fff; margin-bottom: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="background: rgba(11, 18, 32, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 8px; padding: 8px 12px; font-family: Outfit, sans-serif; font-size: 11px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 4px; font-size: 11.5px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                                 <span>${d.dayName}, ${formatDisplayDateIST(d.date)}</span>
-                                ${isLatest ? '<span style="background: rgba(0, 240, 255, 0.2); color:#00f0ff; font-size:9.5px; padding: 2px 6px; border-radius: 4px; font-weight:700;">LATEST DAY</span>' : ''}
+                                ${isLatest ? '<span style="background: rgba(0, 240, 255, 0.2); color:#00f0ff; font-size:9px; padding: 2px 5px; border-radius: 4px; font-weight:700;">LATEST</span>' : ''}
                             </div>
-                            <div style="color: #94a3b8; margin-bottom: 3px;">Total Detected: <strong style="color:#00f0ff; font-size:13px;">${formatIndianNumber(val)}</strong> vehicles (${formatCompactK(val)})</div>
-                            <div style="color: #94a3b8;">7-Day Share: <strong style="color:#10b981;">${pctShare}%</strong> of selected volume</div>
+                            <div style="color: #94a3b8; margin-bottom: 2px;">Total: <strong style="color:#00f0ff;">${formatIndianNumber(val)}</strong> veh (${formatCompactK(val)})</div>
+                            <div style="color: #94a3b8;">7-Day Share: <strong style="color:#10b981;">${pctShare}%</strong></div>
                         </div>
                     `;
                 }
             }
         };
 
-        if (state.charts.trendLine) {
-            state.charts.trendLine.updateOptions(options, true, true);
+        if (state.charts.vehicle7Days) {
+            state.charts.vehicle7Days.updateOptions(options, true, true);
         } else {
             container.innerHTML = '';
-            state.charts.trendLine = new ApexCharts(container, options);
-            state.charts.trendLine.render();
+            state.charts.vehicle7Days = new ApexCharts(container, options);
+            state.charts.vehicle7Days.render();
         }
     }
 
+    // --- Multi-Category Traffic Trend Analysis Chart (Historical & Real-Time Flow Rates) ---
     function initTrafficTrendChart() {
-        renderVehicleTrafficLast7DaysChart([]);
+        const container = document.querySelector("#trafficTrendLineChart");
+        if (!container) return;
+
+        const options = {
+            series: [
+                { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Ultra Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+            ],
+            chart: {
+                type: 'line',
+                width: '100%',
+                height: 280,
+                background: 'transparent',
+                foreColor: '#94a3b8',
+                toolbar: { show: false },
+                zoom: { enabled: false },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 600,
+                    dynamicAnimation: { enabled: true, speed: 400 }
+                }
+            },
+            colors: ['#1E88FF', '#00C4FF', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444'],
+            stroke: {
+                curve: 'smooth',
+                width: 2.8,
+                lineCap: 'round'
+            },
+            grid: {
+                borderColor: 'rgba(255, 255, 255, 0.05)',
+                xaxis: { lines: { show: false } },
+                yaxis: { lines: { show: true } },
+                padding: { top: 0, right: 18, bottom: 0, left: 10 }
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            xaxis: {
+                categories: ['--', '--', '--', '--', '--', '--', '--', '--', '--', '--'],
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Outfit, monospace' }
+                }
+            },
+            yaxis: {
+                title: {
+                    text: 'Vehicles / Interval',
+                    style: { color: '#94a3b8', fontSize: '11px', fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 600 }
+                },
+                min: 0,
+                labels: {
+                    style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Outfit, monospace' },
+                    formatter: (val) => Math.round(val)
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: (val) => `${Number(val).toLocaleString()} veh`
+                }
+            }
+        };
+
+        container.innerHTML = '';
+        state.charts.trendLine = new ApexCharts(container, options);
+        state.charts.trendLine.render();
+    }
+
+    function updateTrafficTrendChart(historyRows, liveRow = null, hourlyRows = null) {
+        if (!state.charts.trendLine) return;
+
+        let categories = [];
+        let bikes = [], commercial = [], economy = [], premium = [], luxury = [], ultraLuxury = [];
+
+        if (Array.isArray(historyRows) && historyRows.length > 0) {
+            const sorted = [...historyRows].sort((a, b) => new Date(a.recorded_at || a.last_updated) - new Date(b.recorded_at || b.last_updated));
+            const recent = sorted.slice(-15);
+
+            recent.forEach(r => {
+                const dt = new Date(r.recorded_at || r.last_updated || Date.now());
+                const timeStr = dt.toLocaleTimeString('en-US', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+                categories.push(timeStr);
+                bikes.push(Number(r.bikes) || 0);
+                commercial.push(Number(r.commercial) || 0);
+                economy.push(Number(r.economy) || 0);
+                premium.push(Number(r.premium) || 0);
+                luxury.push(Number(r.luxury) || 0);
+                ultraLuxury.push(Number(r.ultra_luxury) || 0);
+            });
+        } else if (Array.isArray(hourlyRows) && hourlyRows.length > 0) {
+            const sortedH = [...hourlyRows].sort((a, b) => Number(a.hour) - Number(b.hour));
+            sortedH.forEach(r => {
+                const hNum = Number(r.hour);
+                const timeStr = `${String(hNum).padStart(2, '0')}:00`;
+                categories.push(timeStr);
+                bikes.push(Number(r.bikes) || 0);
+                commercial.push(Number(r.commercial) || 0);
+                economy.push(Number(r.economy) || 0);
+                premium.push(Number(r.premium) || 0);
+                luxury.push(Number(r.luxury) || 0);
+                ultraLuxury.push(Number(r.ultra_luxury) || 0);
+            });
+        } else if (liveRow && Number(liveRow.total_vehicles) > 0) {
+            const dt = liveRow.last_updated ? new Date(liveRow.last_updated) : new Date();
+            const timeStr = dt.toLocaleTimeString('en-US', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            categories = [timeStr];
+            bikes = [Number(liveRow.bikes) || 0];
+            commercial = [Number(liveRow.commercial) || 0];
+            economy = [Number(liveRow.economy) || 0];
+            premium = [Number(liveRow.premium) || 0];
+            luxury = [Number(liveRow.luxury) || 0];
+            ultraLuxury = [Number(liveRow.ultra_luxury) || 0];
+        } else {
+            categories = ['--'];
+            bikes = [0]; commercial = [0]; economy = [0]; premium = [0]; luxury = [0]; ultraLuxury = [0];
+        }
+
+        state.charts.trendLine.updateOptions({
+            xaxis: { categories: categories },
+            series: [
+                { name: 'Bike', data: bikes },
+                { name: 'Commercial', data: commercial },
+                { name: 'Economy', data: economy },
+                { name: 'Premium', data: premium },
+                { name: 'Luxury', data: luxury },
+                { name: 'Ultra Luxury', data: ultraLuxury }
+            ]
+        }, false, false);
     }
 
     // --- CCTV Live Canvas Simulation ---
@@ -2054,50 +2190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(drawCctvFrame);
     }
 
-    // --- Dynamic Trend Line Streaming ---
-    // Every 5 seconds, append live point if live data exists
-    setInterval(() => {
-        if (!state.charts.trendLine) return;
-        if (state.stats.totalVehicles === 0) return; // Strict: no fake data when vehicle count is 0
-
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-        const classes = state.stats.classes;
-        const trend = state.charts.trendLine;
-
-        const seriesData = trend.w.config.series;
-        const newCats = [...trend.w.config.xaxis.categories];
-
-        newCats.push(timeStr);
-        if (newCats.length > 10) newCats.shift();
-
-        const counts = [
-            Math.round(classes.bikes.count / 40 + (Math.random() - 0.5) * 3),
-            Math.round(classes.commercial.count / 40 + (Math.random() - 0.5) * 2),
-            Math.round(classes.economy.count / 40 + (Math.random() - 0.5) * 5),
-            Math.round(classes.premium.count / 40 + (Math.random() - 0.5) * 3),
-            Math.round(classes.luxury.count / 40 + (Math.random() - 0.5) * 2)
-        ];
-
-        const normalizedCounts = counts.map(val => Math.max(0, val));
-
-        const updatedSeries = seriesData.map((series, idx) => {
-            const data = [...series.data];
-            data.push(normalizedCounts[idx]);
-            if (data.length > 10) data.shift();
-            return {
-                name: series.name,
-                data: data
-            };
-        });
-
-        trend.updateOptions({
-            xaxis: { categories: newCats },
-            series: updatedSeries
-        }, false, false);
-    }, 5000);
-
     // --- Direct Supabase REST Integration ---
     const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cXRzaGZwdG1xaWVhcWNnaGZ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzkwOTYyMiwiZXhwIjoyMDk5NDg1NjIyfQ.f12uC9oK_BzLzlXgy_5ybUAgdHJTY6N7E5VWXXmgr5Q';
     let isFetchingDirectly = false;
@@ -2177,7 +2269,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Query hourly aggregated records for the active billboard from traffic_hour
             const hourlyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&or=(date.eq.${selectedDate},stat_date.eq.${selectedDate})&order=hour.asc`;
 
-            const [response, yesterdayResponse, hourlyResponse] = await Promise.all([
+            // Query latest chronological historical snapshots from traffic_overview_history
+            const historyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=recorded_at,stat_date,total_vehicles,bikes,commercial,economy,premium,luxury,ultra_luxury&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=recorded_at.desc&limit=15`;
+
+            const [response, yesterdayResponse, hourlyResponse, historyResponse] = await Promise.all([
                 fetch(queryUrl, {
                     cache: 'no-store',
                     headers: {
@@ -2201,8 +2296,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
                         'Content-Type': 'application/json'
                     }
+                }).catch(() => null),
+                fetch(historyQueryUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
                 }).catch(() => null)
             ]);
+
+            let historyDataList = [];
+            if (historyResponse && historyResponse.ok) {
+                const histJson = await historyResponse.json();
+                if (Array.isArray(histJson) && histJson.length > 0) {
+                    historyDataList = histJson.reverse();
+                }
+            }
 
             let calculatedPeakHour = null;
             let calculatedPeakDensity = '-- veh/min';
@@ -2374,7 +2485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         row.peak_density = '-- veh/min';
                         row.peak_count = 0;
                     }
-                    updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
+                    updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList, historyDataList);
                     fetchWeeklyPeakTraffic(cleanCode);
                     fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
                     
@@ -2461,12 +2572,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (state.charts.trendLine) {
-                const seriesData = state.charts.trendLine.w.config.series;
-                const updatedSeries = seriesData.map(series => ({
-                    name: series.name,
-                    data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                }));
-                state.charts.trendLine.updateSeries(updatedSeries, false);
+                updateTrafficTrendChart([], null, []);
+            }
+
+            if (state.charts.vehicle7Days) {
+                renderVehicleTrafficLast7DaysChart([], 0);
             }
 
             if (state.charts.sparkVehicles) {
@@ -2486,7 +2596,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus('connected', true);
     }
 
-    function updateDashboardWithLiveData(data, targetBillboard, yesterdayData = null, hourlyDataList = null) {
+    function updateDashboardWithLiveData(data, targetBillboard, yesterdayData = null, hourlyDataList = null, historyDataList = null) {
         if (!data) {
             applyZeroState(targetBillboard || activeBillboardCode);
             return;
@@ -2503,10 +2613,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const commercialCount = Number(data.commercial) || 0;
         const economyCount = Number(data.economy) || 0;
         const premiumCount = Number(data.premium) || 0;
-        const luxuryCount = (Number(data.luxury) || 0) + (Number(data.ultra_luxury) || 0);
-        const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + luxuryCount;
+        const luxuryCount = Number(data.luxury) || 0;
+        const ultraLuxuryCount = Number(data.ultra_luxury) || 0;
+        const totalLuxuryCount = luxuryCount + ultraLuxuryCount;
+        const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + totalLuxuryCount;
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
         const avgDwell = Number(data.avg_exposure_time) || 0.0;
+        const flowRate = Number(data.flow_rate) || 0.0;
+
         // Peak Hour: Use dynamically calculated peakHour from hourly vehicles data; never fallback to stale static DB strings
         let peakHour = (state.stats.peakHour && state.stats.peakHour !== '—' && state.stats.peakHour !== '15:00 - 15:59') ? state.stats.peakHour : null;
         let peakDensity = state.stats.peakDensity || '-- veh/min';
@@ -2521,7 +2635,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Check if incoming data actually differs from currently rendered state
-        const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}`;
+        const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${totalLuxuryCount}`;
         const hasDataChanged = (lastRenderedStateKey !== stateKey);
 
         // Set stats
@@ -2536,7 +2650,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.stats.classes.commercial.count = commercialCount; // Commercial
         state.stats.classes.economy.count = economyCount;       // Economy
         state.stats.classes.premium.count = premiumCount;       // Premium
-        state.stats.classes.luxury.count = luxuryCount;         // Luxury
+        state.stats.classes.luxury.count = totalLuxuryCount;    // Luxury + Ultra Luxury
+        state.stats.classes.ultra_luxury.count = ultraLuxuryCount; // Ultra Luxury
 
         // Calculate percentages dynamically from sum
         const totalDivisor = calculatedSum > 0 ? calculatedSum : (totalVehicles > 0 ? totalVehicles : 1);
@@ -2550,7 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elements.bars && elements.bars[key]) elements.bars[key].style.width = `${pct}%`;
         });
 
-        updateValueMixUI(economyCount, premiumCount, luxuryCount);
+        updateValueMixUI(economyCount, premiumCount, totalLuxuryCount);
 
         if (state.stats.dwellStats) {
             state.stats.dwellStats.avg = avgDwell;
@@ -2642,31 +2757,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ], false);
             }
 
-            // Refresh Traffic Trend Chart series scaled to 15-min intervals
+            // Refresh Traffic Trend Chart with real database history or hourly category metrics
             if (state.charts.trendLine) {
-                if (totalVehicles === 0) {
-                    const seriesData = state.charts.trendLine.w.config.series;
-                    const updatedSeries = seriesData.map(series => ({
-                        name: series.name,
-                        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                    }));
-                    state.charts.trendLine.updateSeries(updatedSeries, false);
-                } else {
-                    const bBase = Math.max(1, Math.round(state.stats.classes.bikes.count / 45));
-                    const cBase = Math.max(1, Math.round(state.stats.classes.commercial.count / 45));
-                    const eBase = Math.max(1, Math.round(state.stats.classes.economy.count / 45));
-                    const pBase = Math.max(1, Math.round(state.stats.classes.premium.count / 45));
-                    const lBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
-
-                    const updatedSeries = [
-                        { name: 'Bike', data: [bBase*0.6, bBase*0.8, bBase*0.75, bBase*0.9, bBase*1.1, bBase*0.95, bBase*1.2, bBase*1.4, bBase*1.3, bBase].map(Math.round) },
-                        { name: 'Commercial', data: [cBase*0.7, cBase*0.9, cBase*1.0, cBase*0.95, cBase*0.8, cBase*0.75, cBase*0.9, cBase*1.1, cBase*1.0, cBase].map(Math.round) },
-                        { name: 'Economy', data: [eBase*0.6, eBase*0.75, eBase*0.7, eBase*0.85, eBase*0.95, eBase*0.8, eBase*1.05, eBase*1.2, eBase*1.1, eBase].map(Math.round) },
-                        { name: 'Premium', data: [pBase*0.5, pBase*0.6, pBase*0.7, pBase*0.65, pBase*0.85, pBase*0.8, pBase*0.95, pBase*1.15, pBase*1.0, pBase].map(Math.round) },
-                        { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) }
-                    ];
-                    state.charts.trendLine.updateSeries(updatedSeries, false);
-                }
+                updateTrafficTrendChart(historyDataList, data, hourlyDataList);
             }
         }
     }

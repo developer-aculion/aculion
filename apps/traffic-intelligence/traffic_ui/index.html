@@ -296,17 +296,17 @@
                 <div class="glass-panel analytics-card trend-chart-panel col-span-full" id="traffic-trend-card">
                     <div class="card-header">
                         <div class="header-info">
-                            <h2>Vehicle Traffic — Last 7 Days</h2>
-                            <p class="card-subtitle">Daily detected vehicle volume with highlighted latest trends</p>
+                            <h2>Traffic Trend</h2>
+                            <p class="card-subtitle">Historical and real-time vehicle flow rates by category</p>
                         </div>
-                        <div class="chart-header-actions">
-                            <div class="trend-filter-pill active">
-                                <i data-lucide="calendar" class="pill-icon"></i>
-                                <span>Last 7 Days</span>
-                            </div>
-                            <div class="trend-summary-stat-box">
-                                <span class="trend-stat-label">7-Day Total:</span>
-                                <span class="trend-stat-value" id="trend-7day-total">0</span>
+                        <div class="trend-header-controls">
+                            <div class="traffic-trend-legend-pills">
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#1E88FF;"></span>Bike</span>
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#00C4FF;"></span>Commercial</span>
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#8B5CF6;"></span>Economy</span>
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#F59E0B;"></span>Premium</span>
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#10B981;"></span>Luxury</span>
+                                <span class="trend-legend-pill"><span class="legend-dot" style="background:#EF4444;"></span>Ultra Luxury</span>
                             </div>
                             <div class="chart-controls-simple">
                                 <span class="live-dot-pulse"></span>
@@ -319,8 +319,31 @@
                     </div>
                 </div>
 
-                <!-- Left Column: Dwell Time Analytics & Vehicle Distribution Chart -->
+                <!-- Left Column: Vehicle Traffic 7-Days, Dwell Time Analytics & Vehicle Distribution Chart -->
                 <div class="analytics-col-left">
+                    <!-- Vehicle Traffic — Last 7 Days (Compact Chart) -->
+                    <div class="glass-panel analytics-card" id="vehicle-7days-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Vehicle Traffic — Last 7 Days</h2>
+                                <p class="card-subtitle">Daily detected vehicle volume with highlighted trends</p>
+                            </div>
+                            <div class="chart-header-actions">
+                                <div class="trend-filter-pill active">
+                                    <i data-lucide="calendar" class="pill-icon"></i>
+                                    <span>Last 7 Days</span>
+                                </div>
+                                <div class="trend-summary-stat-box">
+                                    <span class="trend-stat-label">7-Day Total:</span>
+                                    <span class="trend-stat-value" id="trend-7day-total">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="compact-7days-chart-container">
+                            <div id="vehicle7DaysLineChart"></div>
+                        </div>
+                    </div>
+
                     <!-- Dwell Time Analytics -->
                     <div class="glass-panel analytics-card" id="dwell-time-card">
                         <div class="card-header">
