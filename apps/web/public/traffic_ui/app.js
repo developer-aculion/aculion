@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
                 economy: { name: 'Economy', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
-                premium: { name: 'Premium', desc: 'Cars between 15 lakhs to 60 Lakhs', count: 0, pct: 0, color: '#F59E0B' },
-                luxury: { name: 'Luxury', desc: 'Cars above 60 lakhs', count: 0, pct: 0, color: '#10B981' }
+                premium: { name: 'Premium', desc: 'Cars between 15 lakh to 60 lakh', count: 0, pct: 0, color: '#F59E0B' },
+                luxury: { name: 'Luxury', desc: 'Above 60 lakh', count: 0, pct: 0, color: '#10B981' }
             },
             dwellStats: {
                 avg: 0.0,
@@ -392,9 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isManual) {
             try {
                 if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({
+                    window.parent.postMessage({ 
                         type: 'ACULION_REFRESH_TRAFFIC_DATA',
-                        billboard_code: activeBillboardCode
+                        billboard_code: activeBillboardCode 
                     }, '*');
                 }
             } catch (e) {
@@ -2169,7 +2169,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Query selected date row for the active billboard
             const queryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${selectedDate}&limit=1&_nocache=${Date.now()}`;
-
+            
             // Query yesterday row in IST for percentage change calculation
             const yesterdayDate = getYesterdayIST(selectedDate);
             const yesterdayQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${yesterdayDate}&limit=1`;
@@ -2377,7 +2377,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
                     fetchWeeklyPeakTraffic(cleanCode);
                     fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
-
+                    
                     // Offline detection: if last_updated is older than 180s and is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
                     const diffSeconds = (Date.now() - lastUpdatedTimeMs) / 1000;
@@ -2659,11 +2659,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lBase = Math.max(1, Math.round(state.stats.classes.luxury.count / 45));
 
                     const updatedSeries = [
-                        { name: 'Bike', data: [bBase * 0.6, bBase * 0.8, bBase * 0.75, bBase * 0.9, bBase * 1.1, bBase * 0.95, bBase * 1.2, bBase * 1.4, bBase * 1.3, bBase].map(Math.round) },
-                        { name: 'Commercial', data: [cBase * 0.7, cBase * 0.9, cBase * 1.0, cBase * 0.95, cBase * 0.8, cBase * 0.75, cBase * 0.9, cBase * 1.1, cBase * 1.0, cBase].map(Math.round) },
-                        { name: 'Economy', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
-                        { name: 'Premium', data: [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round) },
-                        { name: 'Luxury', data: [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round) }
+                        { name: 'Bike', data: [bBase*0.6, bBase*0.8, bBase*0.75, bBase*0.9, bBase*1.1, bBase*0.95, bBase*1.2, bBase*1.4, bBase*1.3, bBase].map(Math.round) },
+                        { name: 'Commercial', data: [cBase*0.7, cBase*0.9, cBase*1.0, cBase*0.95, cBase*0.8, cBase*0.75, cBase*0.9, cBase*1.1, cBase*1.0, cBase].map(Math.round) },
+                        { name: 'Economy', data: [eBase*0.6, eBase*0.75, eBase*0.7, eBase*0.85, eBase*0.95, eBase*0.8, eBase*1.05, eBase*1.2, eBase*1.1, eBase].map(Math.round) },
+                        { name: 'Premium', data: [pBase*0.5, pBase*0.6, pBase*0.7, pBase*0.65, pBase*0.85, pBase*0.8, pBase*0.95, pBase*1.15, pBase*1.0, pBase].map(Math.round) },
+                        { name: 'Luxury', data: [lBase*0.5, lBase*0.6, lBase*0.6, lBase*0.75, lBase*0.7, lBase*0.6, lBase*0.9, lBase*1.2, lBase*0.9, lBase].map(Math.round) }
                     ];
                     state.charts.trendLine.updateSeries(updatedSeries, false);
                 }

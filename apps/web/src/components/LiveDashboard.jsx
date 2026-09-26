@@ -1101,21 +1101,41 @@ export default function LiveDashboard({
         text(`Period: ${dateStr}`, pageW - margin, 19.5, { align: 'right' });
       };
 
-      // Footer component for content pages
-      const drawFooter = (pageNum) => {
-        fillRect(0, pageH - 16, pageW, 0.6, '#e2e8f0');
+      // Universal Report Footer matching user specification (Image 1) with zero confidential markings
+      const drawReportFooter = (pageNum) => {
+        const footTopY = pageH - 18;
+        fillRect(0, footTopY, pageW, 0.6, '#e2e8f0');
 
-        // Left Footer text
-        setFont('normal', 6.8, '#64748b');
-        text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report — SITE_${siteCode}`, margin, pageH - 7.5);
+        // Left Footer: Report Title & Asset Details
+        setFont('bold', 6.5, '#475569');
+        text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report`, margin, footTopY + 5.5);
+        setFont('normal', 5.6, '#64748b');
+        text(`Site ID: SITE_${siteCode}   |   Asset: ${bbCode} (${bbName})   |   Page ${pageNum} of ${TOTAL_PAGES}`, margin, footTopY + 10.5);
 
-        // Center / Branding
-        setFont('bold', 6.8, '#2563eb');
-        text('ACULION INTELLIGENCE', pageW / 2, pageH - 7.5, { align: 'center' });
+        // Right Footer: "POWERED BY" + Aculion Logo & Wordmark + connect@aculion.com
+        const rightX = pageW - margin;
+        setFont('bold', 5.2, '#2563eb');
+        text('POWERED BY', rightX, footTopY + 4.5, { align: 'right' });
 
-        // Right Footer text
-        setFont('bold', 6.8, '#64748b');
-        text(`CONFIDENTIAL — Page ${pageNum} of ${TOTAL_PAGES}`, pageW - margin, pageH - 7.5, { align: 'right' });
+        if (logoDataUrl) {
+          try {
+            doc.addImage(logoDataUrl, 'PNG', rightX - 36, footTopY + 5.2, 36, 5.0);
+          } catch (e) {
+            setFont('bold', 7.0, '#0f172a');
+            text('ACULION', rightX, footTopY + 8.5, { align: 'right' });
+            setFont('bold', 4.0, '#2563eb');
+            text('INTELLIGENCE BEYOND OOH', rightX, footTopY + 11.2, { align: 'right' });
+          }
+        } else {
+          // Vector fallback
+          setFont('bold', 7.0, '#0f172a');
+          text('ACULION', rightX, footTopY + 8.5, { align: 'right' });
+          setFont('bold', 4.0, '#2563eb');
+          text('INTELLIGENCE BEYOND OOH', rightX, footTopY + 11.2, { align: 'right' });
+        }
+
+        setFont('normal', 5.5, '#475569');
+        text('connect@aculion.com', rightX, footTopY + 14.5, { align: 'right' });
       };
 
       // Donut chart rendering helper
@@ -1167,60 +1187,62 @@ export default function LiveDashboard({
       };
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 1: START — COVER PAGE (FIXED COVER, NO DATA CONTENT)
+      // PAGE 1: START — COVER PAGE (LIGHT THEME, NO CONFIDENTIAL)
       // ══════════════════════════════════════════════════════════
-      fillRect(0, 0, pageW, pageH, '#0B0F19');
+      fillRect(0, 0, pageW, pageH, '#FFFFFF');
 
-      // Decorative ambient background accents
-      fillRect(0, 0, pageW, 3.5, '#00F0FF');
-      fillRect(margin, 35, 12, 12, '#1E293B');
+      // Top decorative brand bar
+      fillRect(0, 0, pageW, 3.5, '#2563EB');
 
       // Top-Left: Aculion Logo & Wordmark
-      const logoTopY = 18;
-      // Triangle "A" mark
-      doc.setFillColor(...hex('#00F0FF'));
-      doc.triangle(margin + 5, logoTopY, margin, logoTopY + 11, margin + 10, logoTopY + 11, 'F');
-      doc.setFillColor(...hex('#0B0F19'));
-      doc.triangle(margin + 5, logoTopY + 4.8, margin + 2.5, logoTopY + 9.8, margin + 7.5, logoTopY + 9.8, 'F');
-
-      setFont('bold', 14.0, '#FFFFFF');
-      text('ACULION', margin + 14, logoTopY + 6.0);
-      setFont('bold', 5.8, '#00F0FF');
-      text('INTELLIGENCE BEYOND OOH', margin + 14, logoTopY + 10.5);
-
-      // Top-Right: CONFIDENTIAL Pill Badge
-      const confPillW = 34;
-      const confPillH = 7.5;
-      const confX = pageW - margin - confPillW;
-      const confY = logoTopY + 1.5;
-      fillRect(confX, confY, confPillW, confPillH, '#1E293B');
-      strokeRect(confX, confY, confPillW, confPillH, '#38BDF8', 0.4);
-      doc.setFillColor(...hex('#EF4444'));
-      doc.circle(confX + 4.5, confY + confPillH / 2, 1.3, 'F');
-      setFont('bold', 6.5, '#F8FAFC');
-      text('CONFIDENTIAL', confX + 8.5, confY + 5.1);
+      const logoTopY = 16;
+      if (logoDataUrl) {
+        try {
+          doc.addImage(logoDataUrl, 'PNG', margin, logoTopY, 54, 12.5);
+        } catch (e) {
+          // Vector fallback
+          doc.setFillColor(...hex('#2563EB'));
+          doc.triangle(margin + 5, logoTopY, margin, logoTopY + 11, margin + 10, logoTopY + 11, 'F');
+          doc.setFillColor(...hex('#FFFFFF'));
+          doc.triangle(margin + 5, logoTopY + 4.8, margin + 2.5, logoTopY + 9.8, margin + 7.5, logoTopY + 9.8, 'F');
+          setFont('bold', 14.0, '#0F172A');
+          text('ACULION', margin + 14, logoTopY + 6.0);
+          setFont('bold', 5.8, '#2563EB');
+          text('INTELLIGENCE BEYOND OOH', margin + 14, logoTopY + 10.5);
+        }
+      } else {
+        // Vector fallback
+        doc.setFillColor(...hex('#2563EB'));
+        doc.triangle(margin + 5, logoTopY, margin, logoTopY + 11, margin + 10, logoTopY + 11, 'F');
+        doc.setFillColor(...hex('#FFFFFF'));
+        doc.triangle(margin + 5, logoTopY + 4.8, margin + 2.5, logoTopY + 9.8, margin + 7.5, logoTopY + 9.8, 'F');
+        setFont('bold', 14.0, '#0F172A');
+        text('ACULION', margin + 14, logoTopY + 6.0);
+        setFont('bold', 5.8, '#2563EB');
+        text('INTELLIGENCE BEYOND OOH', margin + 14, logoTopY + 10.5);
+      }
 
       // Main Cover Title Block (Upper-Middle)
-      let coverY = 88;
-      setFont('bold', 8.5, '#38BDF8');
+      let coverY = 82;
+      setFont('bold', 8.5, '#2563EB');
       text('OUT-OF-HOME PERFORMANCE REPORT', margin, coverY);
       coverY += 12;
 
-      setFont('bold', 25.0, '#FFFFFF');
+      setFont('bold', 25.0, '#0F172A');
       text('Campaign Intelligence Report', margin, coverY);
       coverY += 10;
 
-      setFont('bold', 12.5, '#94A3B8');
+      setFont('bold', 12.5, '#475569');
       text(`${companyName} — ${siteCode}, ${city}`, margin, coverY);
       coverY += 7.5;
 
       // Decorative gradient accent bar
-      fillRect(margin, coverY, 48, 2.0, '#00F0FF');
-      fillRect(margin + 48, coverY, 65, 2.0, '#2563EB');
+      fillRect(margin, coverY, 48, 2.0, '#2563EB');
+      fillRect(margin + 48, coverY, 65, 2.0, '#38BDF8');
       coverY += 12;
 
       // One-line Description
-      setFont('normal', 9.2, '#CBD5E1');
+      setFont('normal', 9.2, '#334155');
       const descText = `A full traffic, audience-quality, location and attention analysis for Site ${siteCode}, generated from continuous computer-vision measurement across the campaign flight.`;
       const splitDesc = doc.splitTextToSize(descText, contentW - 8);
       doc.text(splitDesc, margin, coverY);
@@ -1231,15 +1253,15 @@ export default function LiveDashboard({
       let px = margin;
       pills.forEach((p) => {
         const pw = 36;
-        fillRect(px, highlightY, pw, 7, '#131B2E');
-        strokeRect(px, highlightY, pw, 7, '#1E293B', 0.4);
-        setFont('bold', 5.4, '#38BDF8');
+        fillRect(px, highlightY, pw, 7, '#F1F5F9');
+        strokeRect(px, highlightY, pw, 7, '#E2E8F0', 0.4);
+        setFont('bold', 5.4, '#1D4ED8');
         text(p, px + pw / 2, highlightY + 4.7, { align: 'center' });
         px += pw + 4;
       });
 
       // Footer Metadata Row (4 Columns)
-      const metaRowY = 202;
+      const metaRowY = 200;
       const metaCols = [
         { label: 'ADVERTISER', val: companyName, sub: 'Campaign Brand' },
         { label: 'MEDIA AGENCY', val: ownerName, sub: 'Media Partner' },
@@ -1251,24 +1273,20 @@ export default function LiveDashboard({
       const metaColH = 28;
       metaCols.forEach((col, idx) => {
         const mx = margin + idx * (metaColW + 3.5);
-        fillRect(mx, metaRowY, metaColW, metaColH, '#131B2E');
-        strokeRect(mx, metaRowY, metaColW, metaColH, '#1E293B', 0.4);
+        fillRect(mx, metaRowY, metaColW, metaColH, '#F8FAFC');
+        strokeRect(mx, metaRowY, metaColW, metaColH, '#E2E8F0', 0.4);
         fillRect(mx, metaRowY, metaColW, 1.6, '#2563EB');
-        setFont('bold', 5.6, '#38BDF8');
+        setFont('bold', 5.6, '#64748B');
         text(col.label, mx + 4, metaRowY + 6.5);
-        setFont('bold', 7.5, '#FFFFFF');
+        setFont('bold', 7.5, '#0F172A');
         const splitVal = doc.splitTextToSize(col.val, metaColW - 8);
         doc.text(splitVal, mx + 4, metaRowY + 13.5);
-        setFont('normal', 5.2, '#64748B');
+        setFont('normal', 5.2, '#94A3B8');
         text(col.sub, mx + 4, metaRowY + 23.0);
       });
 
       // Cover Page Bottom Footer
-      fillRect(0, pageH - 16, pageW, 0.6, '#1E293B');
-      setFont('normal', 6.8, '#64748B');
-      text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report — SITE_${siteCode}`, margin, pageH - 7.5);
-      setFont('bold', 6.8, '#94A3B8');
-      text(`CONFIDENTIAL — Page 1 of ${TOTAL_PAGES}`, pageW - margin, pageH - 7.5, { align: 'right' });
+      drawReportFooter(1);
 
       // ══════════════════════════════════════════════════════════
       // PAGE 2: AUDIENCE & TRAFFIC INTELLIGENCE
@@ -1546,7 +1564,7 @@ export default function LiveDashboard({
       setFont('normal', 5.2, '#334155');
       text('High vehicular throughput and verified affluence deliver continuous high-frequency exposure among high-income decision makers.', margin + 4.5, y + 5.4);
 
-      drawFooter(2);
+      drawReportFooter(2);
 
       // ══════════════════════════════════════════════════════════
       // PAGE 3: LOCATION INTELLIGENCE & GEOSPATIAL CATCHMENT
@@ -1723,7 +1741,7 @@ export default function LiveDashboard({
       setFont('normal', 5.4, '#334155');
       text('High commercial POI concentration and pivotal arterial positioning capture continuous morning-to-night pedestrian and vehicular exposure.', margin + 4.5, y + 6.0);
 
-      drawFooter(3);
+      drawReportFooter(3);
 
       // ══════════════════════════════════════════════════════════
       // PAGE 4: FINAL DATA PAGE — SUMMARY & RECOMMENDATIONS
@@ -1875,47 +1893,64 @@ export default function LiveDashboard({
         doc.text(splitBody, margin + 17, ry + 9.5);
       });
 
-      drawFooter(4);
+      drawReportFooter(4);
 
       // ══════════════════════════════════════════════════════════
-      // PAGE 5: LAST PAGE — ABOUT ACULION (CLOSING PAGE)
+      // PAGE 5: LAST PAGE — ABOUT ACULION (LIGHT THEME CLOSING PAGE)
       // ══════════════════════════════════════════════════════════
       doc.addPage();
-      fillRect(0, 0, pageW, pageH, '#0B0F19');
+      fillRect(0, 0, pageW, pageH, '#FFFFFF');
 
-      // Top-Left Branding
-      const abLogoY = 18;
-      doc.setFillColor(...hex('#00F0FF'));
-      doc.triangle(margin + 5, abLogoY, margin, abLogoY + 11, margin + 10, abLogoY + 11, 'F');
-      doc.setFillColor(...hex('#0B0F19'));
-      doc.triangle(margin + 5, abLogoY + 4.8, margin + 2.5, abLogoY + 9.8, margin + 7.5, abLogoY + 9.8, 'F');
+      // Top decorative brand bar
+      fillRect(0, 0, pageW, 3.5, '#2563EB');
 
-      setFont('bold', 14.0, '#FFFFFF');
-      text('ACULION', margin + 14, abLogoY + 6.0);
-      setFont('bold', 5.8, '#00F0FF');
-      text('INTELLIGENCE BEYOND OOH', margin + 14, abLogoY + 10.5);
+      // Top-Left Branding with official transparent logo
+      const abLogoY = 16;
+      if (logoDataUrl) {
+        try {
+          doc.addImage(logoDataUrl, 'PNG', margin, abLogoY, 54, 12.5);
+        } catch (e) {
+          doc.setFillColor(...hex('#2563EB'));
+          doc.triangle(margin + 5, abLogoY, margin, abLogoY + 11, margin + 10, abLogoY + 11, 'F');
+          doc.setFillColor(...hex('#FFFFFF'));
+          doc.triangle(margin + 5, abLogoY + 4.8, margin + 2.5, abLogoY + 9.8, margin + 7.5, abLogoY + 9.8, 'F');
+          setFont('bold', 14.0, '#0F172A');
+          text('ACULION', margin + 14, abLogoY + 6.0);
+          setFont('bold', 5.8, '#2563EB');
+          text('INTELLIGENCE BEYOND OOH', margin + 14, abLogoY + 10.5);
+        }
+      } else {
+        doc.setFillColor(...hex('#2563EB'));
+        doc.triangle(margin + 5, abLogoY, margin, abLogoY + 11, margin + 10, abLogoY + 11, 'F');
+        doc.setFillColor(...hex('#FFFFFF'));
+        doc.triangle(margin + 5, abLogoY + 4.8, margin + 2.5, abLogoY + 9.8, margin + 7.5, abLogoY + 9.8, 'F');
+        setFont('bold', 14.0, '#0F172A');
+        text('ACULION', margin + 14, abLogoY + 6.0);
+        setFont('bold', 5.8, '#2563EB');
+        text('INTELLIGENCE BEYOND OOH', margin + 14, abLogoY + 10.5);
+      }
 
       // Top-Right Pill Badge
-      const abPillW = 34;
+      const abPillW = 38;
       const abPillH = 7.5;
       const abPillX = pageW - margin - abPillW;
-      const abPillY = abLogoY + 1.5;
-      fillRect(abPillX, abPillY, abPillW, abPillH, '#1E293B');
-      strokeRect(abPillX, abPillY, abPillW, abPillH, '#00F0FF', 0.4);
-      setFont('bold', 6.2, '#38BDF8');
+      const abPillY = abLogoY + 2.5;
+      fillRect(abPillX, abPillY, abPillW, abPillH, '#EFF6FF');
+      strokeRect(abPillX, abPillY, abPillW, abPillH, '#BFDBFE', 0.4);
+      setFont('bold', 6.2, '#1D4ED8');
       text('COMPANY OVERVIEW', abPillX + abPillW / 2, abPillY + 5.1, { align: 'center' });
 
       // Page Title
-      let abY = 40;
-      setFont('bold', 18.0, '#FFFFFF');
+      let abY = 38;
+      setFont('bold', 18.0, '#0F172A');
       text('About Aculion', margin, abY);
       abY += 6.5;
-      setFont('normal', 7.5, '#94A3B8');
+      setFont('normal', 7.5, '#475569');
       text('Pioneering AI-Powered Outdoor Advertising & Location Intelligence', margin, abY);
       abY += 5.0;
 
-      fillRect(margin, abY, 35, 1.6, '#00F0FF');
-      fillRect(margin + 35, abY, 50, 1.6, '#2563EB');
+      fillRect(margin, abY, 40, 1.8, '#2563EB');
+      fillRect(margin + 40, abY, 55, 1.8, '#38BDF8');
       abY += 9.0;
 
       // 4 Exact Structured Content Sections
@@ -1923,22 +1958,22 @@ export default function LiveDashboard({
         {
           heading: 'What is Aculion?',
           text: 'Aculion is an AI-powered Outdoor Advertising and Location Intelligence company. We are building smarter ways for brands to plan, understand, and measure their OOH and DOOH advertising. Our goal is to make outdoor advertising more data-driven, measurable, and effective.',
-          col: '#00F0FF'
+          col: '#2563EB'
         },
         {
           heading: 'How We Started',
           text: 'Aculion started with an observation: outdoor advertising decisions were often made using limited information and assumptions. We believed that real-world data and intelligence could make these decisions better. This led us to explore how AI, location data, and computer vision could transform the way outdoor advertising works.',
-          col: '#38BDF8'
+          col: '#0284C7'
         },
         {
           heading: 'What We Do',
           text: 'We help brands understand where to advertise, who they can reach, and how their advertising locations are performing. Our Location Intelligence uses geospatial data to identify high-potential locations by understanding the surrounding area, businesses, people, movement, and other factors. Our Computer Vision Intelligence helps understand traffic, vehicle movement, exposure, and potential audience reach around advertising locations.',
-          col: '#818CF8'
+          col: '#7C3AED'
         },
         {
           heading: 'Our Vision',
           text: 'Our vision is to make every billboard intelligent and measurable. We want to move outdoor advertising from simply knowing where a billboard is to understanding what happens around it, who it can reach, and what value it can create for a brand.',
-          col: '#34D399'
+          col: '#059669'
         }
       ];
 
@@ -1946,33 +1981,30 @@ export default function LiveDashboard({
         const lines = doc.splitTextToSize(sec.text, contentW - 14);
         const cardH = 14 + lines.length * 4.2;
 
-        fillRect(margin, abY, contentW, cardH, '#131B2E');
-        strokeRect(margin, abY, contentW, cardH, '#1E293B', 0.4);
+        fillRect(margin, abY, contentW, cardH, '#F8FAFC');
+        strokeRect(margin, abY, contentW, cardH, '#E2E8F0', 0.4);
         fillRect(margin, abY, 2.5, cardH, sec.col);
 
         setFont('bold', 8.5, sec.col);
         text(sec.heading, margin + 7, abY + 7.0);
 
-        setFont('normal', 6.8, '#CBD5E1');
+        setFont('normal', 6.8, '#334155');
         doc.text(lines, margin + 7, abY + 13.0);
 
-        abY += cardH + 4.5;
+        abY += cardH + 4.0;
       });
 
       // Corporate Contact & Platform Info Strip
-      fillRect(margin, abY + 2, contentW, 14, '#0F172A');
-      strokeRect(margin, abY + 2, contentW, 14, '#1E293B', 0.4);
-      setFont('bold', 6.5, '#FFFFFF');
+      fillRect(margin, abY + 2, contentW, 14, '#EFF6FF');
+      strokeRect(margin, abY + 2, contentW, 14, '#BFDBFE', 0.4);
+      fillRect(margin, abY + 2, 2.5, 14, '#2563EB');
+      setFont('bold', 6.8, '#1D4ED8');
       text('GET IN TOUCH & EXPLORE THE PLATFORM', margin + 6, abY + 7.5);
-      setFont('normal', 5.8, '#94A3B8');
+      setFont('normal', 5.8, '#334155');
       text('Web: www.aculion.com   |   Email: connect@aculion.com   |   Intelligence Engine: Aculion Core v2.4', margin + 6, abY + 12.5);
 
-      // Page 5 Footer
-      fillRect(0, pageH - 16, pageW, 0.6, '#1E293B');
-      setFont('normal', 6.8, '#64748B');
-      text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report — SITE_${siteCode}`, margin, pageH - 7.5);
-      setFont('bold', 6.8, '#94A3B8');
-      text(`CONFIDENTIAL — Page 5 of ${TOTAL_PAGES}`, pageW - margin, pageH - 7.5, { align: 'right' });
+      // Page 5 Footer using universal Powered by template
+      drawReportFooter(5);
 
       // Save PDF
       const fileName = `Aculion_${bbCode}_Campaign_Intelligence_Report.pdf`;
