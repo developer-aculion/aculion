@@ -2693,10 +2693,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTrafficTrendChart([], null, []);
             }
 
-            if (state.charts.vehicle7Days) {
-                renderVehicleTrafficLast7DaysChart([], 0);
-            }
-
             if (state.charts.sparkVehicles) {
                 state.charts.sparkVehicles.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
             }
