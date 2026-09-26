@@ -1744,14 +1744,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const options = {
-            series: [{
-                name: 'Total Vehicles',
-                data: seriesData
-            }],
+            series: [
+                {
+                    name: 'Daily Volume',
+                    type: 'column',
+                    data: seriesData
+                },
+                {
+                    name: 'Traffic Trend',
+                    type: 'line',
+                    data: seriesData
+                }
+            ],
             chart: {
-                type: 'area',
+                type: 'line',
                 width: '100%',
-                height: 180,
+                height: 195,
                 background: 'transparent',
                 foreColor: '#94a3b8',
                 toolbar: { show: false },
@@ -1762,33 +1770,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     speed: 600
                 }
             },
-            colors: ['#00f0ff'],
+            theme: { mode: 'dark' },
+            colors: ['#1E88FF', '#00F0FF'],
             stroke: {
+                width: [0, 3.0],
                 curve: 'smooth',
-                width: 3.0,
                 lineCap: 'round'
             },
+            plotOptions: {
+                bar: {
+                    columnWidth: '38%',
+                    borderRadius: 5,
+                    borderRadiusApplication: 'end'
+                }
+            },
             fill: {
-                type: 'gradient',
+                type: ['gradient', 'solid'],
                 gradient: {
                     shade: 'dark',
                     type: 'vertical',
                     shadeIntensity: 0.5,
-                    gradientToColors: ['#1E88FF'],
+                    gradientToColors: ['#00F0FF', undefined],
                     inverseColors: false,
-                    opacityFrom: 0.35,
-                    opacityTo: 0.02,
-                    stops: [0, 95, 100]
+                    opacityFrom: [0.75, 1],
+                    opacityTo: [0.22, 1],
+                    stops: [0, 100]
                 }
             },
             markers: {
-                size: 4,
+                size: [0, 4.5],
                 colors: ['#0b1220'],
-                strokeColors: '#00f0ff',
+                strokeColors: '#00F0FF',
                 strokeWidth: 2,
-                hover: { size: 6 },
+                hover: { size: 6.5 },
                 discrete: seriesData.length > 0 ? [{
-                    seriesIndex: 0,
+                    seriesIndex: 1,
                     dataPointIndex: lastIndex,
                     fillColor: '#00f0ff',
                     strokeColor: '#ffffff',
@@ -1805,6 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             dataLabels: {
                 enabled: true,
+                enabledOnSeries: [1],
                 formatter: function (val) {
                     return val > 0 ? formatCompactK(val) : '';
                 },
@@ -1825,6 +1842,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     opacity: 0.85,
                     dropShadow: { enabled: false }
                 }
+            },
+            legend: {
+                show: true,
+                position: 'top',
+                horizontalAlign: 'right',
+                floating: true,
+                offsetY: -8,
+                fontSize: '10.5px',
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 600,
+                labels: { colors: '#94a3b8' },
+                markers: {
+                    width: 8,
+                    height: 8,
+                    radius: 3
+                },
+                itemMargin: { horizontal: 6 }
             },
             xaxis: {
                 categories: categories,
@@ -1851,10 +1885,12 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             tooltip: {
                 theme: 'dark',
+                shared: true,
+                intersect: false,
                 custom: function ({ series, seriesIndex, dataPointIndex, w }) {
                     const d = dataToRender[dataPointIndex];
-                    const val = series[seriesIndex][dataPointIndex];
                     if (!d) return '';
+                    const val = seriesData[dataPointIndex];
                     const isLatest = (dataPointIndex === lastIndex);
                     const pctShare = totalSum > 0 ? ((val / totalSum) * 100).toFixed(1) : 0;
                     return `
@@ -1863,7 +1899,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span>${d.dayName}, ${formatDisplayDateIST(d.date)}</span>
                                 ${isLatest ? '<span style="background: rgba(0, 240, 255, 0.2); color:#00f0ff; font-size:9px; padding: 2px 5px; border-radius: 4px; font-weight:700;">LATEST</span>' : ''}
                             </div>
-                            <div style="color: #94a3b8; margin-bottom: 2px;">Total: <strong style="color:#00f0ff;">${formatIndianNumber(val)}</strong> veh (${formatCompactK(val)})</div>
+                            <div style="color: #94a3b8; margin-bottom: 2px;">Daily Total: <strong style="color:#00f0ff;">${formatIndianNumber(val)}</strong> veh (${formatCompactK(val)})</div>
                             <div style="color: #94a3b8;">7-Day Share: <strong style="color:#10b981;">${pctShare}%</strong></div>
                         </div>
                     `;
