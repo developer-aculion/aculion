@@ -8,13 +8,16 @@ const API_BASE = (
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8080' : '')
 );
 
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cXRzaGZwdG1xaWVhcWNnaGZ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzkwOTYyMiwiZXhwIjoyMDk5NDg1NjIyfQ.f12uC9oK_BzLzlXgy_5ybUAgdHJTY6N7E5VWXXmgr5Q';
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Extract active billboard details from URL parameters
+    // Extract active billboard details and date from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     let activeBillboardCode = urlParams.get('billboard_code') || 'ACU-BB-0001';
     let activeCameraFfCode = urlParams.get('camera_ff_code') || '';
     let activeCameraBfCode = urlParams.get('camera_bf_code') || '';
     let activeBillboardName = urlParams.get('bb_name') || '';
+    const urlDate = urlParams.get('date') || urlParams.get('selected_date');
 
     function getInitialStats() {
         return {
@@ -268,13 +271,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return `Date: ${dateStr}`;
     }
 
-    let selectedDate = getTodayIST();
-    let currentTrackedDay = getTodayIST();
+    let selectedDate = urlDate || getTodayIST();
+    let currentTrackedDay = urlDate || getTodayIST();
 
     // Date range picker click & change listeners
     const dateRangeBox = document.getElementById('dateRangeSelectorBox');
     const datePickerInput = document.getElementById('datePickerInput');
     const dateRangeDisplay = document.getElementById('dateRangeDisplay');
+
+    if (dateRangeDisplay) {
+        dateRangeDisplay.textContent = formatDateDisplayIST(selectedDate);
+    }
+    if (datePickerInput) {
+        datePickerInput.value = selectedDate;
+    }
+    if (elements.filterDateRange) {
+        elements.filterDateRange.value = (selectedDate === getTodayIST()) ? 'today' : (selectedDate === getYesterdayIST(getTodayIST()) ? 'yesterday' : 'custom');
+    }
 
     if (dateRangeBox && datePickerInput) {
         dateRangeBox.addEventListener('click', (e) => {
@@ -1664,6 +1677,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function initVehicleTrafficLast7DaysChart() {
+        const baseDate = selectedDate ? new Date(selectedDate + 'T12:00:00+05:30') : new Date();
+        const initialDays = [];
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(baseDate.getTime() - i * 24 * 60 * 60 * 1000);
+            const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+            initialDays.push({
+                date: dStr,
+                dayName: dayNames[d.getDay()],
+                totalVehicles: 0
+            });
+        }
+        renderVehicleTrafficLast7DaysChart(initialDays, 0);
+    }
+
     // --- Vehicle Traffic — Last 7 Days Line Chart (Compact) ---
     function renderVehicleTrafficLast7DaysChart(daysData, weeklyTotal) {
         const container = document.querySelector("#vehicle7DaysLineChart");
@@ -1671,11 +1700,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let dataToRender = daysData;
         if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
-            const now = new Date();
+            const baseDate = selectedDate ? new Date(selectedDate + 'T12:00:00+05:30') : new Date();
             dataToRender = [];
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             for (let i = 6; i >= 0; i--) {
-                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const d = new Date(baseDate.getTime() - i * 24 * 60 * 60 * 1000);
                 const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
                 dataToRender.push({
                     date: dStr,
@@ -2309,7 +2338,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Direct Supabase REST Integration ---
-    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cXRzaGZwdG1xaWVhcWNnaGZ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzkwOTYyMiwiZXhwIjoyMDk5NDg1NjIyfQ.f12uC9oK_BzLzlXgy_5ybUAgdHJTY6N7E5VWXXmgr5Q';
     let isFetchingDirectly = false;
     let lastRenderedStateKey = null;
 
@@ -3041,7 +3069,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initValueMixChart();
     initDwellAreaChart();
     initTrafficTrendChart();
+    initVehicleTrafficLast7DaysChart();
     fetchAndRenderPeakTrafficAnalysis(activeBillboardCode, selectedDate);
+    fetchWeeklyPeakTraffic(activeBillboardCode);
     updateUIElements();
     initCctvSimulation();
     populateCameraDropdown();
