@@ -462,6 +462,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${pad(startH)}:00 - ${pad(startH)}:59`;
     }
 
+    // Compact K/M Formatter (e.g. 18420 -> "18.4K", 21200 -> "21.2K")
+    function formatCompactK(val) {
+        if (val === null || val === undefined || isNaN(val)) return '0';
+        const num = Number(val);
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        }
+        if (num >= 1000) {
+            return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+        }
+        return String(num);
+    }
+
     // --- UI Values Update Binders ---
     function updateUIElements() {
         // Format KPI numbers
@@ -790,6 +803,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Dynamically update the Peak Traffic Hour KPI Card with the exact same max vehicle hour logic
+        if (peakHourNum !== null && peakCountVal > 0) {
+            state.stats.peakHour = formatPeakHourWindow(peakHourNum);
+            state.stats.peakDensity = `${(peakCountVal / 60).toFixed(1)} veh/min`;
+            state.stats.peakCount = peakCountVal;
+            if (elements.kpiPeak) elements.kpiPeak.textContent = state.stats.peakHour;
+            if (elements.kpiPeakDensity) elements.kpiPeakDensity.textContent = state.stats.peakDensity;
+        }
+
         // 1. Column Headers (Blank Day Header + 11 Hours: 10 AM to 8 PM)
         const headerRow = document.createElement('div');
         headerRow.className = 'peak-heatmap-header-row';
@@ -842,12 +864,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     isZero = (val === 0);
                     isPeak = (val === maxVehicles && maxVehicles > 0);
 
-                    cellEl.textContent = formatIndianNumber(val);
+                    // Clean cell without text number for compact visual matrix
+                    cellEl.textContent = '';
 
                     const colorObj = getPeakHeatmapColorForValue(val, minVehicles, maxVehicles);
                     if (colorObj) {
                         cellEl.style.backgroundColor = colorObj.bg;
-                        cellEl.style.color = '#06101e';
                     }
 
                     if (isPeak) {
@@ -875,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     // No database row exists
-                    cellEl.textContent = '—';
+                    cellEl.textContent = '';
                     cellEl.classList.add('cell-empty');
                 }
 
@@ -1084,6 +1106,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render ApexCharts Weekly Bar Chart
             renderWeeklyBarChart(daysData);
+
+            // Render Vehicle Traffic — Last 7 Days Line Chart
+            renderVehicleTrafficLast7DaysChart(daysData, weeklyTotal);
 
             // Render 7-day cards
             if (elements.weeklyDaysGrid) {
@@ -1615,111 +1640,202 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Interactive Multi-Series Line Chart showing Traffic Trends dynamically
-    function initTrafficTrendChart() {
-        const timeSeries = [];
-        const baseTime = new Date();
-        baseTime.setMinutes(0);
-        baseTime.setSeconds(0);
+    // --- Vehicle Traffic — Last 7 Days Line Chart ---
+    function renderVehicleTrafficLast7DaysChart(daysData, weeklyTotal) {
+        const container = document.querySelector("#trafficTrendLineChart");
+        if (!container) return;
 
-        for (let i = 9; i >= 0; i--) {
-            const d = new Date(baseTime.getTime() - i * 60 * 1000 * 15);
-            timeSeries.push(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        let dataToRender = daysData;
+        if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
+            const now = new Date();
+            dataToRender = [];
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+                dataToRender.push({
+                    date: dStr,
+                    dayName: dayNames[d.getDay()],
+                    totalVehicles: 0
+                });
+            }
+        }
+
+        const categories = dataToRender.map(d => {
+            try {
+                const dt = new Date(d.date + 'T12:00:00+05:30');
+                const dayNum = dt.getDate();
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const mon = monthNames[dt.getMonth()];
+                return `${dayNum} ${mon}`;
+            } catch (e) {
+                return d.date ? d.date.slice(5) : '';
+            }
+        });
+
+        const seriesData = dataToRender.map(d => Number(d.totalVehicles) || 0);
+        const lastIndex = seriesData.length - 1;
+        const totalSum = (weeklyTotal !== undefined && weeklyTotal !== null && weeklyTotal > 0) 
+            ? weeklyTotal 
+            : seriesData.reduce((acc, v) => acc + v, 0);
+
+        // Update 7-Day Total summary badge in header
+        const totalEl = document.getElementById('trend-7day-total');
+        if (totalEl) {
+            totalEl.textContent = `${formatIndianNumber(totalSum)} veh`;
         }
 
         const options = {
-            series: [
-                { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
-            ],
+            series: [{
+                name: 'Total Vehicles',
+                data: seriesData
+            }],
             chart: {
-                type: 'line',
+                type: 'area',
                 width: '100%',
                 height: 280,
                 background: 'transparent',
                 foreColor: '#94a3b8',
                 toolbar: { show: false },
+                zoom: { enabled: false },
                 animations: {
                     enabled: true,
-                    easing: 'linear',
-                    dynamicAnimation: { speed: 1000 }
+                    easing: 'easeinout',
+                    speed: 700
                 }
             },
-            colors: [
-                '#1E88FF',
-                '#00C4FF',
-                '#8B5CF6',
-                '#F59E0B',
-                '#10B981'
-            ],
+            colors: ['#00f0ff'],
             stroke: {
                 curve: 'smooth',
-                width: 3
+                width: 3.5,
+                lineCap: 'round'
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'dark',
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#1E88FF'],
+                    inverseColors: false,
+                    opacityFrom: 0.35,
+                    opacityTo: 0.02,
+                    stops: [0, 95, 100]
+                }
+            },
+            markers: {
+                size: 5,
+                colors: ['#0b1220'],
+                strokeColors: '#00f0ff',
+                strokeWidth: 2.5,
+                hover: {
+                    size: 8,
+                    sizeOffset: 3
+                },
+                discrete: seriesData.length > 0 ? [{
+                    seriesIndex: 0,
+                    dataPointIndex: lastIndex,
+                    fillColor: '#00f0ff',
+                    strokeColor: '#ffffff',
+                    size: 8,
+                    shape: 'circle'
+                }] : []
             },
             grid: {
-                borderColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.04)',
+                strokeDashArray: 4,
                 xaxis: { lines: { show: false } },
-                yaxis: { lines: { show: true } }
+                yaxis: { lines: { show: true } },
+                padding: { top: 12, right: 18, bottom: 0, left: 12 }
             },
-            dataLabels: { enabled: false },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return formatCompactK(val);
+                },
+                offsetY: -8,
+                style: {
+                    fontSize: '11px',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 700,
+                    colors: ['#00f0ff']
+                },
+                background: {
+                    enabled: true,
+                    foreColor: '#00f0ff',
+                    padding: 4,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: 'rgba(0, 240, 255, 0.35)',
+                    opacity: 0.85,
+                    dropShadow: { enabled: false }
+                }
+            },
             xaxis: {
-                categories: timeSeries,
+                categories: categories,
                 axisBorder: { show: false },
-                axisTicks: { show: false }
-            },
-            yaxis: {
-                title: { text: 'Vehicles / Interval', style: { color: '#94a3b8' } }
-            },
-            legend: {
-                position: 'top',
-                horizontalAlign: 'right',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-                markers: { radius: 12 }
-            },
-            tooltip: { theme: 'dark' },
-            responsive: [
-                {
-                    breakpoint: 768,
-                    options: {
-                        chart: {
-                            height: 250,
-                            toolbar: { show: false }
-                        },
-                        legend: {
-                            position: 'bottom',
-                            horizontalAlign: 'center',
-                            itemMargin: { horizontal: 6, vertical: 3 },
-                            fontSize: '11px',
-                            offsetY: 0
-                        },
-                        xaxis: {
-                            tickAmount: 4,
-                            labels: {
-                                rotate: -30,
-                                rotateAlways: false,
-                                style: { fontSize: '10px' }
-                            }
-                        },
-                        yaxis: {
-                            title: { text: '' },
-                            labels: {
-                                style: { fontSize: '10px' }
-                            }
-                        }
+                axisTicks: { show: false },
+                labels: {
+                    style: {
+                        colors: '#94a3b8',
+                        fontSize: '11px',
+                        fontFamily: 'Outfit, monospace',
+                        fontWeight: 600
                     }
                 }
-            ]
+            },
+            yaxis: {
+                title: {
+                    text: 'Total Vehicles Detected',
+                    style: {
+                        color: '#94a3b8',
+                        fontSize: '11px',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif',
+                        fontWeight: 600
+                    }
+                },
+                labels: {
+                    style: {
+                        colors: '#94a3b8',
+                        fontSize: '10.5px',
+                        fontFamily: 'Outfit, monospace'
+                    },
+                    formatter: (val) => formatCompactK(val)
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                    const d = dataToRender[dataPointIndex];
+                    const val = series[seriesIndex][dataPointIndex];
+                    if (!d) return '';
+                    const isLatest = (dataPointIndex === lastIndex);
+                    const pctShare = totalSum > 0 ? ((val / totalSum) * 100).toFixed(1) : 0;
+                    return `
+                        <div style="background: rgba(11, 18, 32, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 8px; padding: 10px 14px; font-family: Outfit, sans-serif; font-size: 11.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <span>${d.dayName}, ${formatDisplayDateIST(d.date)}</span>
+                                ${isLatest ? '<span style="background: rgba(0, 240, 255, 0.2); color:#00f0ff; font-size:9.5px; padding: 2px 6px; border-radius: 4px; font-weight:700;">LATEST DAY</span>' : ''}
+                            </div>
+                            <div style="color: #94a3b8; margin-bottom: 3px;">Total Detected: <strong style="color:#00f0ff; font-size:13px;">${formatIndianNumber(val)}</strong> vehicles (${formatCompactK(val)})</div>
+                            <div style="color: #94a3b8;">7-Day Share: <strong style="color:#10b981;">${pctShare}%</strong> of selected volume</div>
+                        </div>
+                    `;
+                }
+            }
         };
 
-        const container = document.querySelector("#trafficTrendLineChart");
-        if (container) {
+        if (state.charts.trendLine) {
+            state.charts.trendLine.updateOptions(options, true, true);
+        } else {
             container.innerHTML = '';
             state.charts.trendLine = new ApexCharts(container, options);
             state.charts.trendLine.render();
         }
+    }
+
+    function initTrafficTrendChart() {
+        renderVehicleTrafficLast7DaysChart([]);
     }
 
     // --- CCTV Live Canvas Simulation ---
@@ -2391,9 +2507,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + luxuryCount;
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
         const avgDwell = Number(data.avg_exposure_time) || 0.0;
-        const flowRate = Number(data.flow_rate) || 0.0;
-        const peakHour = (totalVehicles === 0 && (!data.peak_traffic_hour || data.peak_traffic_hour === 'N/A')) ? '—' : (data.peak_traffic_hour || '—');
-        const peakDensity = (totalVehicles === 0) ? '-- veh/min' : (data.peak_density || (data.peak_count ? `${(data.peak_count / 60).toFixed(1)} veh/min` : '-- veh/min'));
+        // Peak Hour: Use dynamically calculated peakHour from hourly vehicles data; never fallback to stale static DB strings
+        let peakHour = (state.stats.peakHour && state.stats.peakHour !== '—' && state.stats.peakHour !== '15:00 - 15:59') ? state.stats.peakHour : null;
+        let peakDensity = state.stats.peakDensity || '-- veh/min';
+        if (!peakHour) {
+            if (data.peak_traffic_hour && data.peak_traffic_hour !== 'N/A' && data.peak_traffic_hour !== '15:00 - 15:59') {
+                peakHour = data.peak_traffic_hour;
+                peakDensity = data.peak_density || '-- veh/min';
+            } else {
+                peakHour = '—';
+                peakDensity = '-- veh/min';
+            }
+        }
 
         // Check if incoming data actually differs from currently rendered state
         const stateKey = `${data.billboard_code || currentTarget}_${totalVehicles}_${avgDwell}_${flowRate}_${bikeCount}_${commercialCount}_${economyCount}_${premiumCount}_${luxuryCount}`;

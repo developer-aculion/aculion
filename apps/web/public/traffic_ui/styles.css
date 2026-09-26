@@ -1478,7 +1478,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 .peak-heatmap-table {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2.5px;
     width: 100%;
     min-width: 520px;
 }
@@ -1486,7 +1486,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 .peak-heatmap-header-row {
     display: grid;
     grid-template-columns: 78px repeat(11, minmax(0, 1fr));
-    gap: 4px;
+    gap: 2.5px;
     align-items: center;
     padding-bottom: 2px;
 }
@@ -1508,7 +1508,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 .peak-heatmap-day-row {
     display: grid;
     grid-template-columns: 78px repeat(11, minmax(0, 1fr));
-    gap: 4px;
+    gap: 2.5px;
     align-items: center;
 }
 
@@ -1523,16 +1523,14 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 }
 
 .heatmap-cell {
-    height: 34px;
-    min-height: 34px;
-    border-radius: 6px;
+    height: 25px;
+    min-height: 25px;
+    border-radius: 3.5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    font-family: 'Outfit', sans-serif;
-    letter-spacing: 0.1px;
+    border: none;
+    outline: none;
     cursor: pointer;
     position: relative;
     box-sizing: border-box;
@@ -1541,29 +1539,26 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 }
 
 .heatmap-cell:hover {
-    transform: scale(1.08);
+    transform: scale(1.18);
     z-index: 50;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
-    filter: brightness(1.1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+    filter: brightness(1.15);
 }
 
 .heatmap-cell.cell-empty {
-    background: rgba(14, 20, 36, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    color: #64748b;
-    font-weight: 500;
-    font-size: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    border: none;
+    outline: none;
 }
 
 .heatmap-cell.cell-empty:hover {
-    background: rgba(22, 32, 54, 0.9);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .heatmap-cell.cell-peak {
-    box-shadow: 0 0 12px rgba(220, 38, 38, 0.55), inset 0 0 4px rgba(255, 255, 255, 0.3);
-    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.85);
+    border: none;
+    outline: none;
 }
 
 .peak-heatmap-floating-tooltip .tooltip-header {
@@ -1739,10 +1734,12 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.legend-nodata-badge .nodata-dash {
-    color: #64748b;
-    font-weight: 700;
-    font-size: 13px;
+.legend-nodata-badge .nodata-tile {
+    width: 14px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2.5px;
+    display: inline-block;
 }
 
 .legend-nodata-badge .nodata-label {
@@ -1762,6 +1759,58 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 
 .trend-chart-container {
     height: 320px;
+}
+
+.chart-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.trend-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: #00f0ff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    user-select: none;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.12);
+}
+
+.trend-filter-pill .pill-icon {
+    width: 13px;
+    height: 13px;
+    stroke-width: 2.2;
+}
+
+.trend-summary-stat-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.trend-stat-label {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.trend-stat-value {
+    color: #00f0ff;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
 }
 
 .chart-controls-simple {

@@ -296,12 +296,22 @@
                 <div class="glass-panel analytics-card trend-chart-panel col-span-full" id="traffic-trend-card">
                     <div class="card-header">
                         <div class="header-info">
-                            <h2>Traffic Trend</h2>
-                            <p class="card-subtitle">Historical and real-time vehicle flow rates by category</p>
+                            <h2>Vehicle Traffic — Last 7 Days</h2>
+                            <p class="card-subtitle">Daily detected vehicle volume with highlighted latest trends</p>
                         </div>
-                        <div class="chart-controls-simple">
-                            <span class="live-dot-pulse"></span>
-                            <span class="pulse-text">Live Syncing</span>
+                        <div class="chart-header-actions">
+                            <div class="trend-filter-pill active">
+                                <i data-lucide="calendar" class="pill-icon"></i>
+                                <span>Last 7 Days</span>
+                            </div>
+                            <div class="trend-summary-stat-box">
+                                <span class="trend-stat-label">7-Day Total:</span>
+                                <span class="trend-stat-value" id="trend-7day-total">0</span>
+                            </div>
+                            <div class="chart-controls-simple">
+                                <span class="live-dot-pulse"></span>
+                                <span class="pulse-text">Live Syncing</span>
+                            </div>
                         </div>
                     </div>
                     <div class="trend-chart-container">
@@ -445,7 +455,7 @@
                                     <span class="legend-scale-label">High Traffic</span>
                                 </div>
                                 <div class="legend-nodata-badge">
-                                    <span class="nodata-dash">—</span>
+                                    <span class="nodata-tile"></span>
                                     <span class="nodata-label">= No data</span>
                                     <span class="nodata-note">(Not 0)</span>
                                 </div>
