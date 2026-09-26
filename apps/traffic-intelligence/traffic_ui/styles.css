@@ -1356,7 +1356,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     font-size: 13.5px;
 }
 
-/* --- Peak Traffic Hour Card --- */
+/* --- Peak Traffic Analysis Heatmap Card --- */
 #peak-traffic-hour-card {
     height: auto !important;
     min-height: unset !important;
@@ -1375,16 +1375,17 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.14);
     border: 1px solid rgba(239, 68, 68, 0.35);
     color: #FF4D4D;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 20px;
     font-size: 11.5px;
     font-weight: 600;
     font-family: 'Outfit', sans-serif;
     letter-spacing: 0.2px;
     white-space: nowrap;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
 }
 
 .peak-badge-pulse-dot {
@@ -1407,187 +1408,351 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     }
 }
 
-.heatmap-outer-wrapper {
+.peak-heatmap-container {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-width: 0;
-    max-width: 100%;
     width: 100%;
-    overflow: hidden;
+    min-width: 0;
+    position: relative;
 }
 
-.heatmap-timeline {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
+.peak-heatmap-floating-tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    background: rgba(11, 18, 32, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #ffffff;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    text-align: left;
+    transform: translate(-50%, -100%);
+    margin-top: -8px;
+    transition: opacity 0.12s ease;
+}
+
+.peak-heatmap-floating-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(11, 18, 32, 0.98) transparent transparent transparent;
+}
+
+.peak-heatmap-scroll-wrapper {
     width: 100%;
-    max-width: 100%;
-    min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 8px 4px 12px 4px;
+    padding: 2px 2px 4px 2px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(249, 115, 22, 0.5) rgba(255, 255, 255, 0.05);
+    scrollbar-color: rgba(249, 115, 22, 0.4) rgba(255, 255, 255, 0.05);
 }
 
-.heatmap-timeline::-webkit-scrollbar {
-    height: 6px;
+.peak-heatmap-scroll-wrapper::-webkit-scrollbar {
+    height: 4px;
 }
 
-.heatmap-timeline::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.06);
+.peak-heatmap-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
     border-radius: 4px;
 }
 
-.heatmap-timeline::-webkit-scrollbar-thumb {
-    background: linear-gradient(90deg, #FACC15, #F97316, #EF4444);
+.peak-heatmap-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #22C55E, #FACC15, #F97316, #EF4444);
     border-radius: 4px;
 }
 
-.heatmap-timeline::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(90deg, #FDE047, #FB923C, #DC2626);
-}
-
-.heatmap-block {
-    flex: 0 0 auto;
-    width: 66px;
-    min-width: 66px;
-    height: 60px;
-    border-radius: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+.peak-heatmap-table {
     display: flex;
     flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 520px;
+}
+
+.peak-heatmap-header-row {
+    display: grid;
+    grid-template-columns: 78px repeat(11, minmax(0, 1fr));
+    gap: 4px;
     align-items: center;
-    justify-content: center;
-    gap: 3px;
-    position: relative;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-    background: rgba(14, 20, 36, 0.85);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    padding-bottom: 2px;
 }
 
-.heatmap-block:hover {
-    transform: translateY(-3px);
-    z-index: 15;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+.peak-header-blank {
+    width: 78px;
 }
 
-.heatmap-block.is-peak-hour {
-    border: 1.5px solid #EF4444 !important;
-    border-top: 3px solid #FF3B30 !important;
-    box-shadow: 0 0 16px rgba(239, 68, 68, 0.45), inset 0 0 10px rgba(239, 68, 68, 0.25) !important;
-}
-
-.peak-block-badge {
-    position: absolute;
-    top: -9px;
-    right: -3px;
-    background: linear-gradient(135deg, #FF3B30, #DC2626);
-    color: #ffffff;
-    font-size: 8px;
-    font-weight: 800;
-    padding: 1px 5px;
-    border-radius: 4px;
-    letter-spacing: 0.4px;
-    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.6);
-    text-transform: uppercase;
-    font-family: 'Outfit', sans-serif;
-    z-index: 5;
-}
-
-.heatmap-block-label {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: #ffffff;
-    font-family: 'Outfit', sans-serif;
-    white-space: nowrap;
-    letter-spacing: 0.2px;
-    line-height: 1.1;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-}
-
-.heatmap-block-count {
+.peak-header-hour {
     font-size: 10px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    line-height: 1;
-}
-
-.heatmap-block .tooltip {
-    visibility: hidden;
-    width: 140px;
-    background-color: #121824;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #fff;
+    color: #94a3b8;
     text-align: center;
-    border-radius: 7px;
-    padding: 7px 9px;
-    position: absolute;
-    z-index: 100;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -70px;
-    opacity: 0;
-    transition: opacity 0.2s, transform 0.2s;
-    transform: translateY(4px);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+}
+
+.peak-heatmap-day-row {
+    display: grid;
+    grid-template-columns: 78px repeat(11, minmax(0, 1fr));
+    gap: 4px;
+    align-items: center;
+}
+
+.peak-day-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: 0.1px;
+    text-align: left;
+    padding-left: 2px;
+}
+
+.heatmap-cell {
+    height: 34px;
+    min-height: 34px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.1px;
+    cursor: pointer;
+    position: relative;
+    box-sizing: border-box;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, filter 0.15s ease;
+    user-select: none;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.08);
+    z-index: 50;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+    filter: brightness(1.1);
+}
+
+.heatmap-cell.cell-empty {
+    background: rgba(14, 20, 36, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #64748b;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.heatmap-cell.cell-empty:hover {
+    background: rgba(22, 32, 54, 0.9);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+}
+
+.heatmap-cell.cell-peak {
+    box-shadow: 0 0 12px rgba(220, 38, 38, 0.55), inset 0 0 4px rgba(255, 255, 255, 0.3);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+}
+
+.peak-heatmap-floating-tooltip .tooltip-header {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 11.5px;
+    margin-bottom: 2px;
+}
+
+.peak-heatmap-floating-tooltip .tooltip-date {
+    color: #94a3b8;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.peak-heatmap-floating-tooltip .tooltip-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0 6px 0;
+}
+
+.peak-heatmap-floating-tooltip .tooltip-metric {
+    color: #cbd5e1;
     font-size: 10.5px;
-    line-height: 1.4;
-    pointer-events: none;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
-}
-
-.heatmap-block:hover .tooltip {
-    visibility: visible;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.heatmap-legend {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    padding: 0 4px;
+    gap: 12px;
 }
 
-.heatmap-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 500;
+.peak-heatmap-floating-tooltip .tooltip-metric strong {
+    color: #ffffff;
+    font-family: 'Outfit', monospace;
 }
 
-.legend-dot-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+.peak-heatmap-floating-tooltip .tooltip-traffic-tag {
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
     display: inline-block;
 }
 
-.legend-dot-indicator.dot-yellow {
-    background: #FACC15;
-    box-shadow: 0 0 6px rgba(250, 204, 21, 0.6);
+.tooltip-traffic-tag.tag-peak {
+    background: rgba(239, 68, 68, 0.25);
+    color: #FF6B6B;
+    border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
-.legend-dot-indicator.dot-red {
-    background: #EF4444;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+.tooltip-traffic-tag.tag-high {
+    background: rgba(249, 115, 22, 0.25);
+    color: #FB923C;
+    border: 1px solid rgba(249, 115, 22, 0.4);
 }
 
-.legend-bar-gradient {
-    flex: 0.65;
-    height: 6px;
-    border-radius: 3px;
-    background: linear-gradient(90deg, #FACC15 0%, #F97316 50%, #EF4444 100%);
-    margin: 0 12px;
+.tooltip-traffic-tag.tag-moderate {
+    background: rgba(250, 204, 21, 0.2);
+    color: #FDE047;
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.tooltip-traffic-tag.tag-low {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ADE80;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.tooltip-nodata-msg {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 10.5px;
+}
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0 6px 0;
+}
+
+.cell-tooltip .tooltip-metric {
+    color: #cbd5e1;
+    font-size: 10.5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cell-tooltip .tooltip-metric strong {
+    color: #ffffff;
+    font-family: 'Outfit', monospace;
+}
+
+.cell-tooltip .tooltip-traffic-tag {
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: inline-block;
+}
+
+.tooltip-traffic-tag.tag-peak {
+    background: rgba(239, 68, 68, 0.25);
+    color: #FF6B6B;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.tooltip-traffic-tag.tag-high {
+    background: rgba(249, 115, 22, 0.25);
+    color: #FB923C;
+    border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.tooltip-traffic-tag.tag-moderate {
+    background: rgba(250, 204, 21, 0.2);
+    color: #FDE047;
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.tooltip-traffic-tag.tag-low {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ADE80;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.tooltip-nodata-msg {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 10.5px;
+}
+
+/* Bottom Legend */
+.peak-heatmap-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.legend-scale-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-scale-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.legend-gradient-bar {
+    width: 140px;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #22C55E 0%, #84CC16 25%, #FACC15 50%, #F97316 75%, #EF4444 100%);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+}
+
+.legend-nodata-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(14, 20, 36, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.legend-nodata-badge .nodata-dash {
+    color: #64748b;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.legend-nodata-badge .nodata-label {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.legend-nodata-badge .nodata-note {
+    color: #94a3b8;
+    font-size: 10px;
 }
 
 /* --- Traffic Trend Panel in Analytics Column --- */

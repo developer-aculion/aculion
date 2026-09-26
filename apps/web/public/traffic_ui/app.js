@@ -174,8 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cctvFps: document.getElementById('cctvFps'),
         cctvConfidence: document.getElementById('cctvConfidence'),
 
-        // Peak Traffic Hour Elements
-        peakTrafficTimeline: document.getElementById('peakTrafficTimeline'),
+        // Peak Traffic Analysis Heatmap Elements
+        peakHeatmapGrid: document.getElementById('peakHeatmapGrid'),
         peakHeaderBadge: document.getElementById('peakHeaderBadge'),
         peakHeaderBadgeText: document.getElementById('peakHeaderBadgeText'),
 
@@ -578,164 +578,352 @@ document.addEventListener('DOMContentLoaded', () => {
         recSmartAction.textContent = `Increase brand campaigns from 6 PM to 8 PM to maximize visibility and audience engagement based on current traffic patterns and dwell time analytics (${dwellAvg}s).`;
     }
 
-    // --- Peak Traffic Hour Heatmap Generation ---
-    function getPeakHeatmapColor(t) {
-        // Interpolate: Yellow (250, 204, 21) -> Orange (249, 115, 22) -> Red (239, 68, 68)
-        let r, g, b;
-        if (t <= 0.5) {
-            const k = t / 0.5; // 0..1
-            r = Math.round(250 + k * (249 - 250));
-            g = Math.round(204 + k * (115 - 204));
-            b = Math.round(21 + k * (22 - 21));
-        } else {
-            const k = (t - 0.5) / 0.5; // 0..1
-            r = Math.round(249 + k * (239 - 249));
-            g = Math.round(115 + k * (68 - 115));
-            b = Math.round(22 + k * (68 - 22));
+    // --- Peak Traffic Analysis Heatmap (7 Rows x 11 Columns) ---
+    const HEATMAP_DAYS = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+    ];
+
+    const HEATMAP_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+    const HOUR_LABELS = {
+        10: '10 AM',
+        11: '11 AM',
+        12: '12 PM',
+        13: '1 PM',
+        14: '2 PM',
+        15: '3 PM',
+        16: '4 PM',
+        17: '5 PM',
+        18: '6 PM',
+        19: '7 PM',
+        20: '8 PM'
+    };
+
+    const BILLBOARD_IDENTITY_MAP = {
+        'ACU-BB-0001': { radxa: 'RADXA-01', camFF: 'CAM-FF-001', camBF: 'CAM-BF-001', name: 'Testing Billboard-1' },
+        'ACU-BB-0002': { radxa: 'RADXA-02', camFF: 'CAM-FF-002', camBF: 'CAM-BF-002', name: 'Testing Billboard-2' },
+        'ACU-BB-0003': { radxa: 'RADXA-03', camFF: 'CAM-FF-003', camBF: 'CAM-BF-003', name: 'Testing billboard-3' },
+        'ACU-BB-0004': { radxa: 'RADXA-04', camFF: 'CAM-FF-004', camBF: 'CAM-BF-004', name: 'Sholinganalur' }
+    };
+
+    function formatDisplayDateIST(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr + 'T12:00:00+05:30');
+            const day = d.getDate();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mon = monthNames[d.getMonth()];
+            const yr = d.getFullYear();
+            return `${day} ${mon} ${yr}`;
+        } catch (e) {
+            return dateStr;
         }
-        return { r, g, b, rgb: `rgb(${r}, ${g}, ${b})` };
     }
 
-    function renderHeatTimeline(hourlyRecords = null, peakHourVal = null) {
-        const container = elements.peakTrafficTimeline || elements.densityHeatmap;
+    // Dynamic Multi-Stop Heatmap Color Scale: Green (low) -> Lime -> Yellow -> Orange -> Crimson (peak)
+    function getPeakHeatmapColorForValue(val, minVal, maxVal) {
+        if (val === null || val === undefined || isNaN(val)) return null;
+
+        let t = 0;
+        if (maxVal > minVal) {
+            t = Math.max(0, Math.min(1, (val - minVal) / (maxVal - minVal)));
+        } else {
+            t = val > 0 ? 0.75 : 0;
+        }
+
+        const stops = [
+            { pos: 0.00, r: 34, g: 197, b: 94 },   // #22c55e (Green)
+            { pos: 0.25, r: 132, g: 204, b: 22 },  // #84cc16 (Lime)
+            { pos: 0.50, r: 250, g: 204, b: 21 },  // #facc15 (Yellow)
+            { pos: 0.75, r: 249, g: 115, b: 22 },  // #f97316 (Orange)
+            { pos: 1.00, r: 220, g: 38, b: 38 }    // #dc2626 (Crimson / Red)
+        ];
+
+        let lower = stops[0];
+        let upper = stops[stops.length - 1];
+
+        for (let i = 0; i < stops.length - 1; i++) {
+            if (t >= stops[i].pos && t <= stops[i + 1].pos) {
+                lower = stops[i];
+                upper = stops[i + 1];
+                break;
+            }
+        }
+
+        const span = upper.pos - lower.pos;
+        const factor = span === 0 ? 0 : (t - lower.pos) / span;
+
+        const r = Math.round(lower.r + factor * (upper.r - lower.r));
+        const g = Math.round(lower.g + factor * (upper.g - lower.g));
+        const b = Math.round(lower.b + factor * (upper.b - lower.b));
+
+        return {
+            r, g, b,
+            bg: `rgb(${r}, ${g}, ${b})`,
+            border: `rgba(${r}, ${g}, ${b}, 0.6)`
+        };
+    }
+
+    function getWeekDaysWithDates(baseDateStr) {
+        const d = baseDateStr ? new Date(baseDateStr + 'T12:00:00+05:30') : new Date();
+        const dayOfWeek = d.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+        const distanceToMonday = (dayOfWeek + 6) % 7; // Monday->0, Tue->1 ... Sun->6
+        const monday = new Date(d.getTime() - distanceToMonday * 24 * 60 * 60 * 1000);
+
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const cur = new Date(monday.getTime() + i * 24 * 60 * 60 * 1000);
+            const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(cur);
+            days.push({
+                dayName: HEATMAP_DAYS[i],
+                date: dateStr
+            });
+        }
+        return days;
+    }
+
+    async function fetchAndRenderPeakTrafficAnalysis(cleanCode, activeDate) {
+        const container = elements.peakHeatmapGrid || document.getElementById('peakHeatmapGrid');
+        if (!container) return;
+
+        const targetCode = cleanCode || activeBillboardCode || 'ACU-BB-0001';
+        const mapped = BILLBOARD_IDENTITY_MAP[targetCode] || {};
+        const radxaCode = urlParams.get('radxa_code') || mapped.radxa || 'RADXA-01';
+        const camFF = urlParams.get('camera_ff_code') || mapped.camFF || 'CAM-FF-001';
+        const camBF = urlParams.get('camera_bf_code') || mapped.camBF || 'CAM-BF-001';
+
+        const daysWithDates = getWeekDaysWithDates(activeDate || selectedDate || getTodayIST());
+        const minDate = daysWithDates[0].date;
+        const maxDate = daysWithDates[daysWithDates.length - 1].date;
+        const queryMinDate = minDate < '2026-09-20' ? minDate : (minDate === '2026-09-21' ? '2026-09-20' : minDate);
+
+        let queryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=date,day,hour,total_vehicles,radxa_code,billboard_code,billboard_name,camera_ff_code,camera_bf_code`;
+        queryUrl += `&billboard_code=eq.${encodeURIComponent(targetCode)}`;
+        if (radxaCode) queryUrl += `&radxa_code=eq.${encodeURIComponent(radxaCode)}`;
+        if (camFF) queryUrl += `&camera_ff_code=eq.${encodeURIComponent(camFF)}`;
+        if (camBF) queryUrl += `&camera_bf_code=eq.${encodeURIComponent(camBF)}`;
+        queryUrl += `&and=(date.gte.${queryMinDate},date.lte.${maxDate})`;
+        queryUrl += `&and=(hour.gte.10,hour.lte.20)`;
+        queryUrl += `&order=date.asc&order=hour.asc`;
+
+        try {
+            const res = await fetch(queryUrl, {
+                cache: 'no-store',
+                headers: {
+                    'apikey': SUPABASE_SERVICE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (res.ok) {
+                const rows = await res.json();
+                renderPeakTrafficAnalysisHeatmap(Array.isArray(rows) ? rows : [], daysWithDates);
+            } else {
+                console.warn("traffic_hour fetch returned non-200:", res.status);
+                renderPeakTrafficAnalysisHeatmap([], daysWithDates);
+            }
+        } catch (err) {
+            console.error("Error in fetchAndRenderPeakTrafficAnalysis:", err);
+            renderPeakTrafficAnalysisHeatmap([], daysWithDates);
+        }
+    }
+
+    function renderPeakTrafficAnalysisHeatmap(rows, daysWithDates) {
+        const container = elements.peakHeatmapGrid || document.getElementById('peakHeatmapGrid');
         if (!container) return;
         container.innerHTML = '';
 
-        const recordsMap = {};
-        let maxHourlyVehicles = 0;
-        let bestHourNum = null;
+        const recordMap = new Map();
+        const populatedValues = [];
 
-        if (Array.isArray(hourlyRecords) && hourlyRecords.length > 0) {
-            hourlyRecords.forEach(r => {
+        if (Array.isArray(rows) && rows.length > 0) {
+            rows.forEach(r => {
                 const h = Number(r.hour);
-                const count = Number(r.total_vehicles) || 0;
-                recordsMap[h] = r;
-                if (count > maxHourlyVehicles) {
-                    maxHourlyVehicles = count;
-                    bestHourNum = h;
+                if (h >= 10 && h <= 20) {
+                    if (r.day) recordMap.set(`${r.day}_${h}`, r);
+                    if (r.date) recordMap.set(`${r.date}_${h}`, r);
+                    const val = Number(r.total_vehicles);
+                    if (!isNaN(val)) {
+                        populatedValues.push(val);
+                    }
                 }
             });
         }
 
-        // Determine effective peak hour
-        let targetPeakHour = null;
-        if (peakHourVal !== null && peakHourVal !== undefined && peakHourVal !== '—' && peakHourVal !== 'N/A') {
-            if (typeof peakHourVal === 'number') {
-                targetPeakHour = peakHourVal;
-            } else if (typeof peakHourVal === 'string') {
-                const match = peakHourVal.match(/^(\d+)/);
-                if (match) targetPeakHour = parseInt(match[1], 10);
-            }
-        }
-        if (targetPeakHour === null && bestHourNum !== null && maxHourlyVehicles > 0) {
-            targetPeakHour = bestHourNum;
+        let minVehicles = 0;
+        let maxVehicles = 0;
+        if (populatedValues.length > 0) {
+            minVehicles = Math.min(...populatedValues);
+            maxVehicles = Math.max(...populatedValues);
         }
 
-        // Update card header peak badge
-        if (elements.peakHeaderBadgeText) {
-            if (targetPeakHour !== null && maxHourlyVehicles > 0) {
-                let peakLabel = '';
-                if (targetPeakHour === 0) peakLabel = '12 AM';
-                else if (targetPeakHour < 12) peakLabel = `${targetPeakHour} AM`;
-                else if (targetPeakHour === 12) peakLabel = '12 PM';
-                else peakLabel = `${targetPeakHour - 12} PM`;
-                elements.peakHeaderBadgeText.textContent = `Peak: ${peakLabel}`;
+        let peakHourNum = null;
+        let peakCountVal = 0;
+
+        if (populatedValues.length > 0 && maxVehicles > 0) {
+            for (const r of rows) {
+                const h = Number(r.hour);
+                const val = Number(r.total_vehicles);
+                if (h >= 10 && h <= 20 && val === maxVehicles) {
+                    peakHourNum = h;
+                    peakCountVal = val;
+                    break;
+                }
+            }
+        }
+
+        // Update Header Badge: Peak: {peakHour} · {peakVehicleCount} vehicles
+        const badgeTextEl = elements.peakHeaderBadgeText || document.getElementById('peakHeaderBadgeText');
+        if (badgeTextEl) {
+            if (peakHourNum !== null && peakCountVal > 0) {
+                const formattedHour = HOUR_LABELS[peakHourNum] || `${peakHourNum}:00`;
+                badgeTextEl.textContent = `Peak: ${formattedHour} · ${formatIndianNumber(peakCountVal)} vehicles`;
             } else {
-                elements.peakHeaderBadgeText.textContent = 'Peak: —';
+                badgeTextEl.textContent = 'Peak: —';
             }
         }
 
-        // Render full 24 hours (0 to 23)
-        for (let hourVal = 0; hourVal < 24; hourVal++) {
-            let formattedHour = '';
-            if (hourVal === 0) formattedHour = `12 AM`;
-            else if (hourVal < 12) formattedHour = `${hourVal} AM`;
-            else if (hourVal === 12) formattedHour = `12 PM`;
-            else formattedHour = `${hourVal - 12} PM`;
+        // 1. Column Headers (Blank Day Header + 11 Hours: 10 AM to 8 PM)
+        const headerRow = document.createElement('div');
+        headerRow.className = 'peak-heatmap-header-row';
 
-            let count = 0;
-            let scale = 0;
-            let status = 'Low Traffic';
-            const rec = recordsMap[hourVal];
+        const blankHeader = document.createElement('div');
+        blankHeader.className = 'peak-header-blank';
+        headerRow.appendChild(blankHeader);
 
-            if (rec) {
-                count = Number(rec.total_vehicles) || 0;
-                scale = Number(rec.flow_rate) || Math.round(count / 60);
-            }
+        HEATMAP_HOURS.forEach(h => {
+            const hCell = document.createElement('div');
+            hCell.className = 'peak-header-hour';
+            hCell.textContent = HOUR_LABELS[h];
+            headerRow.appendChild(hCell);
+        });
 
-            const isPeak = (count > 0 && (count === maxHourlyVehicles || (targetPeakHour !== null && hourVal === targetPeakHour)));
-            let normalizedIntensity = 0;
-            if (maxHourlyVehicles > 0) {
-                normalizedIntensity = Math.min(1.0, Math.max(0, count / maxHourlyVehicles));
-            }
+        container.appendChild(headerRow);
 
-            if (isPeak) {
-                status = 'Peak Traffic Hour';
-            } else if (normalizedIntensity >= 0.75) {
-                status = 'Heavy Traffic Flow';
-            } else if (normalizedIntensity >= 0.45) {
-                status = 'Moderate Traffic Flow';
-            } else if (count > 0) {
-                status = 'Light Traffic Flow';
-            } else {
-                status = 'Sensor Idle / No Traffic';
-            }
+        // 2. 7 Fixed Rows: Monday to Sunday
+        const floatingTooltip = document.getElementById('peakHeatmapTooltip');
 
-            const block = document.createElement('div');
-            block.className = 'heatmap-block';
-            if (isPeak) {
-                block.classList.add('is-peak-hour');
-            }
+        HEATMAP_DAYS.forEach(dayName => {
+            const dayInfo = daysWithDates.find(d => d.dayName === dayName) || { dayName, date: '' };
+            const dayDate = dayInfo.date;
+            const formattedDateFriendly = formatDisplayDateIST(dayDate);
 
-            const colorObj = getPeakHeatmapColor(normalizedIntensity);
+            const rowEl = document.createElement('div');
+            rowEl.className = 'peak-heatmap-day-row';
 
-            if (count > 0) {
-                const bgAlpha = Math.max(0.20, 0.20 + normalizedIntensity * 0.55);
-                block.style.background = `linear-gradient(180deg, rgba(${colorObj.r}, ${colorObj.g}, ${colorObj.b}, ${bgAlpha}) 0%, rgba(14, 20, 36, 0.95) 100%)`;
-                block.style.border = `1px solid rgba(${colorObj.r}, ${colorObj.g}, ${colorObj.b}, ${Math.max(0.35, normalizedIntensity * 0.85)})`;
-                block.style.borderTop = `2.5px solid ${colorObj.rgb}`;
-            } else {
-                block.style.background = `rgba(14, 20, 36, 0.75)`;
-                block.style.border = `1px solid rgba(255, 255, 255, 0.08)`;
-                block.style.borderTop = `2px solid rgba(250, 204, 21, 0.25)`;
-            }
+            const labelEl = document.createElement('div');
+            labelEl.className = 'peak-day-label';
+            labelEl.textContent = dayName;
+            rowEl.appendChild(labelEl);
 
-            if (isPeak) {
-                const peakBadge = document.createElement('span');
-                peakBadge.className = 'peak-block-badge';
-                peakBadge.textContent = 'PEAK';
-                block.appendChild(peakBadge);
-            }
+            HEATMAP_HOURS.forEach(hour => {
+                const hourLabel = HOUR_LABELS[hour];
+                const rec = (dayDate ? recordMap.get(`${dayDate}_${hour}`) : null) || recordMap.get(`${dayName}_${hour}`);
 
-            const label = document.createElement('span');
-            label.className = 'heatmap-block-label';
-            label.textContent = formattedHour;
-            block.appendChild(label);
+                const cellEl = document.createElement('div');
+                cellEl.className = 'heatmap-cell';
 
-            const countDisplay = document.createElement('span');
-            countDisplay.className = 'heatmap-block-count';
-            countDisplay.textContent = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '0';
-            block.appendChild(countDisplay);
+                let val = null;
+                let isZero = false;
+                let isPeak = false;
+                let trafficStatus = 'Low';
+                let tagClass = 'tag-low';
 
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
-            const nextHour = (hourVal + 1) % 24;
-            let nextHourFormatted = '';
-            if (nextHour === 0) nextHourFormatted = '12 AM';
-            else if (nextHour < 12) nextHourFormatted = `${nextHour} AM`;
-            else if (nextHour === 12) nextHourFormatted = '12 PM';
-            else nextHourFormatted = `${nextHour - 12} PM`;
+                if (rec !== undefined && rec !== null) {
+                    // Database row exists
+                    val = Number(rec.total_vehicles);
+                    isZero = (val === 0);
+                    isPeak = (val === maxVehicles && maxVehicles > 0);
 
-            tooltip.innerHTML = `
-                <strong>${formattedHour} – ${nextHourFormatted}</strong><br/>
-                Volume: <strong>${count.toLocaleString()} vehicles</strong><br/>
-                Flow Rate: <strong>${scale} veh/min</strong><br/>
-                Status: <span style="color:${isPeak ? '#FF4D4D' : colorObj.rgb}; font-weight: 700;">${status}</span>
-            `;
-            block.appendChild(tooltip);
+                    cellEl.textContent = formatIndianNumber(val);
 
-            container.appendChild(block);
-        }
+                    const colorObj = getPeakHeatmapColorForValue(val, minVehicles, maxVehicles);
+                    if (colorObj) {
+                        cellEl.style.backgroundColor = colorObj.bg;
+                        cellEl.style.color = '#06101e';
+                    }
+
+                    if (isPeak) {
+                        cellEl.classList.add('cell-peak');
+                    }
+
+                    if (isPeak) {
+                        trafficStatus = 'Peak';
+                        tagClass = 'tag-peak';
+                    } else if (isZero) {
+                        trafficStatus = 'Low';
+                        tagClass = 'tag-low';
+                    } else {
+                        const ratio = maxVehicles > minVehicles ? (val - minVehicles) / (maxVehicles - minVehicles) : 0.5;
+                        if (ratio >= 0.75) {
+                            trafficStatus = 'High';
+                            tagClass = 'tag-high';
+                        } else if (ratio >= 0.40) {
+                            trafficStatus = 'Moderate';
+                            tagClass = 'tag-moderate';
+                        } else {
+                            trafficStatus = 'Low';
+                            tagClass = 'tag-low';
+                        }
+                    }
+                } else {
+                    // No database row exists
+                    cellEl.textContent = '—';
+                    cellEl.classList.add('cell-empty');
+                }
+
+                // Attach Floating Tooltip Event Listeners
+                cellEl.addEventListener('mouseenter', () => {
+                    if (!floatingTooltip) return;
+                    let html = '';
+                    if (rec !== undefined && rec !== null) {
+                        html = `
+                            <div class="tooltip-header">${dayName}</div>
+                            <div class="tooltip-date">${formattedDateFriendly || dayDate}</div>
+                            <div class="tooltip-divider"></div>
+                            <div class="tooltip-metric"><span>Hour:</span> <strong>${hourLabel}</strong></div>
+                            <div class="tooltip-metric"><span>Total Vehicles:</span> <strong>${formatIndianNumber(val)}</strong></div>
+                            <div class="tooltip-metric"><span>Traffic:</span> <span class="tooltip-traffic-tag ${tagClass}">${trafficStatus}</span></div>
+                        `;
+                    } else {
+                        html = `
+                            <div class="tooltip-header">${dayName}</div>
+                            <div class="tooltip-date">${formattedDateFriendly || dayDate}</div>
+                            <div class="tooltip-divider"></div>
+                            <div class="tooltip-metric"><span>Hour:</span> <strong>${hourLabel}</strong></div>
+                            <div class="tooltip-nodata-msg">No traffic record available</div>
+                        `;
+                    }
+                    floatingTooltip.innerHTML = html;
+                    floatingTooltip.style.display = 'block';
+
+                    const cellRect = cellEl.getBoundingClientRect();
+                    const containerRect = (elements.peakHeatmapGrid || container).parentElement.parentElement.getBoundingClientRect();
+                    const left = cellRect.left - containerRect.left + (cellRect.width / 2);
+                    const top = cellRect.top - containerRect.top;
+
+                    floatingTooltip.style.left = `${left}px`;
+                    floatingTooltip.style.top = `${top}px`;
+                });
+
+                cellEl.addEventListener('mouseleave', () => {
+                    if (floatingTooltip) {
+                        floatingTooltip.style.display = 'none';
+                    }
+                });
+
+                rowEl.appendChild(cellEl);
+            });
+
+            container.appendChild(rowEl);
+        });
     }
 
     // --- Weekly Peak Traffic Intelligence Fetcher & Bar Chart ---
@@ -2072,6 +2260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList);
                     fetchWeeklyPeakTraffic(cleanCode);
+                    fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
 
                     // Offline detection: if last_updated is older than 180s and is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
@@ -2099,6 +2288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // STRICT NO-DATA RULE: Billboard has no record for this date -> Apply zero state
                     applyZeroState(cleanCode);
                     fetchWeeklyPeakTraffic(cleanCode);
+                    fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
                     setStatus('connected', true, false);
                     if (elements.lastUpdatedTime) {
                         elements.lastUpdatedTime.textContent = formatLastUpdated(new Date());
@@ -2134,6 +2324,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateUIElements();
         updateValueMixUI(0, 0, 0);
+        fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
 
         // Reset KPI trend badges to neutral '--'
         updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', 0, 0);
@@ -2288,12 +2479,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.spawnChance = totalVehicles > 0 ? 0.035 : 0;
 
         updateUIElements();
-
-        if (hourlyDataList && hourlyDataList.length > 0) {
-            renderHeatTimeline(hourlyDataList);
-        } else if (totalVehicles === 0) {
-            renderHeatTimeline([]);
-        }
+        fetchAndRenderPeakTrafficAnalysis(currentTarget, selectedDate);
 
         // Update comparison badges against yesterday
         updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', totalVehicles, yesterdayData?.total_vehicles);
@@ -2523,7 +2709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initValueMixChart();
     initDwellAreaChart();
     initTrafficTrendChart();
-    renderHeatTimeline();
+    fetchAndRenderPeakTrafficAnalysis(activeBillboardCode, selectedDate);
     updateUIElements();
     initCctvSimulation();
     populateCameraDropdown();

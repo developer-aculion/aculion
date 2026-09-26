@@ -419,31 +419,35 @@
 
                 <!-- Right Column: Peak Traffic Hour & Live Vehicle Classification -->
                 <div class="analytics-col-right">
-                    <!-- Peak Traffic Hour -->
+                    <!-- Peak Traffic Analysis (7x11 Heatmap) -->
                     <div class="glass-panel analytics-card" id="peak-traffic-hour-card">
                         <div class="card-header">
                             <div class="header-info">
-                                <h2>Peak Traffic Hour</h2>
-                                <p class="card-subtitle">Highest recorded traffic load by hour</p>
+                                <h2>Peak Traffic Analysis</h2>
+                                <p class="card-subtitle">Vehicle volume by day and hour</p>
                             </div>
                             <div class="peak-badge-header" id="peakHeaderBadge">
                                 <span class="peak-badge-pulse-dot"></span>
                                 <span id="peakHeaderBadgeText">Peak: —</span>
                             </div>
                         </div>
-                        <div class="heatmap-outer-wrapper">
-                            <div class="heatmap-timeline" id="peakTrafficTimeline">
-                                <!-- Generated Dynamically -->
-                            </div>
-                            <div class="heatmap-legend">
-                                <div class="heatmap-legend-item">
-                                    <span class="legend-dot-indicator dot-yellow"></span>
-                                    <span>Lowest Traffic</span>
+                        <div class="peak-heatmap-container" id="peakHeatmapContainer">
+                            <div class="peak-heatmap-floating-tooltip" id="peakHeatmapTooltip"></div>
+                            <div class="peak-heatmap-scroll-wrapper">
+                                <div class="peak-heatmap-table" id="peakHeatmapGrid">
+                                    <!-- Dynamic 7 Rows x 11 Columns Heatmap Rendered by app.js -->
                                 </div>
-                                <div class="legend-bar-gradient"></div>
-                                <div class="heatmap-legend-item">
-                                    <span class="legend-dot-indicator dot-red"></span>
-                                    <span>Peak Traffic</span>
+                            </div>
+                            <div class="peak-heatmap-legend">
+                                <div class="legend-scale-wrapper">
+                                    <span class="legend-scale-label">Low Traffic</span>
+                                    <div class="legend-gradient-bar"></div>
+                                    <span class="legend-scale-label">High Traffic</span>
+                                </div>
+                                <div class="legend-nodata-badge">
+                                    <span class="nodata-dash">—</span>
+                                    <span class="nodata-label">= No data</span>
+                                    <span class="nodata-note">(Not 0)</span>
                                 </div>
                             </div>
                         </div>
