@@ -146,10 +146,10 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
       {/* ── TOP ROW KPI CARDS (7 CARDS) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
         
-        {/* Card 1: Estimated Reach */}
+        {/* Card 1: Potential Exposure */}
         <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Est. Reach</span>
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Potential Exposure</span>
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
               <i className="fa-solid fa-users" />
             </div>
@@ -166,10 +166,10 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
           </div>
         </div>
 
-        {/* Card 2: Total Vehicles */}
+        {/* Card 2: Observed Traffic */}
         <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-lg hover:border-blue-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Total Vehicles</span>
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-tight">Observed Traffic</span>
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
               <i className="fa-solid fa-car" />
             </div>
@@ -178,7 +178,7 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
             <span className="text-xl font-black text-white font-mono">
               {trafficOverview?.total_vehicles ? Number(trafficOverview.total_vehicles).toLocaleString('en-IN') : '0'}
             </span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Vehicles crossed</div>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Traffic observed</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
               <i className="fa-solid fa-caret-up" />
               <span>Sensor verified</span>

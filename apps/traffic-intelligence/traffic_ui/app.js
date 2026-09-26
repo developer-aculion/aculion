@@ -174,8 +174,24 @@ document.addEventListener('DOMContentLoaded', () => {
         cctvFps: document.getElementById('cctvFps'),
         cctvConfidence: document.getElementById('cctvConfidence'),
 
-        // Heatmap
-        densityHeatmap: document.getElementById('densityHeatmap'),
+        // Peak Traffic Hour Elements
+        peakTrafficTimeline: document.getElementById('peakTrafficTimeline'),
+        peakHeaderBadge: document.getElementById('peakHeaderBadge'),
+        peakHeaderBadgeText: document.getElementById('peakHeaderBadgeText'),
+
+        // Vehicle Value Mix Elements
+        valueMixChart: document.getElementById('vehicleValueMixChart'),
+        mixCountEconomy: document.getElementById('mix-count-economy'),
+        mixPctEconomy: document.getElementById('mix-pct-economy'),
+        mixCountPremium: document.getElementById('mix-count-premium'),
+        mixPctPremium: document.getElementById('mix-pct-premium'),
+        mixCountLuxury: document.getElementById('mix-count-luxury'),
+        mixPctLuxury: document.getElementById('mix-pct-luxury'),
+        mixPremiumPercentageDisplay: document.getElementById('mix-premium-percentage-display'),
+        valueMixSummaryText: document.getElementById('value-mix-summary-text'),
+
+        // Heatmap fallback element
+        densityHeatmap: document.getElementById('densityHeatmap') || document.getElementById('peakTrafficTimeline'),
 
         // Canvas
         canvas: document.getElementById('cctvCanvas')
@@ -562,14 +578,32 @@ document.addEventListener('DOMContentLoaded', () => {
         recSmartAction.textContent = `Increase brand campaigns from 6 PM to 8 PM to maximize visibility and audience engagement based on current traffic patterns and dwell time analytics (${dwellAvg}s).`;
     }
 
-    // --- Heat Timeline Generation ---
-    function renderHeatTimeline(hourlyRecords = null, peakHourVal = null) {
-        if (!elements.densityHeatmap) return;
-        elements.densityHeatmap.innerHTML = '';
+    // --- Peak Traffic Hour Heatmap Generation ---
+    function getPeakHeatmapColor(t) {
+        // Interpolate: Yellow (250, 204, 21) -> Orange (249, 115, 22) -> Red (239, 68, 68)
+        let r, g, b;
+        if (t <= 0.5) {
+            const k = t / 0.5; // 0..1
+            r = Math.round(250 + k * (249 - 250));
+            g = Math.round(204 + k * (115 - 204));
+            b = Math.round(21 + k * (22 - 21));
+        } else {
+            const k = (t - 0.5) / 0.5; // 0..1
+            r = Math.round(249 + k * (239 - 249));
+            g = Math.round(115 + k * (68 - 115));
+            b = Math.round(22 + k * (68 - 22));
+        }
+        return { r, g, b, rgb: `rgb(${r}, ${g}, ${b})` };
+    }
 
-        const totalSlots = 17; // 6 AM to 10 PM
+    function renderHeatTimeline(hourlyRecords = null, peakHourVal = null) {
+        const container = elements.peakTrafficTimeline || elements.densityHeatmap;
+        if (!container) return;
+        container.innerHTML = '';
+
         const recordsMap = {};
         let maxHourlyVehicles = 0;
+        let bestHourNum = null;
 
         if (Array.isArray(hourlyRecords) && hourlyRecords.length > 0) {
             hourlyRecords.forEach(r => {
@@ -578,88 +612,129 @@ document.addEventListener('DOMContentLoaded', () => {
                 recordsMap[h] = r;
                 if (count > maxHourlyVehicles) {
                     maxHourlyVehicles = count;
+                    bestHourNum = h;
                 }
             });
         }
 
-        for (let i = 0; i < totalSlots; i++) {
-            const hourVal = 6 + i;
+        // Determine effective peak hour
+        let targetPeakHour = null;
+        if (peakHourVal !== null && peakHourVal !== undefined && peakHourVal !== '—' && peakHourVal !== 'N/A') {
+            if (typeof peakHourVal === 'number') {
+                targetPeakHour = peakHourVal;
+            } else if (typeof peakHourVal === 'string') {
+                const match = peakHourVal.match(/^(\d+)/);
+                if (match) targetPeakHour = parseInt(match[1], 10);
+            }
+        }
+        if (targetPeakHour === null && bestHourNum !== null && maxHourlyVehicles > 0) {
+            targetPeakHour = bestHourNum;
+        }
+
+        // Update card header peak badge
+        if (elements.peakHeaderBadgeText) {
+            if (targetPeakHour !== null && maxHourlyVehicles > 0) {
+                let peakLabel = '';
+                if (targetPeakHour === 0) peakLabel = '12 AM';
+                else if (targetPeakHour < 12) peakLabel = `${targetPeakHour} AM`;
+                else if (targetPeakHour === 12) peakLabel = '12 PM';
+                else peakLabel = `${targetPeakHour - 12} PM`;
+                elements.peakHeaderBadgeText.textContent = `Peak: ${peakLabel}`;
+            } else {
+                elements.peakHeaderBadgeText.textContent = 'Peak: —';
+            }
+        }
+
+        // Render full 24 hours (0 to 23)
+        for (let hourVal = 0; hourVal < 24; hourVal++) {
             let formattedHour = '';
-            if (hourVal < 12) formattedHour = `${hourVal} AM`;
+            if (hourVal === 0) formattedHour = `12 AM`;
+            else if (hourVal < 12) formattedHour = `${hourVal} AM`;
             else if (hourVal === 12) formattedHour = `12 PM`;
             else formattedHour = `${hourVal - 12} PM`;
 
-            let densityMult = 0.25;
-            let status = 'Low Density';
+            let count = 0;
             let scale = 0;
-
+            let status = 'Low Traffic';
             const rec = recordsMap[hourVal];
-            if (rec && maxHourlyVehicles > 0) {
-                const count = Number(rec.total_vehicles) || 0;
-                densityMult = Math.min(1.0, Math.max(0.1, count / maxHourlyVehicles));
-                scale = Number(rec.flow_rate) || Math.round(count / 60);
 
-                if (count === maxHourlyVehicles || (peakHourVal !== null && hourVal === peakHourVal)) {
-                    densityMult = 1.0;
-                    status = 'Peak Intensity';
-                } else if (densityMult >= 0.75) {
-                    status = 'High Density';
-                } else if (densityMult >= 0.45) {
-                    status = 'Moderate Traffic';
-                } else {
-                    status = 'Low Flow';
-                }
-            } else if (state.stats.totalVehicles === 0) {
-                densityMult = 0.05;
-                status = 'Idle Sensor';
-                scale = 0;
+            if (rec) {
+                count = Number(rec.total_vehicles) || 0;
+                scale = Number(rec.flow_rate) || Math.round(count / 60);
+            }
+
+            const isPeak = (count > 0 && (count === maxHourlyVehicles || (targetPeakHour !== null && hourVal === targetPeakHour)));
+            let normalizedIntensity = 0;
+            if (maxHourlyVehicles > 0) {
+                normalizedIntensity = Math.min(1.0, Math.max(0, count / maxHourlyVehicles));
+            }
+
+            if (isPeak) {
+                status = 'Peak Traffic Hour';
+            } else if (normalizedIntensity >= 0.75) {
+                status = 'Heavy Traffic Flow';
+            } else if (normalizedIntensity >= 0.45) {
+                status = 'Moderate Traffic Flow';
+            } else if (count > 0) {
+                status = 'Light Traffic Flow';
             } else {
-                if (hourVal >= 8 && hourVal <= 9) {
-                    densityMult = 0.85;
-                    status = 'High Density';
-                } else if (hourVal >= 17 && hourVal <= 19) {
-                    densityMult = 0.98;
-                    status = 'Peak Intensity';
-                } else if (hourVal >= 10 && hourVal <= 16) {
-                    densityMult = 0.55;
-                    status = 'Moderate Traffic';
-                } else if (hourVal >= 20) {
-                    densityMult = 0.40;
-                    status = 'Declining Flow';
-                }
-                scale = Math.round(densityMult * 120 + Math.random() * 20);
+                status = 'Sensor Idle / No Traffic';
             }
 
             const block = document.createElement('div');
             block.className = 'heatmap-block';
-            const bgAlpha = Math.max(0.18, densityMult * 0.75);
-            block.style.background = `linear-gradient(180deg, rgba(30, 136, 255, ${bgAlpha}) 0%, rgba(14, 20, 36, 0.95) 100%)`;
-            block.style.border = `1px solid ${
-                densityMult >= 0.9 ? 'rgba(0, 240, 255, 0.6)' :
-                densityMult >= 0.8 ? 'rgba(30, 136, 255, 0.5)' :
-                'rgba(255, 255, 255, 0.12)'
-            }`;
-            block.style.borderTop = `2.5px solid ${
-                densityMult >= 0.9 ? '#00f0ff' :
-                densityMult >= 0.8 ? '#1e88ff' :
-                'rgba(0, 240, 255, 0.4)'
-            }`;
+            if (isPeak) {
+                block.classList.add('is-peak-hour');
+            }
+
+            const colorObj = getPeakHeatmapColor(normalizedIntensity);
+
+            if (count > 0) {
+                const bgAlpha = Math.max(0.20, 0.20 + normalizedIntensity * 0.55);
+                block.style.background = `linear-gradient(180deg, rgba(${colorObj.r}, ${colorObj.g}, ${colorObj.b}, ${bgAlpha}) 0%, rgba(14, 20, 36, 0.95) 100%)`;
+                block.style.border = `1px solid rgba(${colorObj.r}, ${colorObj.g}, ${colorObj.b}, ${Math.max(0.35, normalizedIntensity * 0.85)})`;
+                block.style.borderTop = `2.5px solid ${colorObj.rgb}`;
+            } else {
+                block.style.background = `rgba(14, 20, 36, 0.75)`;
+                block.style.border = `1px solid rgba(255, 255, 255, 0.08)`;
+                block.style.borderTop = `2px solid rgba(250, 204, 21, 0.25)`;
+            }
+
+            if (isPeak) {
+                const peakBadge = document.createElement('span');
+                peakBadge.className = 'peak-block-badge';
+                peakBadge.textContent = 'PEAK';
+                block.appendChild(peakBadge);
+            }
 
             const label = document.createElement('span');
             label.className = 'heatmap-block-label';
             label.textContent = formattedHour;
             block.appendChild(label);
 
+            const countDisplay = document.createElement('span');
+            countDisplay.className = 'heatmap-block-count';
+            countDisplay.textContent = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '0';
+            block.appendChild(countDisplay);
+
             const tooltip = document.createElement('div');
             tooltip.className = 'tooltip';
+            const nextHour = (hourVal + 1) % 24;
+            let nextHourFormatted = '';
+            if (nextHour === 0) nextHourFormatted = '12 AM';
+            else if (nextHour < 12) nextHourFormatted = `${nextHour} AM`;
+            else if (nextHour === 12) nextHourFormatted = '12 PM';
+            else nextHourFormatted = `${nextHour - 12} PM`;
+
             tooltip.innerHTML = `
-                <strong>${formattedHour}</strong><br/>
-                Flow: ${scale} veh/min<br/>
-                Status: <span style="color:var(--color-cyan)">${status}</span>
+                <strong>${formattedHour} – ${nextHourFormatted}</strong><br/>
+                Volume: <strong>${count.toLocaleString()} vehicles</strong><br/>
+                Flow Rate: <strong>${scale} veh/min</strong><br/>
+                Status: <span style="color:${isPeak ? '#FF4D4D' : colorObj.rgb}; font-weight: 700;">${status}</span>
             `;
             block.appendChild(tooltip);
 
-            elements.densityHeatmap.appendChild(block);
+            container.appendChild(block);
         }
     }
 
@@ -945,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return `
                         <div style="background: rgba(11, 18, 32, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 8px; padding: 8px 10px; font-family: Outfit, sans-serif; font-size: 11px;">
                             <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">${d.dayName} (${d.date}) ${d.isWeeklyPeak ? '<span style="color:#00f0ff; font-size:9px;">[WEEKLY PEAK]</span>' : ''}</div>
-                            <div style="color: #94a3b8;">Total Vehicles: <strong style="color:#fff;">${d.totalVehicles.toLocaleString('en-IN')}</strong></div>
+                            <div style="color: #94a3b8;">Observed Traffic: <strong style="color:#fff;">${d.totalVehicles.toLocaleString('en-IN')}</strong></div>
                             <div style="color: #94a3b8;">Peak Window: <strong style="color:#00f0ff;">${d.peakHourStr}</strong></div>
                             <div style="color: #94a3b8;">Peak Volume: <strong style="color:#10b981;">${d.peakCount.toLocaleString('en-IN')} veh</strong></div>
                         </div>
@@ -1083,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             },
                             total: {
                                 show: true,
-                                label: 'Total Vehicles',
+                                label: 'Observed Traffic',
                                 color: '#94a3b8',
                                 formatter: function () {
                                     return formatIndianNumber(state.stats.totalVehicles || 0);
@@ -1125,6 +1200,147 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '';
             state.charts.donut = new ApexCharts(container, options);
             state.charts.donut.render();
+        }
+    }
+
+    // --- Vehicle Value Mix (Semi-Circle Donut Chart) ---
+    function initValueMixChart() {
+        const classes = state.stats.classes;
+        const economyCount = classes.economy ? classes.economy.count : 0;
+        const premiumCount = classes.premium ? classes.premium.count : 0;
+        const luxuryCount = classes.luxury ? classes.luxury.count : 0;
+
+        const options = {
+            series: [economyCount, premiumCount, luxuryCount],
+            labels: ['Economy', 'Premium', 'Luxury'],
+            chart: {
+                type: 'donut',
+                width: '100%',
+                height: 220,
+                background: 'transparent',
+                foreColor: '#94a3b8',
+                sparkline: { enabled: false },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 700,
+                    dynamicAnimation: { speed: 450 }
+                }
+            },
+            theme: { mode: 'dark' },
+            colors: [
+                '#8B5CF6', // Economy - Purple
+                '#F59E0B', // Premium - Amber/Orange
+                '#10B981'  // Luxury - Emerald Green
+            ],
+            stroke: {
+                show: true,
+                colors: ['rgba(22, 28, 45, 0.95)'],
+                width: 3
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            plotOptions: {
+                pie: {
+                    startAngle: -90,
+                    endAngle: 90,
+                    offsetY: 0,
+                    customScale: 0.95,
+                    donut: {
+                        size: '72%',
+                        labels: {
+                            show: true,
+                            name: {
+                                show: true,
+                                fontSize: '12px',
+                                fontFamily: 'Outfit, sans-serif',
+                                color: '#94a3b8',
+                                offsetY: -22
+                            },
+                            value: {
+                                show: true,
+                                fontSize: '22px',
+                                fontFamily: 'Outfit, sans-serif',
+                                color: '#FFFFFF',
+                                fontWeight: 700,
+                                offsetY: -10,
+                                formatter: function (val) {
+                                    return Number(val).toLocaleString();
+                                }
+                            },
+                            total: {
+                                show: true,
+                                label: 'Observed Traffic',
+                                color: '#94a3b8',
+                                fontSize: '12px',
+                                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                                formatter: function (w) {
+                                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                    return formatIndianNumber(total);
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            grid: {
+                padding: {
+                    bottom: -55,
+                    top: -15
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    formatter: function (val, { seriesIndex, w }) {
+                        const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                        return `${Number(val).toLocaleString()} (${pct}%)`;
+                    }
+                }
+            },
+            responsive: [
+                {
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 190 },
+                        grid: { padding: { bottom: -45, top: -10 } }
+                    }
+                }
+            ]
+        };
+
+        const container = document.querySelector("#vehicleValueMixChart");
+        if (container) {
+            container.innerHTML = '';
+            state.charts.valueMix = new ApexCharts(container, options);
+            state.charts.valueMix.render();
+        }
+
+        updateValueMixUI(economyCount, premiumCount, luxuryCount);
+    }
+
+    function updateValueMixUI(economyCount, premiumCount, luxuryCount) {
+        const total = economyCount + premiumCount + luxuryCount;
+        const econPct = total > 0 ? Math.round((economyCount / total) * 100) : 0;
+        const premPct = total > 0 ? Math.round((premiumCount / total) * 100) : 0;
+        const luxPct = total > 0 ? Math.round((luxuryCount / total) * 100) : 0;
+
+        if (elements.mixCountEconomy) elements.mixCountEconomy.textContent = economyCount.toLocaleString();
+        if (elements.mixPctEconomy) elements.mixPctEconomy.textContent = `(${econPct}%)`;
+
+        if (elements.mixCountPremium) elements.mixCountPremium.textContent = premiumCount.toLocaleString();
+        if (elements.mixPctPremium) elements.mixPctPremium.textContent = `(${premPct}%)`;
+
+        if (elements.mixCountLuxury) elements.mixCountLuxury.textContent = luxuryCount.toLocaleString();
+        if (elements.mixPctLuxury) elements.mixPctLuxury.textContent = `(${luxPct}%)`;
+
+        if (elements.valueMixSummaryText) {
+            elements.valueMixSummaryText.innerHTML = `<strong>${premPct}%</strong> of vehicles are Premium out of 100.`;
+        }
+
+        if (state.charts.valueMix) {
+            state.charts.valueMix.updateSeries([economyCount, premiumCount, luxuryCount], false);
         }
     }
 
@@ -1917,6 +2133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         vehicles = [];
 
         updateUIElements();
+        updateValueMixUI(0, 0, 0);
 
         // Reset KPI trend badges to neutral '--'
         updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', 0, 0);
@@ -1930,7 +2147,10 @@ document.addEventListener('DOMContentLoaded', () => {
             lastRenderedStateKey = stateKey;
 
             if (state.charts.donut) {
-                state.charts.donut.updateSeries([0, 0, 0, 0, 0, 0], false);
+                state.charts.donut.updateSeries([0, 0, 0, 0, 0], false);
+            }
+            if (state.charts.valueMix) {
+                state.charts.valueMix.updateSeries([0, 0, 0], false);
             }
 
             if (state.charts.trendLine) {
@@ -2014,6 +2234,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elements.bars && elements.bars[key]) elements.bars[key].style.width = `${pct}%`;
         });
 
+        updateValueMixUI(economyCount, premiumCount, luxuryCount);
+
         if (state.stats.dwellStats) {
             state.stats.dwellStats.avg = avgDwell;
             state.stats.dwellStats.max = Number(data.max_exposure_time) || 0.0;
@@ -2094,6 +2316,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.charts.donut.updateSeries([
                     state.stats.classes.bikes.count,
                     state.stats.classes.commercial.count,
+                    state.stats.classes.economy.count,
+                    state.stats.classes.premium.count,
+                    state.stats.classes.luxury.count
+                ], false);
+            }
+
+            // Refresh Value Mix Semi-Donut
+            if (state.charts.valueMix) {
+                state.charts.valueMix.updateSeries([
                     state.stats.classes.economy.count,
                     state.stats.classes.premium.count,
                     state.stats.classes.luxury.count
@@ -2289,6 +2520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCustomDropdowns();
     initSparklines();
     initDonutChart();
+    initValueMixChart();
     initDwellAreaChart();
     initTrafficTrendChart();
     renderHeatTimeline();

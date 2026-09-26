@@ -189,7 +189,7 @@
                 <!-- KPI 1 -->
                 <div class="kpi-card glass-panel" id="kpi-vehicles">
                     <div class="kpi-header">
-                        <span class="kpi-title">Total Vehicles Crossed</span>
+                        <span class="kpi-title">Observed Traffic</span>
                         <div class="kpi-icon-wrapper">
                             <i data-lucide="car"></i>
                         </div>
@@ -247,7 +247,7 @@
                 <!-- KPI 4 -->
                 <div class="kpi-card glass-panel" id="kpi-reach">
                     <div class="kpi-header">
-                        <span class="kpi-title">Estimated Reach</span>
+                        <span class="kpi-title">Potential Exposure</span>
                         <div class="kpi-icon-wrapper">
                             <i data-lucide="users"></i>
                         </div>
@@ -373,27 +373,78 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Right Column: Traffic Density Heat Timeline & Live Vehicle Classification -->
-                <div class="analytics-col-right">
-                    <!-- Traffic Density Heat Timeline -->
-                    <div class="glass-panel analytics-card" id="density-heatmap-card">
+                    <!-- Vehicle Value Mix (Semi-Circle Donut Chart) -->
+                    <div class="glass-panel analytics-card" id="value-mix-card">
                         <div class="card-header">
                             <div class="header-info">
-                                <h2>Traffic Density Heat Timeline</h2>
-                                <p class="card-subtitle">Hourly average traffic intensity and peak load distributions
-                                </p>
+                                <h2>Vehicle Value Mix</h2>
+                                <p class="card-subtitle">High-value vehicle segment composition</p>
+                            </div>
+                        </div>
+                        <div class="semi-donut-chart-container">
+                            <div id="vehicleValueMixChart"></div>
+                        </div>
+                        <!-- Semi-Donut Dynamic Legend Strip -->
+                        <div class="value-mix-legend" id="valueMixLegend">
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #8B5CF6;"></span>
+                                <span class="mix-legend-label">Economy</span>
+                                <span class="mix-legend-count" id="mix-count-economy">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-economy">(0%)</span>
+                            </div>
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #F59E0B;"></span>
+                                <span class="mix-legend-label">Premium</span>
+                                <span class="mix-legend-count" id="mix-count-premium">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-premium">(0%)</span>
+                            </div>
+                            <div class="mix-legend-item">
+                                <span class="legend-color-dot" style="background-color: #10B981;"></span>
+                                <span class="mix-legend-label">Luxury</span>
+                                <span class="mix-legend-count" id="mix-count-luxury">0</span>
+                                <span class="mix-legend-pct" id="mix-pct-luxury">(0%)</span>
+                            </div>
+                        </div>
+                        <!-- Dynamic Summary Sentence -->
+                        <div class="value-mix-summary-footer">
+                            <div class="summary-sentence-box">
+                                <span class="summary-sentence-text" id="value-mix-summary-text">
+                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Peak Traffic Hour & Live Vehicle Classification -->
+                <div class="analytics-col-right">
+                    <!-- Peak Traffic Hour -->
+                    <div class="glass-panel analytics-card" id="peak-traffic-hour-card">
+                        <div class="card-header">
+                            <div class="header-info">
+                                <h2>Peak Traffic Hour</h2>
+                                <p class="card-subtitle">Highest recorded traffic load by hour</p>
+                            </div>
+                            <div class="peak-badge-header" id="peakHeaderBadge">
+                                <span class="peak-badge-pulse-dot"></span>
+                                <span id="peakHeaderBadgeText">Peak: —</span>
                             </div>
                         </div>
                         <div class="heatmap-outer-wrapper">
-                            <div class="heatmap-timeline" id="densityHeatmap">
+                            <div class="heatmap-timeline" id="peakTrafficTimeline">
                                 <!-- Generated Dynamically -->
                             </div>
                             <div class="heatmap-legend">
-                                <span>Low Density</span>
-                                <div class="legend-bar"></div>
-                                <span>Peak Intensity</span>
+                                <div class="heatmap-legend-item">
+                                    <span class="legend-dot-indicator dot-yellow"></span>
+                                    <span>Lowest Traffic</span>
+                                </div>
+                                <div class="legend-bar-gradient"></div>
+                                <div class="heatmap-legend-item">
+                                    <span class="legend-dot-indicator dot-red"></span>
+                                    <span>Peak Traffic</span>
+                                </div>
                             </div>
                         </div>
                     </div>

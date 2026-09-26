@@ -218,7 +218,7 @@ export default function WeeklyPeakTrafficHourCard({
               {viewMode === "chart" ? "7-Day Traffic Flow & Peak Comparison" : "7-Day Peak Hour Breakdown"}
             </span>
             <span className="text-[11px] font-semibold text-slate-400">
-              Weekly Total: <strong className="font-mono text-white">{weeklyData.weeklyTotalVehicles.toLocaleString("en-IN")}</strong> veh
+              Weekly Observed Traffic: <strong className="font-mono text-white">{weeklyData.weeklyTotalVehicles.toLocaleString("en-IN")}</strong> veh
             </span>
           </div>
 
@@ -258,7 +258,7 @@ export default function WeeklyPeakTrafficHourCard({
                             </div>
                             <div className="flex flex-col gap-1 text-[11px]">
                               <div className="flex justify-between gap-4">
-                                <span className="text-slate-400">Total Day Vehicles:</span>
+                                <span className="text-slate-400">Observed Day Traffic:</span>
                                 <span className="font-mono font-bold text-white">{d.totalVehicles.toLocaleString("en-IN")}</span>
                               </div>
                               <div className="flex justify-between gap-4">
