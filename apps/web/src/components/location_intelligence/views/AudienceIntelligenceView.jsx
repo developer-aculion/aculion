@@ -50,7 +50,7 @@ const getHeatmapBg = (val) => {
   return 'bg-[#00f0ff] border-[#60a5fa] text-[#050816] font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]';
 };
 
-export default function AudienceIntelligenceView({ selectedBillboard }) {
+export default function AudienceIntelligenceView({ selectedBillboard, showIcon = false }) {
   const [timeFilter, setTimeFilter] = useState('Today');
   const [trendRange, setTrendRange] = useState('7D');
   const [showAllSegments, setShowAllSegments] = useState(false);
@@ -226,7 +226,7 @@ export default function AudienceIntelligenceView({ selectedBillboard }) {
             </div>
             {peakTrafficData.peakCount > 0 && (
               <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-                <i className="fa-solid fa-arrow-trend-up" />
+                {showIcon && <i className="fa-solid fa-arrow-trend-up" />}
                 <span>{peakTrafficData.peakCount.toLocaleString('en-IN')} max hourly veh</span>
               </div>
             )}

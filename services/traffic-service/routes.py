@@ -1,7 +1,14 @@
+import os
 import asyncio
 import json
 import logging
+import socket
+import time
+import datetime
+from urllib.parse import urlparse
 from typing import List, Optional
+import cv2
+import numpy as np
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from realtime_manager import manager, MOCK_CAMERAS, generate_mock_record
@@ -76,3 +83,32 @@ async def traffic_stream(request: Request, camera_code: Optional[str] = Query(No
             manager.unregister(queue)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+from camera_streamer import stream_manager, generate_mjpeg_stream, mask_rtsp_url
+
+PRIVATE_RTSP_URL = os.getenv("RTSP_CAMERA_URL", "rtsp://admin:123456@192.168.1.62:554/h264/ch1/main/av_stream")
+
+@router.get("/traffic/camera/status")
+def get_camera_status(url: Optional[str] = Query(None, description="Camera RTSP URL to check")):
+    """
+    Returns real-time connectivity status, streaming metrics, host reachability,
+    and discovered local cameras for the specified RTSP feed.
+    """
+    target_url = url or PRIVATE_RTSP_URL
+    return stream_manager.get_status(target_url)
+
+@router.get("/traffic/camera/live-stream")
+def get_camera_stream(url: Optional[str] = Query(None, include_in_schema=False)):
+    """
+    Connects to the RTSP camera feed via OpenCV and streams live MJPEG multipart frames for browser display.
+    Keeps camera IP and credentials completely private on the backend.
+    Seamlessly streams live surveillance video with live timestamps and auto-reconnects to the physical camera.
+    """
+    target_url = url or PRIVATE_RTSP_URL
+    return StreamingResponse(
+        generate_mjpeg_stream(target_url),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+
+

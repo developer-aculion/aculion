@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import LocationIntelligence from '../pages/LocationIntelligence';
 import FrontCameraView from './FrontCameraView';
+import LiveStreamView from './LiveStreamView';
 import lionLogo from '../assets/aculion_lion_logo.png';
 import transparentLogo from '../assets/aculion_logo_transparent.png';
 import { supabase } from '../services/supabase';
@@ -137,9 +138,9 @@ export default function LiveDashboard({
   // Derive initial active nav from URL path segment.
   // Works for both old /dashboard/<view> and new /<slug>/<bbCode>/dashboard/<view> patterns.
   const getNavFromPath = () => {
-    const parts = window.location.pathname.split('/');
+    const parts = window.location.pathname.split('/').filter(Boolean);
     const dashIdx = parts.indexOf('dashboard');
-    const seg = dashIdx >= 0 ? (parts[dashIdx + 1] || '') : '';
+    const seg = dashIdx >= 0 ? (parts[dashIdx + 1] || '') : (parts[parts.length - 1] || '');
     const map = {
       'front-camera':          'front_camera',
       'audience-intelligence': 'traffic',
@@ -158,9 +159,15 @@ export default function LiveDashboard({
   const [activeNav, setActiveNav] = useState(getNavFromPath);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [mainMediaView, setMainMediaView] = useState('map');
-  const [timeFilter, setTimeFilter] = useState('24H');
   const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 640 : false);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveNav(getNavFromPath());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobileScreen(window.innerWidth < 640);
@@ -195,15 +202,6 @@ export default function LiveDashboard({
   const [liveVehicles, setLiveVehicles] = useState(0);
   const [liveDwell, setLiveDwell] = useState(0);
   const [isTrafficLoading, setIsTrafficLoading] = useState(true);
-
-  // CCTV dynamic AI bounding boxes
-  const [boxes, setBoxes] = useState([
-    { id: 1, type: 'Vehicle', conf: 94, x: 22, y: 45, w: 18, h: 14, dx: 0.8, dy: 0.2 },
-    { id: 2, type: 'Vehicle', conf: 89, x: 42, y: 52, w: 16, h: 12, dx: -0.6, dy: -0.15 },
-    { id: 3, type: 'Person', conf: 91, x: 62, y: 28, w: 5, h: 12, dx: 0.1, dy: 0.15 },
-    { id: 4, type: 'Vehicle', conf: 95, x: 74, y: 58, w: 20, h: 16, dx: -0.9, dy: -0.3 },
-    { id: 5, type: 'Person', conf: 87, x: 12, y: 64, w: 6, h: 14, dx: -0.15, dy: 0.05 }
-  ]);
 
   // System status and alerts
   const [alerts, setAlerts] = useState([]);
@@ -433,32 +431,6 @@ export default function LiveDashboard({
   }, []);
 
 
-  // CCTV bounding boxes tracker simulation
-  useEffect(() => {
-    const trackingTimer = setInterval(() => {
-      setBoxes(prev => prev.map(box => {
-        let newX = box.x + box.dx * 1.5;
-        let newY = box.y + box.dy * 1.5;
-        // Reset box position when leaving screen bounds
-        if (newX < 5 || newX > 90 || newY < 15 || newY > 85) {
-          if (box.dx > 0) {
-            newX = 5;
-            newY = 20 + Math.random() * 50;
-          } else {
-            newX = 85;
-            newY = 20 + Math.random() * 50;
-          }
-        }
-        return {
-          ...box,
-          x: newX,
-          y: newY,
-          conf: Math.min(99, Math.max(80, box.conf + Math.floor(Math.random() * 5) - 2))
-        };
-      }));
-    }, 180);
-    return () => clearInterval(trackingTimer);
-  }, []);
 
   // Alert dismissing handler
   const dismissAlert = (id) => {
@@ -1178,43 +1150,7 @@ export default function LiveDashboard({
     return valB - valA;
   });
 
-  // Dynamic Performance Overview chart datasets based on selected time filter (1H, 6H, 12H, 24H)
-  const CHART_DATASETS = {
-    '1H': [
-      { time: '12:00', Impressions: 15000, Vehicles: 9000, Premium: 4500 },
-      { time: '12:15', Impressions: 22000, Vehicles: 14000, Premium: 6800 },
-      { time: '12:30', Impressions: 38000, Vehicles: 26000, Premium: 11000 },
-      { time: '12:45', Impressions: 45000, Vehicles: 31000, Premium: 14000 },
-      { time: '01:00', Impressions: 52000, Vehicles: 38000, Premium: 18000 }
-    ],
-    '6H': [
-      { time: '07 AM', Impressions: 35000, Vehicles: 22000, Premium: 9500 },
-      { time: '08 AM', Impressions: 120000, Vehicles: 85000, Premium: 32000 },
-      { time: '09 AM', Impressions: 185000, Vehicles: 125000, Premium: 48000 },
-      { time: '10 AM', Impressions: 160000, Vehicles: 110000, Premium: 42000 },
-      { time: '11 AM', Impressions: 140000, Vehicles: 95000, Premium: 36000 },
-      { time: '12 PM', Impressions: 110000, Vehicles: 75000, Premium: 29000 }
-    ],
-    '12H': [
-      { time: '01 AM', Impressions: 18000, Vehicles: 11000, Premium: 4000 },
-      { time: '03 AM', Impressions: 25000, Vehicles: 16000, Premium: 6000 },
-      { time: '05 AM', Impressions: 42000, Vehicles: 28000, Premium: 11000 },
-      { time: '07 AM', Impressions: 95000, Vehicles: 65000, Premium: 24000 },
-      { time: '09 AM', Impressions: 185000, Vehicles: 125000, Premium: 48000 },
-      { time: '11 AM', Impressions: 140000, Vehicles: 95000, Premium: 36000 },
-      { time: '01 PM', Impressions: 125000, Vehicles: 82000, Premium: 31000 }
-    ],
-    '24H': [
-      { time: '12 AM', Impressions: 12000, Vehicles: 8000, Premium: 4000 },
-      { time: '4 AM', Impressions: 35000, Vehicles: 22000, Premium: 10000 },
-      { time: '8 AM', Impressions: 185000, Vehicles: 120000, Premium: 45000 },
-      { time: '12 PM', Impressions: 110000, Vehicles: 75000, Premium: 30000 },
-      { time: '4 PM', Impressions: 165000, Vehicles: 115000, Premium: 55000 },
-      { time: '8 PM', Impressions: 140000, Vehicles: 95000, Premium: 40000 },
-      { time: '12 AM', Impressions: 25000, Vehicles: 15000, Premium: 8000 }
-    ]
-  };
-  const activeChartData = CHART_DATASETS[timeFilter] || CHART_DATASETS['24H'];
+
 
   const userName = user?.name || user?.fullName || 'Media Owner';
   const userEmail = user?.email || 'M0123456';
@@ -1222,13 +1158,13 @@ export default function LiveDashboard({
 
   const navItems = [
     { id: 'my_medias', icon: 'fa-solid fa-tv', label: 'My Medias' },
-    { id: 'front_camera', icon: 'fa-solid fa-video', label: 'Front Camera' },
+    { id: 'front_camera', icon: 'fa-solid fa-video', label: 'Front Camera', hidden: true }, // TEMP HIDDEN — pending completion
     { id: 'traffic', icon: 'fa-solid fa-users-viewfinder', label: 'Audience Intelligence' },
     { id: 'overview', icon: 'fa-solid fa-chart-pie', label: 'Location Overview' },
     { id: 'corridor', icon: 'fa-solid fa-route', label: 'Corridor Intelligence', badge: 'BETA' },
     { id: 'zone', icon: 'fa-solid fa-chart-simple', label: 'Zone Comparison', badge: 'BETA' },
     { id: 'historical', icon: 'fa-solid fa-timeline', label: 'Historical Trends', badge: 'BETA' },
-    { id: 'live', icon: 'fa-solid fa-circle-dot', label: 'Live View' },
+    { id: 'live', icon: 'fa-solid fa-circle-dot', label: 'Live View', hidden: true }, // TEMP HIDDEN — pending completion
     { id: 'alerts', icon: 'fa-solid fa-triangle-exclamation', label: 'Alerts' },
     { id: 'reports', icon: 'fa-solid fa-file-lines', label: 'Reports' },
     { id: 'settings', icon: 'fa-solid fa-sliders', label: 'Settings' }
@@ -1299,7 +1235,7 @@ export default function LiveDashboard({
               Core Modules
             </span>
 
-            {navItems.map((item) => {
+            {navItems.filter(item => !item.hidden).map((item) => {
               const isActive = activeNav === item.id;
               return (
                 <button
@@ -1439,463 +1375,15 @@ export default function LiveDashboard({
             )}
 
             {/* ═══════════════════════════════════════════════════
-               1. LIVE VIEW (EXACT TARGET REFERENCE DESIGN 1)
+               1. LIVE VIEW - RTSP LIVE CAMERA STREAM
             ═══════════════════════════════════════════════════ */}
             {activeNav === 'live' && (
-              <div className="flex-1 flex flex-col p-4 sm:p-5 lg:p-6 gap-4 sm:gap-6 min-w-0">
-
-                {/* ── 1. TOP KPI CARDS ROW (5 CARDS) ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                  {/* Card 1: Total Medias */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-white/50">Total Medias</span>
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-                        <i className="fa-solid fa-desktop" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-2xl font-black text-white font-mono">{totalMediasCount}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
-                        <span>--</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Total Impressions */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-white/50">Total Impressions</span>
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-                        <i className="fa-solid fa-eye" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-2xl font-black text-white font-mono">{formattedImpressionsVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
-                        <span>--</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Vehicles Detected */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-white/50">Vehicles Detected</span>
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
-                        <i className="fa-solid fa-car" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-2xl font-black text-white font-mono">{formattedVehiclesVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
-                        <span>{dbTrafficData ? '+15%' : '--'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 4: Premium & Above */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-white/50">Premium & Above</span>
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs">
-                        <i className="fa-solid fa-crown" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-2xl font-black text-white font-mono">{premiumPctVal}%</span>
-                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
-                        <span>--</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 5: Avg. Dwell Time */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-white/50">Avg. Dwell Time</span>
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
-                <i className="fa-solid fa-stopwatch" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-2xl font-black text-white font-mono">{formattedDwellVal}</span>
-                      <div className="flex items-center gap-1 text-[10px] text-white/40 font-bold mt-1">
-                        <span>{dbTrafficData ? '+6%' : '--'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── 2. MAIN MIDDLE SECTION (2 COLUMNS) ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  {/* Left Column: Media Performance Map (2 cols width) */}
-                  <div className="lg:col-span-2 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-xl min-h-[420px]">
-                    
-                    {/* Map Header & View Switcher */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-sm font-bold text-white font-heading">Media Performance Map</h3>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Live
-                        </span>
-                      </div>
-
-                      {/* View Toggle: Map vs CCTV Feed */}
-                      <div className="flex items-center bg-white/[0.04] p-1 rounded-xl border border-white/10 gap-1">
-                        <button
-                          onClick={() => setMainMediaView('map')}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            mainMediaView === 'map' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
-                          }`}
-                        >
-                          <i className="fa-solid fa-map-location-dot mr-1.5" />
-                          Map View
-                        </button>
-                        <button
-                          onClick={() => setMainMediaView('cctv')}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            mainMediaView === 'cctv' ? 'bg-blue-600 text-white shadow' : 'text-white/60 hover:!text-white'
-                          }`}
-                        >
-                          <i className="fa-solid fa-video mr-1.5" />
-                          Live CCTV Feed
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Map Workspace Container */}
-                    <div className="flex-1 min-h-[320px] bg-[#050711] rounded-xl border border-white/10 relative overflow-hidden flex flex-col">
-                      {mainMediaView === 'map' ? (
-                        <div className="w-full h-full relative">
-                          <svg className="w-full h-full" viewBox="0 0 600 310" preserveAspectRatio="xMidYMid slice">
-                            <defs>
-                              <pattern id="gridMapTarget" width="25" height="25" patternUnits="userSpaceOnUse">
-                                <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1"/>
-                              </pattern>
-                              <filter id="shadowPin" x="-20%" y="-20%" width="140%" height="140%">
-                                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.6"/>
-                              </filter>
-                            </defs>
-
-                            <rect width="600" height="310" fill="url(#gridMapTarget)" />
-
-                            {/* Bay of Bengal Ocean Coastline (Right Side) */}
-                            <path d="M 530,-10 Q 515,100 540,200 Q 560,260 575,320 L 610,320 L 610,-10 Z" fill="#040b19" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="1" />
-
-                            {/* Road lines grid simulating Chennai arterial roads */}
-                            <path d="M -20,110 L 530,115" stroke="#121b2d" strokeWidth="9" fill="none" />
-                            <path d="M -20,110 L 530,115" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-
-                            <path d="M 470,40 L 220,320" stroke="#121b2d" strokeWidth="9" fill="none" />
-                            <path d="M 470,40 L 220,320" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" fill="none" />
-
-                            <path d="M 260,-20 L 260,330" stroke="#0e1628" strokeWidth="7" fill="none" />
-                            <path d="M 440,160 L 500,330" stroke="#0e1628" strokeWidth="7" fill="none" />
-                            <path d="M 330,185 L 180,330" stroke="#0e1628" strokeWidth="7" fill="none" />
-
-                            <path d="M 120,-20 L 120,330" stroke="#0a101f" strokeWidth="4" fill="none" />
-                            <path d="M 370,-20 L 370,330" stroke="#0a101f" strokeWidth="4" fill="none" />
-                            <path d="M -20,180 L 550,180" stroke="#0a101f" strokeWidth="4" fill="none" />
-                            <path d="M -20,240 L 550,240" stroke="#0a101f" strokeWidth="4" fill="none" />
-
-                            <text x="340" y="105" fill="rgba(255,255,255,0.4)" fontSize="9" fontWeight="bold">ANNA NAGAR</text>
-                            <text x="180" y="145" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">PORUR</text>
-                            <text x="325" y="175" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">GUINDY</text>
-                            <text x="240" y="225" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">VELACHERY</text>
-                            <text x="375" y="155" fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="600">T. NAGAR</text>
-                            <text x="465" y="170" fill="rgba(255,255,255,0.3)" fontSize="7">VELACHERY</text>
-                            <text x="465" y="195" fill="rgba(255,255,255,0.3)" fontSize="7">THIRUVANMIYUR</text>
-                            <text x="465" y="225" fill="rgba(255,255,255,0.3)" fontSize="7">ADYAR</text>
-                            <text x="530" y="130" fill="rgba(255,255,255,0.35)" fontSize="13" fontWeight="bold">Chennai</text>
-
-                            {[
-                              { id: 'ACU-AN-001', x: 340, y: 110, status: 'High' },
-                              { id: 'ACU-TN-002', x: 375, y: 160, status: 'High' },
-                              { id: 'ACU-VL-003', x: 310, y: 220, status: 'Medium' },
-                              { id: 'ACU-OMR-004', x: 460, y: 190, status: 'High' },
-                              { id: 'ACU-PR-005', x: 190, y: 155, status: 'Low' },
-                              { id: 'ACU-GD-006', x: 330, y: 185, status: 'High' },
-                              { id: 'ACU-AS-007', x: 420, y: 100, status: 'High' },
-                              { id: 'ACU-TM-008', x: 480, y: 225, status: 'Medium' },
-                              { id: 'ACU-AD-009', x: 460, y: 245, status: 'High' },
-                              { id: 'ACU-SH-010', x: 490, y: 275, status: 'Medium' },
-                              { id: 'ACU-KB-011', x: 250, y: 120, status: 'High' },
-                              { id: 'ACU-ANP-012', x: 290, y: 160, status: 'Low' },
-                              { id: 'ACU-EG-013', x: 400, y: 75, status: 'High' },
-                              { id: 'ACU-CR-014', x: 440, y: 65, status: 'High' },
-                              { id: 'ACU-PG-015', x: 470, y: 210, status: 'Medium' }
-                            ].map((pin) => (
-                              <g key={pin.id} transform={`translate(${pin.x}, ${pin.y})`} className="cursor-pointer group">
-                                {pin.status === 'High' && (
-                                  <circle cx="0" cy="-14" r="8" fill="rgba(34, 197, 94, 0.25)" className="animate-ping" />
-                                )}
-                                <ellipse cx="0" cy="1" rx="4.5" ry="1.8" fill="rgba(0,0,0,0.6)" />
-                                <path
-                                  d="M 0 0 C -5 -7 -8 -13 0 -19 C 8 -13 5 -7 0 0 Z"
-                                  fill={pin.status === 'High' ? '#22c55e' : pin.status === 'Medium' ? '#f59e0b' : '#ef4444'}
-                                  stroke="#ffffff"
-                                  strokeWidth="1.3"
-                                  filter="url(#shadowPin)"
-                                  className="transition-transform duration-200 group-hover:-translate-y-1"
-                                />
-                                <circle cx="0" cy="-12" r="3" fill="#ffffff" />
-                                <circle cx="0" cy="-12" r="1.5" fill={pin.status === 'High' ? '#15803d' : pin.status === 'Medium' ? '#b45309' : '#b91c1c'} />
-                              </g>
-                            ))}
-                          </svg>
-
-                          <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
-                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm">+</button>
-                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm">−</button>
-                            <button className="w-7 h-7 bg-[#0a0f1d]/90 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center text-xs text-white shadow-lg cursor-pointer backdrop-blur-sm mt-1">
-                              <i className="fa-solid fa-expand text-[10px]" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Live CCTV Surveillance Feed with AI Object Boxes */
-                        <div className="w-full h-full relative bg-black flex flex-col justify-center items-center">
-                          <img src={selectedBillboard?.feedImage || "/anna_nagar_feed.png"} alt="CCTV Feed" className="w-full h-full object-cover opacity-80" />
-                          {settings.overlayBoxes && boxes.map(box => (
-                            <div
-                              key={box.id}
-                              className="absolute border border-blue-400 bg-blue-500/15 pointer-events-none flex flex-col justify-between"
-                              style={{
-                                left: `${box.x}%`,
-                                top: `${box.y}%`,
-                                width: `${box.w}%`,
-                                height: `${box.h}%`,
-                                transition: 'left 180ms linear, top 180ms linear'
-                              }}
-                            >
-                              <span className="bg-blue-600 text-[8px] px-1 text-white leading-none font-bold uppercase self-start rounded-br">
-                                {box.type} {box.conf}%
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Legend & Action Bar */}
-                      <div className="p-3 border-t border-white/10 bg-[#080c16]/90 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-4 text-[11px] text-white/60">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> High Performance
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Medium Performance
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Low Performance
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={onBackToProfile}
-                          className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                          <span>View All Medias</span>
-                          <i className="fa-solid fa-chevron-right text-[10px]" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Top Performing Medias (1 col width) */}
-                  <div className="bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl min-h-[420px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-bold text-white font-heading">Top Performing Medias</h3>
-                      <button onClick={onBackToProfile} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
-                        View All
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
-                      {sortedTopMedias.slice(0, 5).map((media, idx) => (
-                        <div 
-                          key={media.id || idx} 
-                          onClick={() => onSelectBillboard && onSelectBillboard(media)}
-                          className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl p-2.5 flex items-center justify-between transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={media.image || '/anna_nagar_location.png'} alt={media.name} className="w-10 h-10 rounded-lg object-cover border border-white/10" />
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold text-white font-heading truncate max-w-[140px]">{media.name}</span>
-                              <span className="text-[10px] text-white/40 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                {media.city || media.location || 'Chennai'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-white/40 font-medium">Impressions</span>
-                            <span className="text-xs font-bold text-white font-mono">{media.impressions || '245K'}</span>
-                            <span className="text-[9px] text-emerald-400 font-bold">↑ {22 - idx * 3}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* ── 3. BOTTOM SECTION (3 COLUMNS) ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-                  
-                  {/* Panel 1: Performance Overview Chart (5 cols) */}
-                  <div className="lg:col-span-5 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-white font-heading">Performance Overview</h3>
-                      <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/10 text-[10px]">
-                        {['1H', '6H', '12H', '24H'].map((tf) => (
-                          <button 
-                            key={tf} 
-                            onClick={() => setTimeFilter(tf)}
-                            className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${timeFilter === tf ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}
-                          >
-                            {tf}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-[10px] mb-2 font-medium">
-                      <span className="flex items-center gap-1.5 text-blue-400">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" /> Impressions
-                      </span>
-                      <span className="flex items-center gap-1.5 text-cyan-400">
-                        <span className="w-2 h-2 rounded-full bg-cyan-400" /> Vehicles
-                      </span>
-                      <span className="flex items-center gap-1.5 text-purple-400">
-                        <span className="w-2 h-2 rounded-full bg-purple-500" /> Premium & Above
-                      </span>
-                    </div>
-
-                    <div className="h-[180px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart 
-                          data={activeChartData} 
-                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorVeh" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorPrem" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="time" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000}K`} />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Area type="monotone" dataKey="Impressions" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" />
-                          <Area type="monotone" dataKey="Vehicles" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#colorVeh)" />
-                          <Area type="monotone" dataKey="Premium" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#colorPrem)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Panel 2: Media Health Donut Chart (3 cols) */}
-                  <div className="lg:col-span-3 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
-                    <h3 className="text-sm font-bold text-white font-heading mb-2">Media Health</h3>
-                    
-                    <div className="flex items-center justify-center gap-4 flex-1">
-                      <div className="relative w-28 h-28 flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: 'Online', value: onlineCount || 1, color: '#22c55e' },
-                                { name: 'Offline', value: offlineCount, color: '#ef4444' },
-                                { name: 'Maintenance', value: maintenanceCount, color: '#f59e0b' }
-                              ]}
-                              innerRadius={32}
-                              outerRadius={44}
-                              paddingAngle={3}
-                              dataKey="value"
-                            >
-                              <Cell key="0" fill="#22c55e" />
-                              <Cell key="1" fill="#ef4444" />
-                              <Cell key="2" fill="#f59e0b" />
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                          <span className="text-lg font-black text-white font-mono">{totalMediasCount}</span>
-                          <span className="text-[8px] text-white/40 uppercase">Total Medias</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-white/50">Online</span>
-                            <span className="font-bold text-white text-xs font-mono">{onlineCount} ({onlinePct}%)</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-white/50">Offline</span>
-                            <span className="font-bold text-white text-xs font-mono">{offlineCount} ({offlinePct}%)</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-white/50">Maintenance</span>
-                            <span className="font-bold text-white text-xs font-mono">{maintenanceCount} ({maintenancePct}%)</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Panel 3: Alerts List (4 cols) */}
-                  <div className="lg:col-span-4 bg-[#0f1424]/90 border border-white/10 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-white font-heading">Alerts</h3>
-                      <button onClick={() => setActiveNav('alerts')} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
-                        View All
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-2.5 flex-1">
-                      {[
-                        { type: 'CRITICAL', title: 'Camera Offline', target: 'Guindy Flyover Billboard #2', time: '10 min ago', icon: 'fa-triangle-exclamation', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
-                        { type: 'WARNING', title: 'Low Storage', target: 'OMR – Sholinganallur', time: '25 min ago', icon: 'fa-triangle-exclamation', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-                        { type: 'INFO', title: 'Maintenance Due', target: 'Anna Salai Junction', time: '1 hr ago', icon: 'fa-wrench', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
-                      ].map((a, idx) => (
-                        <div key={idx} className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl p-2.5 flex items-center justify-between transition-all">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs flex-shrink-0 border ${a.color}`}>
-                              <i className={`fa-solid ${a.icon}`} />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold text-white truncate">{a.title}</span>
-                              <span className="text-[10px] text-white/40 truncate">{a.target}</span>
-                            </div>
-                          </div>
-                          <span className="text-[9px] text-white/30 whitespace-nowrap ml-2 font-mono">{a.time}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
+              <LiveStreamView
+                selectedBillboard={selectedBillboard}
+                billboards={activeBillboards}
+                onSelectBillboard={onSelectBillboard}
+                user={user}
+              />
             )}
 
             {/* ═══════════════════════════════════════════════════

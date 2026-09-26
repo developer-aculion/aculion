@@ -381,7 +381,7 @@ export default function App() {
 
     if (!isLoggedIn) {
       // Redirect unauthenticated users away from protected routes
-      if (mpMatch || dashMatch || route === '/demo-dashboard' || route === '/location-intelligence') {
+      if (mpMatch || dashMatch || route === '/demo-dashboard' || route === '/location-intelligence' || route === '/front-camera' || route === '/live-view') {
         window.history.pushState(null, '', '/sign-in');
         setRoute('/sign-in');
       }
@@ -411,7 +411,7 @@ export default function App() {
         if (!selectedBillboard) {
           setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
         }
-      } else if (route === '/location-intelligence') {
+      } else if (route === '/location-intelligence' || route === '/front-camera' || route === '/live-view' || route === '/audience-intelligence') {
         if (!selectedBillboard) {
           setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
         }
@@ -1190,7 +1190,18 @@ export default function App() {
     );
   }
 
-  if (DASHBOARD_RE.test(route) || route === '/location-intelligence' || route === '/dashboard' || route.startsWith('/dashboard/')) {
+  if (
+    DASHBOARD_RE.test(route) ||
+    route === '/location-intelligence' ||
+    route === '/dashboard' ||
+    route.startsWith('/dashboard/') ||
+    route === '/front-camera' ||
+    route === '/live-view' ||
+    route === '/audience-intelligence' ||
+    route.startsWith('/front-camera/') ||
+    route.startsWith('/live-view/') ||
+    route.startsWith('/audience-intelligence/')
+  ) {
     // Build baseDashboardPath from the new scoped URL, e.g. /developer/ACU-BB-1645/dashboard
     const dashParts = route.split('/');
     const dashIdx   = dashParts.indexOf('dashboard');
@@ -1487,7 +1498,7 @@ export default function App() {
                     </div>
                     <span className="esomar-badge">GLOBAL RESEARCH COMMITMENT</span>
                     <p className="esomar-description">
-                      Aculion follows internationally recognized research methodologies inspired by ESOMAR's ethical framework while our membership application is in progress.
+                      Aculion follows internationally recognized research methodologies inspired by ESOMAR's ethical framework.
                     </p>
                   </div>
                 </div>

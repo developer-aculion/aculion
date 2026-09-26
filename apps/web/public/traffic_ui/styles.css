@@ -136,6 +136,7 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
 }
 
 .brand-logo {
+    display: none !important;
     color: var(--color-cyan);
     font-size: 24px;
     font-weight: 800;
