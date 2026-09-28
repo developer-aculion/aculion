@@ -40,8 +40,6 @@ def generate_mock_record(camera_code: str) -> dict:
         "premium": premium,
         "luxury": luxury,
         "commercial": commercial,
-        "avg_exposure_time": round(random.uniform(5.0, 15.0), 1),
-        "max_exposure_time": round(random.uniform(20.0, 45.0), 1),
         "estimated_reach": int(total * random.uniform(1.2, 1.8)),
         "flow_rate": round(total / 60.0, 2),
         "is_live": True,

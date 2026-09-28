@@ -18,6 +18,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeCameraBfCode = urlParams.get('camera_bf_code') || '';
     let activeBillboardName = urlParams.get('bb_name') || '';
     const urlDate = urlParams.get('date') || urlParams.get('selected_date');
+    let activeBillboardConfig = { start_range_dwelltime: 4.0, end_range_dwelltime: 12.0 };
+
+    function calculateCorrelatedDwell(flowRatePerHour, startDwell = 4.0, endDwell = 12.0, totalVehicles = 1) {
+        if (!totalVehicles || totalVehicles <= 0) return 0.0;
+        const minD = Number(startDwell) || 4.0;
+        const maxD = Math.max(minD, Number(endDwell) || 12.0);
+        const range = maxD - minD;
+
+        // flowRatePerHour in veh/hr -> flowRatePerMin in veh/min
+        const flowPerMin = Number(flowRatePerHour) > 0 ? (Number(flowRatePerHour) / 60) : 0;
+        // Baseline saturation flow: 50.0 veh/min for urban corridor
+        const flowRatio = Math.min(1.0, Math.max(0.0, flowPerMin / 50.0));
+
+        const dwell = minD + flowRatio * range;
+        return +(Math.min(maxD, Math.max(minD, dwell))).toFixed(1);
+    }
 
     function getInitialStats() {
         return {
@@ -31,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
             classes: {
                 bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
-                economy: { name: 'Economy', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
-                premium: { name: 'Premium', desc: 'Cars between 15 lakh to 60 lakh', count: 0, pct: 0, color: '#F59E0B' },
-                luxury: { name: 'Luxury', desc: 'Above 60 lakh', count: 0, pct: 0, color: '#10B981' },
-                ultra_luxury: { name: 'Ultra Luxury', desc: 'Exotic & Ultra-Luxury', count: 0, pct: 0, color: '#EF4444' }
+                economy: { name: 'Standard Cars', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
+                premium: { name: 'Premium', desc: 'Cars between 15 Lakhs to 60 Lakhs', count: 0, pct: 0, color: '#F59E0B' },
+                luxury: { name: 'Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#10B981' },
+                ultra_luxury: { name: 'Ultra Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#EF4444' }
             },
             dwellStats: {
                 avg: 0.0,
@@ -589,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let topClass = 'Economy';
+        let topClass = 'Standard Cars';
         let maxCount = 0;
         Object.keys(state.stats.classes).forEach(k => {
             if (state.stats.classes[k].count > maxCount) {
@@ -697,18 +713,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function getWeekDaysWithDates(baseDateStr) {
+    function getLast7DaysWithDates(baseDateStr) {
         const d = baseDateStr ? new Date(baseDateStr + 'T12:00:00+05:30') : new Date();
-        const dayOfWeek = d.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
-        const distanceToMonday = (dayOfWeek + 6) % 7; // Monday->0, Tue->1 ... Sun->6
-        const monday = new Date(d.getTime() - distanceToMonday * 24 * 60 * 60 * 1000);
-
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const shortDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const days = [];
-        for (let i = 0; i < 7; i++) {
-            const cur = new Date(monday.getTime() + i * 24 * 60 * 60 * 1000);
+        for (let i = 6; i >= 0; i--) {
+            const cur = new Date(d.getTime() - i * 24 * 60 * 60 * 1000);
             const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(cur);
             days.push({
-                dayName: HEATMAP_DAYS[i],
+                dayName: dayNames[cur.getDay()],
+                shortDay: shortDayNames[cur.getDay()],
                 date: dateStr
             });
         }
@@ -725,17 +740,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const camFF = urlParams.get('camera_ff_code') || mapped.camFF || 'CAM-FF-001';
         const camBF = urlParams.get('camera_bf_code') || mapped.camBF || 'CAM-BF-001';
 
-        const daysWithDates = getWeekDaysWithDates(activeDate || selectedDate || getTodayIST());
+        // Retrieve traffic data strictly for the last 7 days ending today/selected date
+        const daysWithDates = getLast7DaysWithDates(activeDate || selectedDate || getTodayIST());
         const minDate = daysWithDates[0].date;
         const maxDate = daysWithDates[daysWithDates.length - 1].date;
-        const queryMinDate = minDate < '2026-09-20' ? minDate : (minDate === '2026-09-21' ? '2026-09-20' : minDate);
 
         let queryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=date,day,hour,total_vehicles,radxa_code,billboard_code,billboard_name,camera_ff_code,camera_bf_code`;
         queryUrl += `&billboard_code=eq.${encodeURIComponent(targetCode)}`;
         if (radxaCode) queryUrl += `&radxa_code=eq.${encodeURIComponent(radxaCode)}`;
         if (camFF) queryUrl += `&camera_ff_code=eq.${encodeURIComponent(camFF)}`;
         if (camBF) queryUrl += `&camera_bf_code=eq.${encodeURIComponent(camBF)}`;
-        queryUrl += `&and=(date.gte.${queryMinDate},date.lte.${maxDate})`;
+        queryUrl += `&and=(date.gte.${minDate},date.lte.${maxDate})`;
         queryUrl += `&and=(hour.gte.10,hour.lte.20)`;
         queryUrl += `&order=date.asc&order=hour.asc`;
 
@@ -843,11 +858,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.appendChild(headerRow);
 
-        // 2. 7 Fixed Rows: Monday to Sunday
+        // 2. 7 Rows for the Last 7 Days (strictly without artificial dummy rows)
         const floatingTooltip = document.getElementById('peakHeatmapTooltip');
 
-        HEATMAP_DAYS.forEach(dayName => {
-            const dayInfo = daysWithDates.find(d => d.dayName === dayName) || { dayName, date: '' };
+        daysWithDates.forEach(dayInfo => {
+            const dayName = dayInfo.dayName;
             const dayDate = dayInfo.date;
             const formattedDateFriendly = formatDisplayDateIST(dayDate);
 
@@ -910,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 } else {
-                    // No database row exists
+                    // No database row exists -> empty cell without artificial zeroes
                     cellEl.textContent = '';
                     cellEl.classList.add('cell-empty');
                 }
@@ -1350,7 +1365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 classes.premium.count,
                 classes.luxury.count
             ],
-            labels: ['Bike', 'Commercial', 'Economy', 'Premium', 'Luxury'],
+            labels: ['Bike', 'Commercial', 'Standard Cars', 'Premium', 'Luxury'],
             chart: {
                 type: 'donut',
                 width: '100%',
@@ -1419,13 +1434,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             tooltip: {
-                y: {
-                    formatter: function (val, { seriesIndex, w }) {
-                        const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                        const trends = ['▲ +4.2%', '▲ +1.5%', '▼ -0.8%', '▲ +0.5%', '▲ +2.8%', '▼ -1.2%'];
-                        return `${val.toLocaleString()} (${pct}%) • Trend: ${trends[seriesIndex] || ''}`;
-                    }
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const names = ['Bike', 'Commercial', 'Standard Cars', 'Premium', 'Luxury'];
+                    const descs = [
+                        'Two-Wheelers & Scooters',
+                        'Freight vehicles and public transport',
+                        'Cars under 15 Lakhs',
+                        'Cars between 15 Lakhs to 60 Lakhs',
+                        'Cars above 60 Lakhs'
+                    ];
+                    const val = series[seriesIndex];
+                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                    return `
+                        <div class="custom-apex-tooltip" style="padding: 8px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; font-size: 11px; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+                            <div style="font-weight: 700; color: ${w.globals.colors[seriesIndex]}; margin-bottom: 2px;">${names[seriesIndex]}</div>
+                            <div style="color: #94a3b8; font-size: 10px; margin-bottom: 4px;">${descs[seriesIndex]}</div>
+                            <div><strong>${Number(val).toLocaleString()}</strong> vehicles (${pct}%)</div>
+                        </div>
+                    `;
                 }
             },
             responsive: [
@@ -1462,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const options = {
             series: [economyCount, premiumCount, luxuryCount],
-            labels: ['Economy', 'Premium', 'Luxury'],
+            labels: ['Standard Cars', 'Premium', 'Luxury'],
             chart: {
                 type: 'donut',
                 width: '100%',
@@ -1479,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             theme: { mode: 'dark' },
             colors: [
-                '#8B5CF6', // Economy - Purple
+                '#8B5CF6', // Standard Cars - Purple
                 '#F59E0B', // Premium - Amber/Orange
                 '#10B981'  // Luxury - Emerald Green
             ],
@@ -1540,13 +1567,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             tooltip: {
-                theme: 'dark',
-                y: {
-                    formatter: function (val, { seriesIndex, w }) {
-                        const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                        return `${Number(val).toLocaleString()} (${pct}%)`;
-                    }
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const names = ['Standard Cars', 'Premium', 'Luxury'];
+                    const descs = [
+                        'Cars under 15 Lakhs',
+                        'Cars between 15 Lakhs to 60 Lakhs',
+                        'Cars above 60 Lakhs'
+                    ];
+                    const val = series[seriesIndex];
+                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                    return `
+                        <div class="custom-apex-tooltip" style="padding: 8px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; font-size: 11px; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+                            <div style="font-weight: 700; color: ${w.globals.colors[seriesIndex]}; margin-bottom: 2px;">${names[seriesIndex]}</div>
+                            <div style="color: #94a3b8; font-size: 10px; margin-bottom: 4px;">${descs[seriesIndex]}</div>
+                            <div><strong>${Number(val).toLocaleString()}</strong> vehicles (${pct}%)</div>
+                        </div>
+                    `;
                 }
             },
             responsive: [
@@ -1595,10 +1632,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initDwellAreaChart() {
+        const minD = Number(activeBillboardConfig.start_range_dwelltime) || 4.0;
+        const maxD = Math.max(minD, Number(activeBillboardConfig.end_range_dwelltime) || 12.0);
+        const initialPoints = [minD, minD, minD, minD, minD, minD, minD, minD, minD, minD];
+
         const options = {
             series: [{
                 name: 'Average Dwell Time (sec)',
-                data: [9.8, 11.2, 15.2, 14.5, 12.8, 11.6, 14.2, 17.4, 16.1, 10.4]
+                data: initialPoints
             }],
             chart: {
                 type: 'area',
@@ -1636,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 axisTicks: { show: false }
             },
             yaxis: {
+                min: 0,
                 labels: {
                     formatter: function (val) {
                         return val.toFixed(1) + 's';
@@ -1943,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
             series: [
                 { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Standard Cars', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
             ],
@@ -2021,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 series: [
                     { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                    { name: 'Economy', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                    { name: 'Standard Cars', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
                 ]
@@ -2058,7 +2100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 series: [
                     { name: 'Bike', data: bikes },
                     { name: 'Commercial', data: commercial },
-                    { name: 'Economy', data: economy },
+                    { name: 'Standard Cars', data: economy },
                     { name: 'Premium', data: premium },
                     { name: 'Luxury', data: luxury }
                 ]
@@ -2078,7 +2120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatedSeries = [
             { name: 'Bike', data: [bBase * 0.6, bBase * 0.8, bBase * 0.75, bBase * 0.9, bBase * 1.1, bBase * 0.95, bBase * 1.2, bBase * 1.4, bBase * 1.3, bBase].map(Math.round) },
             { name: 'Commercial', data: [cBase * 0.7, cBase * 0.9, cBase * 1.0, cBase * 0.95, cBase * 0.8, cBase * 0.75, cBase * 0.9, cBase * 1.1, cBase * 1.0, cBase].map(Math.round) },
-            { name: 'Economy', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
+            { name: 'Standard Cars', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
             { name: 'Premium', data: [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round) },
             { name: 'Luxury', data: [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round) }
         ];
@@ -2444,9 +2486,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const hourlyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_hour?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&or=(date.eq.${selectedDate},stat_date.eq.${selectedDate})&order=hour.asc`;
 
             // Query latest chronological historical snapshots from traffic_overview_history
-            const historyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=recorded_at,stat_date,total_vehicles,bikes,commercial,economy,premium,luxury,ultra_luxury&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=recorded_at.desc&limit=15`;
+            const historyQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview_history?select=recorded_at,stat_date,total_vehicles,bikes,commercial,economy,premium,luxury,ultra_luxury,flow_rate&billboard_code=eq.${encodeURIComponent(cleanCode)}&order=recorded_at.desc&limit=15`;
 
-            const [response, yesterdayResponse, hourlyResponse, historyResponse] = await Promise.all([
+            // Query billboard config to retrieve configured dwell-time range
+            const billboardQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/billboards?select=billboard_code,billboard_name,start_range_dwelltime,end_range_dwelltime&billboard_code=eq.${encodeURIComponent(cleanCode)}&limit=1`;
+
+            const [response, yesterdayResponse, hourlyResponse, historyResponse, billboardResponse] = await Promise.all([
                 fetch(queryUrl, {
                     cache: 'no-store',
                     headers: {
@@ -2478,8 +2523,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
                         'Content-Type': 'application/json'
                     }
+                }).catch(() => null),
+                fetch(billboardQueryUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
                 }).catch(() => null)
             ]);
+
+            if (billboardResponse && billboardResponse.ok) {
+                const bbJson = await billboardResponse.json();
+                if (Array.isArray(bbJson) && bbJson.length > 0) {
+                    const bbRecord = bbJson[0];
+                    const startDwell = (bbRecord.start_range_dwelltime !== null && bbRecord.start_range_dwelltime !== undefined)
+                        ? Number(bbRecord.start_range_dwelltime) : 4.0;
+                    const endDwell = (bbRecord.end_range_dwelltime !== null && bbRecord.end_range_dwelltime !== undefined)
+                        ? Number(bbRecord.end_range_dwelltime) : 12.0;
+                    activeBillboardConfig.start_range_dwelltime = Math.max(0, startDwell);
+                    activeBillboardConfig.end_range_dwelltime = Math.max(activeBillboardConfig.start_range_dwelltime, endDwell);
+                }
+            }
 
             let historyDataList = [];
             if (historyResponse && historyResponse.ok) {
@@ -2788,8 +2854,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalLuxuryCount = luxuryCount + ultraLuxuryCount;
         const calculatedSum = bikeCount + commercialCount + economyCount + premiumCount + totalLuxuryCount;
         const totalVehicles = Number(data.total_vehicles) || calculatedSum || 0;
-        const avgDwell = Number(data.avg_exposure_time) || 0.0;
         const flowRate = Number(data.flow_rate) || 0.0;
+
+        // Dwell Time Calculation: Correlate flow rate with selected billboard dwell-time range [minDwell, maxDwell]
+        const minDwell = Number(activeBillboardConfig.start_range_dwelltime) || 4.0;
+        const maxDwell = Math.max(minDwell, Number(activeBillboardConfig.end_range_dwelltime) || 12.0);
+        const dwellRange = maxDwell - minDwell;
+
+        // Flow per minute (flow_rate is veh/hr)
+        const flowPerMin = flowRate > 0 ? (flowRate / 60) : 0;
+        const flowRatio = Math.min(1.0, Math.max(0.0, flowPerMin / 50.0));
+        const avgDwell = totalVehicles > 0 ? +(minDwell + flowRatio * dwellRange).toFixed(1) : 0.0;
 
         // Peak Hour: Use dynamically calculated peakHour from hourly vehicles data; never fallback to stale static DB strings
         let peakHour = (state.stats.peakHour && state.stats.peakHour !== '—' && state.stats.peakHour !== '15:00 - 15:59') ? state.stats.peakHour : null;
@@ -2818,7 +2893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.stats.classes.bikes.count = bikeCount;          // Bike
         state.stats.classes.commercial.count = commercialCount; // Commercial
-        state.stats.classes.economy.count = economyCount;       // Economy
+        state.stats.classes.economy.count = economyCount;       // Standard Cars (from DB economy column)
         state.stats.classes.premium.count = premiumCount;       // Premium
         state.stats.classes.luxury.count = totalLuxuryCount;    // Luxury + Ultra Luxury
         state.stats.classes.ultra_luxury.count = ultraLuxuryCount; // Ultra Luxury
@@ -2839,42 +2914,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.stats.dwellStats) {
             state.stats.dwellStats.avg = avgDwell;
-            state.stats.dwellStats.max = Number(data.max_exposure_time) || 0.0;
-            state.stats.dwellStats.min = totalVehicles > 0 ? (avgDwell > 0 ? +(avgDwell * 0.45).toFixed(1) : 1.5) : 0.0;
-            state.stats.dwellStats.median = totalVehicles > 0 ? +(avgDwell * 0.85).toFixed(1) : 0.0;
+            state.stats.dwellStats.max = totalVehicles > 0 ? maxDwell : 0.0;
+            state.stats.dwellStats.min = totalVehicles > 0 ? minDwell : 0.0;
+            state.stats.dwellStats.median = totalVehicles > 0 ? +(minDwell + flowRatio * 0.85 * dwellRange).toFixed(1) : 0.0;
 
             if (totalVehicles > 0 && avgDwell > 0) {
                 // Dynamically calculate time-of-day dwell exposure based on hourly traffic dynamics
-                let morningSum = 0, morningCount = 0;
-                let afternoonSum = 0, afternoonCount = 0;
-                let eveningSum = 0, eveningCount = 0;
-                let nightSum = 0, nightCount = 0;
+                let morningFlow = 0, morningCount = 0;
+                let afternoonFlow = 0, afternoonCount = 0;
+                let eveningFlow = 0, eveningCount = 0;
+                let nightFlow = 0, nightCount = 0;
 
                 if (Array.isArray(hourlyDataList) && hourlyDataList.length > 0) {
                     hourlyDataList.forEach(hRow => {
                         const h = Number(hRow.hour);
-                        const exp = Number(hRow.avg_exposure_time || hRow.exposure_time) || 0;
-                        if (exp > 0) {
-                            if (h >= 6 && h < 12) { morningSum += exp; morningCount++; }
-                            else if (h >= 12 && h < 18) { afternoonSum += exp; afternoonCount++; }
-                            else if (h >= 18 && h < 24) { eveningSum += exp; eveningCount++; }
-                            else { nightSum += exp; nightCount++; }
+                        const v = Number(hRow.total_vehicles || hRow.flow_rate) || 0;
+                        if (v > 0) {
+                            if (h >= 6 && h < 12) { morningFlow += v; morningCount++; }
+                            else if (h >= 12 && h < 18) { afternoonFlow += v; afternoonCount++; }
+                            else if (h >= 18 && h < 24) { eveningFlow += v; eveningCount++; }
+                            else { nightFlow += v; nightCount++; }
                         }
                     });
                 }
 
-                // Evening commute has peak congestion (highest exposure/dwell),
-                // Morning has commute flow, Afternoon has steady flow, Night has high speed
-                const morningVal = (morningCount > 0 && morningSum > 0) ? (morningSum / morningCount) : (avgDwell * 0.95);
-                const afternoonVal = (afternoonCount > 0 && afternoonSum > 0) ? (afternoonSum / afternoonCount) : (avgDwell * 0.88);
-                const eveningVal = (eveningCount > 0 && eveningSum > 0) ? (eveningSum / eveningCount) : (avgDwell * 1.18);
-                const nightVal = (nightCount > 0 && nightSum > 0) ? (nightSum / nightCount) : (avgDwell * 0.68);
+                const morningAvgFlow = morningCount > 0 ? (morningFlow / morningCount) : (flowRate * 0.85);
+                const afternoonAvgFlow = afternoonCount > 0 ? (afternoonFlow / afternoonCount) : (flowRate * 0.75);
+                const eveningAvgFlow = eveningCount > 0 ? (eveningFlow / eveningCount) : (flowRate * 1.25);
+                const nightAvgFlow = nightCount > 0 ? (nightFlow / nightCount) : (flowRate * 0.40);
 
                 state.stats.dwellStats.periods = {
-                    morning: +morningVal.toFixed(1),
-                    afternoon: +afternoonVal.toFixed(1),
-                    evening: +eveningVal.toFixed(1),
-                    night: +nightVal.toFixed(1)
+                    morning: calculateCorrelatedDwell(morningAvgFlow, minDwell, maxDwell, totalVehicles),
+                    afternoon: calculateCorrelatedDwell(afternoonAvgFlow, minDwell, maxDwell, totalVehicles),
+                    evening: calculateCorrelatedDwell(eveningAvgFlow, minDwell, maxDwell, totalVehicles),
+                    night: calculateCorrelatedDwell(nightAvgFlow, minDwell, maxDwell, totalVehicles)
                 };
             } else {
                 state.stats.dwellStats.periods = {
@@ -2886,14 +2959,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Update Dwell Time Area Chart series with points within [minDwell, maxDwell]
+        if (state.charts.dwellArea) {
+            const timeSlots = [6, 8, 10, 12, 14, 16, 18, 20, 22, 0];
+            const dwellPoints = timeSlots.map(slotHour => {
+                if (totalVehicles === 0) return 0.0;
+                let slotFlow = 0;
+                if (Array.isArray(hourlyDataList) && hourlyDataList.length > 0) {
+                    const matchHour = hourlyDataList.find(hr => Number(hr.hour) === slotHour || Number(hr.hour) === (slotHour + 1));
+                    if (matchHour) slotFlow = Number(matchHour.total_vehicles || matchHour.flow_rate) || 0;
+                }
+                if (!slotFlow) {
+                    const factors = { 6: 0.4, 8: 0.8, 10: 0.65, 12: 0.55, 14: 0.5, 16: 0.7, 18: 0.95, 20: 0.85, 22: 0.45, 0: 0.2 };
+                    slotFlow = flowRate * (factors[slotHour] || 0.5);
+                }
+                return calculateCorrelatedDwell(slotFlow, minDwell, maxDwell, totalVehicles);
+            });
+            state.charts.dwellArea.updateSeries([{
+                name: 'Average Dwell Time (sec)',
+                data: dwellPoints
+            }], false);
+        }
+
         state.spawnChance = totalVehicles > 0 ? 0.035 : 0;
 
         updateUIElements();
         fetchAndRenderPeakTrafficAnalysis(currentTarget, selectedDate);
 
         // Update comparison badges against yesterday
-        updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', totalVehicles, yesterdayData?.total_vehicles);
-        updateKpiBadge('kpi-dwell-trend', 'kpi-dwell-trend-wrapper', 'kpi-dwell-trend-icon', data.avg_exposure_time, yesterdayData?.avg_exposure_time);
+        const yesterdayTotalVehicles = Number(yesterdayData?.total_vehicles) || 0;
+        const yesterdayFlowRate = Number(yesterdayData?.flow_rate) || 0;
+        const yesterdayDwell = yesterdayTotalVehicles > 0
+            ? calculateCorrelatedDwell(yesterdayFlowRate, minDwell, maxDwell, yesterdayTotalVehicles)
+            : null;
+
+        updateKpiBadge('kpi-vehicles-trend', 'kpi-vehicles-trend-wrapper', 'kpi-vehicles-trend-icon', totalVehicles, yesterdayTotalVehicles);
+        updateKpiBadge('kpi-dwell-trend', 'kpi-dwell-trend-wrapper', 'kpi-dwell-trend-icon', avgDwell, yesterdayDwell);
         updateKpiBadge('kpi-reach-trend', 'kpi-reach-trend-wrapper', 'kpi-reach-trend-icon', data.estimated_reach, yesterdayData?.estimated_reach);
         updateKpiBadge('kpi-flow-trend', 'kpi-flow-trend-wrapper', 'kpi-flow-trend-icon', data.flow_rate, yesterdayData?.flow_rate);
         if (window.lucide) lucide.createIcons();

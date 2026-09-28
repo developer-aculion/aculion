@@ -36,6 +36,8 @@ export default function MediaProfilePage({
     country: 'India',
     latitude: '13.0827',
     longitude: '80.2707',
+    start_range_dwelltime: '4',
+    end_range_dwelltime: '12',
     width: '40 ft',
     height: '20 ft',
     type: 'Digital Billboard',
@@ -179,6 +181,19 @@ export default function MediaProfilePage({
       }
     }
 
+    const startDwell = parseFloat(formData.start_range_dwelltime);
+    const endDwell = parseFloat(formData.end_range_dwelltime);
+
+    if (isNaN(startDwell) || isNaN(endDwell) || startDwell < 0 || endDwell < 0) {
+      setFormError('Start Dwell Time and End Dwell Time must be valid positive numbers.');
+      return;
+    }
+
+    if (endDwell < startDwell) {
+      setFormError('End Dwell Time cannot be lower than Start Dwell Time.');
+      return;
+    }
+
     try {
       const lat = parseFloat(formData.latitude) || 13.0827;
       const lng = parseFloat(formData.longitude) || 80.2707;
@@ -232,13 +247,17 @@ export default function MediaProfilePage({
         longitude: lng,
         cameraCodeFF: formData.cameraCodeFF,
         cameraCodeBF: formData.cameraCodeBF,
-        ownerId: targetOwnerId
+        ownerId: targetOwnerId,
+        start_range_dwelltime: startDwell,
+        end_range_dwelltime: endDwell
       });
 
       newAsset.ownerName = formData.ownerName;
       newAsset.ownerEmail = formData.ownerEmail;
       newAsset.cameraCodeFF = formData.cameraCodeFF;
       newAsset.cameraCodeBF = formData.cameraCodeBF;
+      newAsset.start_range_dwelltime = startDwell;
+      newAsset.end_range_dwelltime = endDwell;
 
       onAddBillboard(newAsset);
       showToast('billboard', formData.name || 'Billboard');
@@ -256,6 +275,8 @@ export default function MediaProfilePage({
         country: 'India',
         latitude: '13.0827',
         longitude: '80.2707',
+        start_range_dwelltime: '4',
+        end_range_dwelltime: '12',
         width: '40 ft',
         height: '20 ft',
         type: 'Digital Billboard',
@@ -1397,6 +1418,41 @@ export default function MediaProfilePage({
                       <option value="Maintenance">Maintenance</option>
                       <option value="Inactive">Inactive</option>
                     </select>
+                  </div>
+
+                  {/* ── DWELL TIME CONFIGURATION ── */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">Start Dwell Time (sec) *</label>
+                    <input
+                      type="number"
+                      name="start_range_dwelltime"
+                      placeholder="e.g. 4"
+                      min="1"
+                      max="300"
+                      step="0.5"
+                      value={formData.start_range_dwelltime}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-white/70">End Dwell Time (sec) *</label>
+                    <input
+                      type="number"
+                      name="end_range_dwelltime"
+                      placeholder="e.g. 12"
+                      min="1"
+                      max="300"
+                      step="0.5"
+                      value={formData.end_range_dwelltime}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      className="bg-[#141d33] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      required
+                    />
                   </div>
                 </div>
               </div>

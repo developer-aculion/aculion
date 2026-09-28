@@ -108,6 +108,22 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
     return () => { isMounted = false; };
   }, [bbCode, timeFilter]);
 
+  const minDwell = selectedBillboard?.start_range_dwelltime !== undefined && selectedBillboard?.start_range_dwelltime !== null
+    ? Number(selectedBillboard.start_range_dwelltime)
+    : 4.0;
+  const maxDwell = selectedBillboard?.end_range_dwelltime !== undefined && selectedBillboard?.end_range_dwelltime !== null
+    ? Math.max(minDwell, Number(selectedBillboard.end_range_dwelltime))
+    : 12.0;
+  const dwellRange = maxDwell - minDwell;
+
+  const totalVehicles = Number(trafficOverview?.total_vehicles) || 0;
+  const flowRatePerHour = Number(trafficOverview?.flow_rate) || 0;
+  const flowPerMin = flowRatePerHour > 0 ? (flowRatePerHour / 60) : 0;
+  const flowRatio = Math.min(1.0, Math.max(0.0, flowPerMin / 50.0));
+  const correlatedDwell = totalVehicles > 0
+    ? Number((minDwell + flowRatio * dwellRange).toFixed(2))
+    : 0.0;
+
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 min-w-0 bg-[#070913] text-white font-sans overflow-y-auto">
       
@@ -242,12 +258,12 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
           </div>
           <div className="mt-3">
             <span className="text-xl font-black text-white font-mono">
-              {trafficOverview?.avg_exposure_time ? `${Number(trafficOverview.avg_exposure_time).toFixed(2)}s` : '0.00s'}
+              {correlatedDwell > 0 ? `${correlatedDwell.toFixed(2)}s` : '0.00s'}
             </span>
-            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Average exposure time</div>
+            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Range: {minDwell}s – {maxDwell}s</div>
             <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-1">
-              <i className="fa-solid fa-caret-up" />
-              <span>Camera tracking</span>
+              <i className="fa-solid fa-wave-square" />
+              <span>Flow correlated</span>
             </div>
           </div>
         </div>
@@ -459,7 +475,7 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
 
           <div className="mt-5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
             <span className="text-xs font-bold text-blue-300">
-              Average Dwell Time: <span className="font-mono text-white font-black">3m 42s</span>
+              Estimated Dwell Time: <span className="font-mono text-white font-black">{correlatedDwell > 0 ? `${correlatedDwell.toFixed(1)}s` : `${minDwell}s – ${maxDwell}s`}</span>
             </span>
           </div>
         </div>

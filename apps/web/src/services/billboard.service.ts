@@ -33,6 +33,8 @@ function mapDbRecordToBillboard(record: any): Billboard {
     longitude: Number(record.longitude) || 80.2707,
     status: record.status || 'Active',
     type: record.billboard_type || 'Digital Billboard',
+    start_range_dwelltime: record.start_range_dwelltime !== undefined && record.start_range_dwelltime !== null ? Number(record.start_range_dwelltime) : 4,
+    end_range_dwelltime: record.end_range_dwelltime !== undefined && record.end_range_dwelltime !== null ? Number(record.end_range_dwelltime) : 12,
     size: '40 ft × 20 ft',
     width: '40 ft',
     height: '20 ft',
@@ -121,9 +123,14 @@ export const billboardService = {
     cameraCodeFF?: string;
     cameraCodeBF?: string;
     ownerId?: string;
+    start_range_dwelltime?: number;
+    end_range_dwelltime?: number;
   }): Promise<Billboard> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Authentication required to register a billboard.");
+
+    const startDwell = billboardData.start_range_dwelltime !== undefined && billboardData.start_range_dwelltime !== null ? Number(billboardData.start_range_dwelltime) : 4;
+    const endDwell = billboardData.end_range_dwelltime !== undefined && billboardData.end_range_dwelltime !== null ? Number(billboardData.end_range_dwelltime) : 12;
 
     const insertData = {
       billboard_code: billboardData.id || null,
@@ -137,7 +144,9 @@ export const billboardService = {
       latitude: Number(billboardData.latitude),
       longitude: Number(billboardData.longitude),
       city: billboardData.city || "Chennai",
-      status: billboardData.status || "Active"
+      status: billboardData.status || "Active",
+      start_range_dwelltime: startDwell,
+      end_range_dwelltime: endDwell
     };
 
     const { data, error } = await supabase
@@ -167,6 +176,8 @@ export const billboardService = {
     if (billboardData.status !== undefined) updateData.status = billboardData.status;
     if (billboardData.cameraCodeFF !== undefined) updateData.camera_ff_code = billboardData.cameraCodeFF;
     if (billboardData.cameraCodeBF !== undefined) updateData.camera_bf_code = billboardData.cameraCodeBF;
+    if (billboardData.start_range_dwelltime !== undefined) updateData.start_range_dwelltime = Number(billboardData.start_range_dwelltime);
+    if (billboardData.end_range_dwelltime !== undefined) updateData.end_range_dwelltime = Number(billboardData.end_range_dwelltime);
 
     const { data, error } = await supabase
       .from("billboards")
@@ -294,7 +305,7 @@ export const billboardService = {
       // 2. Fallback: Aggregate from traffic_overview_history by IST hour
       const { data: histData, error: histError } = await supabase
         .from("traffic_overview_history")
-        .select("recorded_at, stat_date, total_vehicles, flow_rate, avg_exposure_time, bikes, economy, premium, luxury, ultra_luxury, commercial")
+        .select("recorded_at, stat_date, total_vehicles, flow_rate, bikes, economy, premium, luxury, ultra_luxury, commercial")
         .eq("billboard_code", billboardCode)
         .order("recorded_at", { ascending: true })
         .limit(2000);
@@ -364,8 +375,8 @@ export const billboardService = {
   },
 
   /**
-   * Calculates the Peak Traffic Hour specifically for a billboard and day by calculating
-   * the maximum total number of vehicles from the database (traffic_hour).
+   * Calculates the Peak Traffic Hour specifically for a billboard across the most recent 7 days
+   * of available traffic data by identifying the hour with the maximum vehicle count/flow.
    */
   getPeakTrafficHour: async (billboardCode: string, statDate?: string): Promise<{
     peakHourStr: string;
@@ -378,33 +389,80 @@ export const billboardService = {
       return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData: [] };
     }
 
-    const hourlyData = await billboardService.getHourlyTraffic(billboardCode, statDate);
-    if (!hourlyData || hourlyData.length === 0) {
+    try {
+      // Calculate most recent 7 days window in IST
+      const now = new Date();
+      const dates: string[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+        dates.push(dStr);
+      }
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      // Query traffic_hour across the 7-day window and live traffic_overview
+      const [hourRes, liveRes] = await Promise.all([
+        supabase
+          .from("traffic_hour")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .gte("date", minDate)
+          .lte("date", maxDate)
+          .order("date", { ascending: true })
+          .order("hour", { ascending: true }),
+        supabase
+          .from("traffic_overview")
+          .select("*")
+          .eq("billboard_code", billboardCode)
+          .order("last_updated", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ]);
+
+      let hourlyData = hourRes.data || [];
+      let peakRecord: any = null;
+      let maxVehicles = 0;
+
+      for (const record of hourlyData) {
+        const count = Number(record.total_vehicles) || 0;
+        if (count > maxVehicles) {
+          maxVehicles = count;
+          peakRecord = record;
+        }
+      }
+
+      // Check today's live traffic_overview if it has active detections
+      const liveData = liveRes.data;
+      if (liveData && Number(liveData.total_vehicles) > 0) {
+        const dt = liveData.last_updated ? new Date(liveData.last_updated) : new Date();
+        const istHour = (dt.getUTCHours() + 5 + Math.floor((dt.getUTCMinutes() + 30) / 60)) % 24;
+        const liveCount = Number(liveData.total_vehicles);
+        if (liveCount > maxVehicles || !peakRecord) {
+          maxVehicles = liveCount;
+          peakRecord = {
+            ...liveData,
+            hour: istHour,
+            total_vehicles: liveCount
+          };
+        }
+      }
+
+      if (!peakRecord || maxVehicles <= 0) {
+        return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData };
+      }
+
+      return {
+        peakHourStr: billboardService.formatPeakHourWindow(peakRecord.hour),
+        peakHour: Number(peakRecord.hour),
+        peakCount: maxVehicles,
+        avgDensity: Number((maxVehicles / 60).toFixed(1)),
+        hourlyData
+      };
+    } catch (err) {
+      console.error("[billboardService] Error calculating 7-day peak traffic hour:", err);
       return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData: [] };
     }
-
-    let peakRecord: any = null;
-    let maxVehicles = 0;
-
-    for (const record of hourlyData) {
-      const count = Number(record.total_vehicles) || 0;
-      if (count > maxVehicles) {
-        maxVehicles = count;
-        peakRecord = record;
-      }
-    }
-
-    if (!peakRecord || maxVehicles <= 0) {
-      return { peakHourStr: '—', peakHour: null, peakCount: 0, avgDensity: 0, hourlyData };
-    }
-
-    return {
-      peakHourStr: billboardService.formatPeakHourWindow(peakRecord.hour),
-      peakHour: Number(peakRecord.hour),
-      peakCount: maxVehicles,
-      avgDensity: Number((maxVehicles / 60).toFixed(1)),
-      hourlyData
-    };
   },
 
   /**

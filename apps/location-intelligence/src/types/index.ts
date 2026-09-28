@@ -18,6 +18,15 @@ export interface Billboard {
   longitude: number;
   campaign: Campaign;
   lastUpdated: string;
+  start_range_dwelltime?: number;
+  end_range_dwelltime?: number;
+  billboard_code?: string;
+  camera_ff_code?: string;
+  camera_bf_code?: string;
+  status?: string;
+  type?: string;
+  billboard_name?: string;
+  location?: string;
 }
 
 // ---------------------------------------------------------------------------
