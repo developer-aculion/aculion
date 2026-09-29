@@ -724,6 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const premCarPct = fourWheelerTotal > 0 ? Math.round((premCount / fourWheelerTotal) * 100) : 0;
             const luxCarPct = fourWheelerTotal > 0 ? Math.round((luxCount / fourWheelerTotal) * 100) : 0;
             const dominantCarText = (fourWheelerTotal > 0 && (premCount + luxCount) > econCount) ? 'Premium and Luxury' : 'Standard';
+            const affluentCarShare = premCarPct + luxCarPct;
 
             descValueMixEl.innerHTML = `
                 <span class="summary-sentence-line">Most cars are <strong>${dominantCarText}</strong>.</span>
@@ -1808,6 +1809,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const premCarPct = fourWheelerTotal > 0 ? Math.round((premiumCount / fourWheelerTotal) * 100) : 0;
             const luxCarPct = fourWheelerTotal > 0 ? Math.round((luxuryCount / fourWheelerTotal) * 100) : 0;
             const dominantCarText = (fourWheelerTotal > 0 && (premiumCount + luxuryCount) > economyCount) ? 'Premium and Luxury' : 'Standard';
+            const affluentCarShare = premCarPct + luxCarPct;
 
             elements.valueMixSummaryText.innerHTML = `
                 <span class="summary-sentence-line">Most cars are <strong>${dominantCarText}</strong>.</span>
