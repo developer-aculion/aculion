@@ -194,6 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
         mixPremiumPercentageDisplay: document.getElementById('mix-premium-percentage-display'),
         valueMixSummaryText: document.getElementById('value-mix-summary-text'),
 
+        // Feature Bottom 2-Line Dynamic Descriptions
+        summaryDescTrafficTrend: document.getElementById('summary-desc-traffic-trend'),
+        summaryDescVehicle7Days: document.getElementById('summary-desc-vehicle-7days'),
+        summaryDescDwellTime: document.getElementById('summary-desc-dwell-time'),
+        summaryDescDistribution: document.getElementById('summary-desc-distribution'),
+        summaryDescPeakTraffic: document.getElementById('summary-desc-peak-traffic'),
+        summaryDescClassification: document.getElementById('summary-desc-classification'),
+        summaryDescValueMix: document.getElementById('value-mix-summary-text'),
+
         // Heatmap fallback element
         densityHeatmap: document.getElementById('densityHeatmap') || document.getElementById('peakTrafficTimeline'),
 
@@ -565,7 +574,122 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateAIRecommendations();
+        updateFeatureBottomDescriptions();
         if (window.lucide) lucide.createIcons();
+    }
+
+    function updateFeatureBottomDescriptions(weeklyTotal) {
+        const total = Number(state.stats.totalVehicles) || 0;
+        const classes = state.stats.classes || {};
+        const bikes = classes.bikes || { count: 0, pct: 0, name: 'Bike' };
+        const commercial = classes.commercial || { count: 0, pct: 0, name: 'Commercial' };
+        const economy = classes.economy || { count: 0, pct: 0, name: 'Economy' };
+        const premium = classes.premium || { count: 0, pct: 0, name: 'Premium' };
+        const luxury = classes.luxury || { count: 0, pct: 0, name: 'Luxury' };
+        const highValueCount = (Number(premium.count) || 0) + (Number(luxury.count) || 0);
+        const highValuePct = total > 0 ? Math.round((highValueCount / total) * 100) : ((premium.pct || 0) + (luxury.pct || 0));
+
+        // 1. Live Vehicle Classification footer
+        const descClassEl = elements.summaryDescClassification || document.getElementById('summary-desc-classification');
+        if (descClassEl) {
+            descClassEl.innerHTML = `
+                <span class="summary-sentence-line"><strong>${bikes.pct}%</strong> of bike crossed and <strong>${commercial.pct}%</strong> of commercial vehicles crossed.</span>
+                <span class="summary-sentence-line">Standard cars represent <strong>${economy.pct}%</strong> while high-value tiers account for <strong>${highValuePct}%</strong> of traffic.</span>
+            `;
+        }
+
+        // 2. Vehicle Distribution Chart footer
+        const descDistEl = elements.summaryDescDistribution || document.getElementById('summary-desc-distribution');
+        if (descDistEl) {
+            const dominantEl = document.getElementById('donut-dominant-class');
+            const dominantClass = (dominantEl && dominantEl.textContent && dominantEl.textContent !== '--') 
+                ? dominantEl.textContent 
+                : (bikes.count > 0 || commercial.count > 0 ? (bikes.count >= commercial.count ? 'Bike' : 'Commercial') : '--');
+            descDistEl.innerHTML = `
+                <span class="summary-sentence-line"><strong>${bikes.pct}%</strong> of traffic are bikes and <strong>${commercial.pct}%</strong> are commercial vehicles.</span>
+                <span class="summary-sentence-line"><strong>${dominantClass}</strong> is the dominant class, with high-value mix at <strong>${highValuePct}%</strong>.</span>
+            `;
+        }
+
+        // 3. Peak Traffic Analysis footer (Heatmap)
+        const descPeakEl = elements.summaryDescPeakTraffic || document.getElementById('summary-desc-peak-traffic');
+        if (descPeakEl) {
+            const peakHourStr = state.stats.peakHour && state.stats.peakHour !== '—' && state.stats.peakHour !== '-' 
+                ? state.stats.peakHour 
+                : '2 PM';
+            const peakCountVal = state.stats.peakCount || 0;
+            const peakDensityStr = state.stats.peakDensity && state.stats.peakDensity !== '-- veh/min'
+                ? state.stats.peakDensity
+                : (peakCountVal > 0 ? `${(peakCountVal / 60).toFixed(1)} veh/min` : '0.0 veh/min');
+
+            descPeakEl.innerHTML = `
+                <span class="summary-sentence-line">At <strong>${peakHourStr}</strong> the heavy vehicle flow recorded <strong>${formatIndianNumber(peakCountVal)}</strong> vehicles.</span>
+                <span class="summary-sentence-line">Peak corridor traffic density reached <strong>${peakDensityStr}</strong> during peak hours.</span>
+            `;
+        }
+
+        // 4. Traffic Trend footer
+        const descTrendEl = elements.summaryDescTrafficTrend || document.getElementById('summary-desc-traffic-trend');
+        if (descTrendEl) {
+            const flowPerHour = Number(state.stats.flowRate) || 0;
+            descTrendEl.innerHTML = `
+                <span class="summary-sentence-line">Real-time traffic flow rate is currently <strong>${flowPerHour.toFixed(1)} veh/hr</strong>.</span>
+                <span class="summary-sentence-line">Bikes lead arrivals at <strong>${bikes.pct}%</strong> followed by commercial vehicles at <strong>${commercial.pct}%</strong>.</span>
+            `;
+        }
+
+        // 5. Vehicle Traffic — Last 7 Days footer
+        const desc7DaysEl = elements.summaryDescVehicle7Days || document.getElementById('summary-desc-vehicle-7days');
+        if (desc7DaysEl) {
+            const totalEl = document.getElementById('trend-7day-total');
+            const avgEl = document.getElementById('trend-7day-avg');
+            let sevenDayTotal = weeklyTotal;
+            if (!sevenDayTotal && totalEl && totalEl.textContent) {
+                const parsed = parseInt(totalEl.textContent.replace(/,/g, ''), 10);
+                if (!isNaN(parsed)) sevenDayTotal = parsed;
+            }
+            if (sevenDayTotal === undefined || sevenDayTotal === null) sevenDayTotal = 0;
+            let dailyAvg = sevenDayTotal > 0 ? Math.round(sevenDayTotal / 7) : 0;
+            if (avgEl && avgEl.textContent) {
+                const parsedAvg = parseInt(avgEl.textContent.replace(/,/g, ''), 10);
+                if (!isNaN(parsedAvg) && parsedAvg > 0) dailyAvg = parsedAvg;
+            }
+
+            desc7DaysEl.innerHTML = `
+                <span class="summary-sentence-line">Recorded <strong>${formatIndianNumber(sevenDayTotal)}</strong> total vehicles over the last 7 days.</span>
+                <span class="summary-sentence-line">Daily average traffic volume stands at <strong>${formatIndianNumber(dailyAvg)}</strong> vehicles per day.</span>
+            `;
+        }
+
+        // 6. Dwell Time Analytics footer
+        const descDwellEl = elements.summaryDescDwellTime || document.getElementById('summary-desc-dwell-time');
+        if (descDwellEl) {
+            const avgDwell = Number(state.stats.dwellStats.avg || state.stats.avgDwellTime || 0);
+            const medianDwell = Number(state.stats.dwellStats.median || 0);
+            const maxDwell = Number(state.stats.dwellStats.max || 0);
+
+            descDwellEl.innerHTML = `
+                <span class="summary-sentence-line">Average billboard dwell time is <strong>${avgDwell.toFixed(1)}s</strong> with a median of <strong>${medianDwell.toFixed(1)}s</strong>.</span>
+                <span class="summary-sentence-line">Maximum corridor exposure reached <strong>${maxDwell.toFixed(1)}s</strong> for passing audience.</span>
+            `;
+        }
+
+        // 7. Vehicle Value Mix footer
+        const descValueMixEl = elements.summaryDescValueMix || elements.valueMixSummaryText || document.getElementById('value-mix-summary-text');
+        if (descValueMixEl) {
+            const econCount = Number(economy.count) || 0;
+            const premCount = Number(premium.count) || 0;
+            const luxCount = Number(luxury.count) || 0;
+            const fourWheelerTotal = econCount + premCount + luxCount;
+            const premPct = fourWheelerTotal > 0 ? Math.round((premCount / fourWheelerTotal) * 100) : (premium.pct || 0);
+            const luxPct = fourWheelerTotal > 0 ? Math.round((luxCount / fourWheelerTotal) * 100) : (luxury.pct || 0);
+            const highValCombined = premPct + luxPct;
+
+            descValueMixEl.innerHTML = `
+                <span class="summary-sentence-line"><strong>${premPct}%</strong> of vehicles are Premium out of 100.</span>
+                <span class="summary-sentence-line">High-value segments combine for <strong>${highValCombined}%</strong> of passenger car audience purchasing power.</span>
+            `;
+        }
     }
 
     function updateAIRecommendations() {
@@ -825,6 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elements.kpiPeak) elements.kpiPeak.textContent = state.stats.peakHour;
             if (elements.kpiPeakDensity) elements.kpiPeakDensity.textContent = state.stats.peakDensity;
         }
+        updateFeatureBottomDescriptions();
 
         // 1. Column Headers (Blank Day Header + 11 Hours: 10 AM to 8 PM)
         const headerRow = document.createElement('div');
@@ -1586,7 +1711,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.mixPctLuxury) elements.mixPctLuxury.textContent = `(${luxPct}%)`;
 
         if (elements.valueMixSummaryText) {
-            elements.valueMixSummaryText.innerHTML = `<strong>${premPct}%</strong> of vehicles are Premium out of 100.`;
+            const highValCombined = premPct + luxPct;
+            elements.valueMixSummaryText.innerHTML = `
+                <span class="summary-sentence-line"><strong>${premPct}%</strong> of vehicles are Premium out of 100.</span>
+                <span class="summary-sentence-line">High-value segments combine for <strong>${highValCombined}%</strong> of passenger car audience purchasing power.</span>
+            `;
         }
 
         if (state.charts.valueMix) {
@@ -1742,6 +1871,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (avgEl) {
             avgEl.textContent = formatIndianNumber(dailyAvg);
         }
+        updateFeatureBottomDescriptions(totalSum);
 
         const options = {
             series: [

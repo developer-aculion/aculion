@@ -316,6 +316,15 @@
                     <div class="trend-chart-container">
                         <div id="trafficTrendLineChart"></div>
                     </div>
+                    <!-- Feature Footer Summary -->
+                    <div class="feature-footer-summary">
+                        <div class="summary-sentence-box">
+                            <div class="summary-sentence-text" id="summary-desc-traffic-trend">
+                                <span class="summary-sentence-line">Real-time traffic flow rate is currently <strong>0.0 veh/hr</strong>.</span>
+                                <span class="summary-sentence-line">Bikes lead arrivals at <strong>0%</strong> followed by commercial vehicles at <strong>0%</strong>.</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Left Column: Vehicle Traffic 7-Days, Dwell Time Analytics & Vehicle Distribution Chart -->
@@ -340,6 +349,15 @@
                         </div>
                         <div class="compact-7days-chart-container">
                             <div id="vehicle7DaysLineChart"></div>
+                        </div>
+                        <!-- Feature Footer Summary -->
+                        <div class="feature-footer-summary">
+                            <div class="summary-sentence-box">
+                                <div class="summary-sentence-text" id="summary-desc-vehicle-7days">
+                                    <span class="summary-sentence-line">Recorded <strong>0</strong> total vehicles over the last 7 days.</span>
+                                    <span class="summary-sentence-line">Daily average traffic volume stands at <strong>0</strong> vehicles per day.</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -380,6 +398,15 @@
                         <div class="dwell-chart-container">
                             <div id="dwellTimeAreaGraph"></div>
                         </div>
+                        <!-- Feature Footer Summary -->
+                        <div class="feature-footer-summary">
+                            <div class="summary-sentence-box">
+                                <div class="summary-sentence-text" id="summary-desc-dwell-time">
+                                    <span class="summary-sentence-line">Average billboard dwell time is <strong>0.0s</strong> with a median of <strong>0.0s</strong>.</span>
+                                    <span class="summary-sentence-line">Maximum corridor exposure reached <strong>0.0s</strong> for passing audience.</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Vehicle Distribution Chart -->
@@ -402,6 +429,15 @@
                             <div class="donut-stat-pill">
                                 <span class="donut-pill-label">High-Value Mix</span>
                                 <span class="donut-pill-val text-cyan" id="donut-high-value-share">--</span>
+                            </div>
+                        </div>
+                        <!-- Feature Footer Summary -->
+                        <div class="feature-footer-summary">
+                            <div class="summary-sentence-box">
+                                <div class="summary-sentence-text" id="summary-desc-distribution">
+                                    <span class="summary-sentence-line"><strong>0%</strong> of traffic are bikes and <strong>0%</strong> are commercial vehicles.</span>
+                                    <span class="summary-sentence-line"><strong>--</strong> is the dominant class, with high-value mix at <strong>0%</strong>.</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -438,6 +474,15 @@
                                     <span class="nodata-tile"></span>
                                     <span class="nodata-label">= No data</span>
                                     <span class="nodata-note">(Not 0)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Feature Footer Summary -->
+                        <div class="feature-footer-summary">
+                            <div class="summary-sentence-box">
+                                <div class="summary-sentence-text" id="summary-desc-peak-traffic">
+                                    <span class="summary-sentence-line">At <strong>2 PM</strong> the heavy vehicle flow recorded <strong>0</strong> vehicles.</span>
+                                    <span class="summary-sentence-line">Peak corridor traffic density reached <strong>-- veh/min</strong> during peak hours.</span>
                                 </div>
                             </div>
                         </div>
@@ -555,6 +600,15 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Feature Footer Summary -->
+                        <div class="feature-footer-summary">
+                            <div class="summary-sentence-box">
+                                <div class="summary-sentence-text" id="summary-desc-classification">
+                                    <span class="summary-sentence-line"><strong>0%</strong> of bike crossed and <strong>0%</strong> of commercial vehicles crossed.</span>
+                                    <span class="summary-sentence-line">Standard cars represent <strong>0%</strong> while high-value tiers account for <strong>0%</strong>.</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Vehicle Value Mix (Semi-Circle Donut Chart) -->
@@ -592,9 +646,10 @@
                         <!-- Dynamic Summary Sentence -->
                         <div class="value-mix-summary-footer">
                             <div class="summary-sentence-box">
-                                <span class="summary-sentence-text" id="value-mix-summary-text">
-                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.
-                                </span>
+                                <div class="summary-sentence-text" id="value-mix-summary-text">
+                                    <span class="summary-sentence-line"><strong class="highlight-gold" id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.</span>
+                                    <span class="summary-sentence-line">High-value segments combine for <strong>0%</strong> of passenger car audience purchasing power.</span>
+                                </div>
                             </div>
                         </div>
                     </div>

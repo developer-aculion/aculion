@@ -1323,11 +1323,13 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     font-size: 11px;
 }
 
-.value-mix-summary-footer {
+.value-mix-summary-footer,
+.feature-footer-summary {
     margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     width: 100%;
+    box-sizing: border-box;
 }
 
 .summary-sentence-box {
@@ -1340,20 +1342,31 @@ h1, h2, h3, h4, .kpi-value, .brand-name {
     justify-content: center;
     text-align: center;
     backdrop-filter: blur(8px);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .summary-sentence-text {
-    font-size: 12.5px;
+    font-size: 12px;
     color: #cbd5e1;
     font-family: 'Plus Jakarta Sans', sans-serif;
     letter-spacing: 0.1px;
-    line-height: 1.4;
+    line-height: 1.55;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    text-align: center;
 }
 
-.summary-sentence-text strong {
+.summary-sentence-line {
+    display: block;
+}
+
+.summary-sentence-text strong,
+.summary-sentence-text .highlight-gold {
     color: #F59E0B;
     font-weight: 700;
-    font-size: 13.5px;
 }
 
 /* --- Peak Traffic Analysis Heatmap Card --- */
