@@ -13,8 +13,6 @@ class TrafficRecord(BaseModel):
     luxury: int
     ultra_luxury: Optional[int] = 0
     commercial: int
-    avg_exposure_time: float
-    max_exposure_time: float
     estimated_reach: int
     flow_rate: float
     is_live: bool = True

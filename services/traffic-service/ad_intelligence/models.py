@@ -105,7 +105,6 @@ class TrafficExposureMetrics(BaseModel):
     trucks_exposure: int = 0
     commercial_exposure: int = 0
     estimated_reach: int = 0
-    avg_exposure_time: float = 0.0
 
 
 class AdCreativeAnalytics(BaseModel):

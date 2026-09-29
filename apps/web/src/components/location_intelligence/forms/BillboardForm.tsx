@@ -21,6 +21,14 @@ const billboardFormSchema = z.object({
   id: z.string().min(3, "Billboard ID must be at least 3 characters").regex(/^[A-Za-z0-9_-]+$/, "Alphanumerics, hyphens, and underscores only"),
   name: z.string().min(3, "Billboard name must be at least 3 characters"),
   category: z.string().min(1, "Billboard category is required"),
+  start_range_dwelltime: z.preprocess(
+    (val) => (val === "" || val === undefined ? 4 : Number(val)),
+    z.number().min(0, "Start dwell time must be at least 0 seconds")
+  ),
+  end_range_dwelltime: z.preprocess(
+    (val) => (val === "" || val === undefined ? 12 : Number(val)),
+    z.number().min(0, "End dwell time must be at least 0 seconds")
+  ),
   latitude: z.preprocess(
     (val) => (val === "" ? undefined : Number(val)),
     z.number().min(-90, "Latitude must be between -90 and 90").max(90, "Latitude must be between -90 and 90")
@@ -30,6 +38,9 @@ const billboardFormSchema = z.object({
     z.number().min(-180, "Longitude must be between -180 and 180").max(180, "Longitude must be between -180 and 180")
   ),
   campaign: campaignSchema,
+}).refine((data) => Number(data.end_range_dwelltime) >= Number(data.start_range_dwelltime), {
+  message: "End Dwell Time cannot be lower than Start Dwell Time",
+  path: ["end_range_dwelltime"],
 });
 
 type BillboardFormValues = z.infer<typeof billboardFormSchema>;
@@ -50,6 +61,8 @@ export default function BillboardForm({
         id: initialValues.id,
         name: initialValues.name,
         category: initialValues.category,
+        start_range_dwelltime: initialValues.start_range_dwelltime ?? 4,
+        end_range_dwelltime: initialValues.end_range_dwelltime ?? 12,
         latitude: initialValues.latitude,
         longitude: initialValues.longitude,
         campaign: {
@@ -66,6 +79,8 @@ export default function BillboardForm({
         id: "",
         name: "",
         category: "Digital",
+        start_range_dwelltime: 4,
+        end_range_dwelltime: 12,
         latitude: 13.0827, // Default Chennai Lat
         longitude: 80.2707, // Default Chennai Lng
         campaign: {
@@ -228,6 +243,43 @@ export default function BillboardForm({
               </div>
               {errors.longitude && (
                 <p className="text-[10px] text-destructive mt-1 font-medium">{errors.longitude.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Dwell-Time Range Configuration */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Start Dwell Time (sec) <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="e.g. 4"
+                {...register("start_range_dwelltime")}
+                className="w-full text-xs bg-background/50 border border-border hover:border-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-3.5 py-2.5 outline-none transition-all duration-200 font-mono"
+              />
+              {errors.start_range_dwelltime && (
+                <p className="text-[10px] text-destructive mt-1 font-medium">{errors.start_range_dwelltime.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                End Dwell Time (sec) <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="e.g. 12"
+                {...register("end_range_dwelltime")}
+                className="w-full text-xs bg-background/50 border border-border hover:border-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-3.5 py-2.5 outline-none transition-all duration-200 font-mono"
+              />
+              {errors.end_range_dwelltime && (
+                <p className="text-[10px] text-destructive mt-1 font-medium">{errors.end_range_dwelltime.message}</p>
               )}
             </div>
           </div>

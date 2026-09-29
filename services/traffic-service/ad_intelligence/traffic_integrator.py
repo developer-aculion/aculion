@@ -65,7 +65,6 @@ class TrafficIntegrator:
             "luxury": 4,
             "commercial": 1,
             "flow_rate": 0.75,  # vehicles / sec
-            "avg_exposure_time": 8.5,
             "estimated_reach": 72
         }
 
@@ -105,7 +104,7 @@ class TrafficIntegrator:
                         except (ValueError, TypeError):
                             pass
 
-                float_fields = ["flow_rate", "avg_exposure_time"]
+                float_fields = ["flow_rate"]
                 for fld in float_fields:
                     val = t_data.get(fld)
                     if isinstance(val, (int, float, str)):
@@ -150,6 +149,5 @@ class TrafficIntegrator:
             buses_exposure=buses_exp,
             trucks_exposure=trucks_exp,
             commercial_exposure=comm_exp,
-            estimated_reach=reach_est,
-            avg_exposure_time=base_traffic["avg_exposure_time"]
+            estimated_reach=reach_est
         )

@@ -397,7 +397,12 @@ export default function LiveDashboard({
         setDbTrafficData(data);
         setAlerts(buildLiveAlerts(data));
         setLiveVehicles(Number(data.total_vehicles) || 0);
-        setLiveDwell(Number(data.avg_exposure_time) || 0);
+        const startDw = Number(selectedBillboard?.start_range_dwelltime) || 4;
+        const endDw = Number(selectedBillboard?.end_range_dwelltime) || 12;
+        const flow = Number(data.flow_rate) || 0;
+        const flowRatio = Math.min(1.0, Math.max(0.0, flow / 50.0));
+        const liveDw = Number(data.total_vehicles) > 0 ? Number((startDw + flowRatio * (endDw - startDw)).toFixed(1)) : 0;
+        setLiveDwell(liveDw);
 
         // Broadcast to iframe with exact billboard info
         document.querySelectorAll('iframe').forEach(frame => {
@@ -558,7 +563,7 @@ export default function LiveDashboard({
         try {
           const { data: bRec } = await supabase.from('billboards').select('billboard_code').eq('id', selectedBillboard.id).maybeSingle();
           if (bRec?.billboard_code) bbCode = bRec.billboard_code;
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!bbCode) bbCode = 'ACU-BB-0001';
 
@@ -761,6 +766,8 @@ export default function LiveDashboard({
         const dayRow = dayMap.get(dateStr);
         const dayHours = hourByDate.get(dateStr) || [];
 
+        const startDw = Number(selectedBillboard?.start_range_dwelltime) || 4;
+        const endDw = Number(selectedBillboard?.end_range_dwelltime) || 12;
         let dayMaxCount = 0;
         let dayPeakHour = null;
         let hSumV = 0, hSumBikes = 0, hSumComm = 0, hSumEcon = 0, hSumPrem = 0, hSumLux = 0, hSumReach = 0, hDwellSum = 0, hMaxDwell = 0;
@@ -768,9 +775,13 @@ export default function LiveDashboard({
         for (const h of dayHours) {
           const count = Number(h.total_vehicles) || 0;
           const hr = Number(h.hour);
+          const hrFlow = Number(h.flow_rate) || (count > 0 ? count / 60 : 0);
+          const hrRatio = Math.min(1.0, Math.max(0.0, hrFlow / 50.0));
+          const avgDw = count > 0 ? Number((startDw + hrRatio * (endDw - startDw)).toFixed(1)) : 0;
+
           if (hr >= 0 && hr < 24) {
             hourlyWindowTotals[hr] += count;
-            hourlyWindowDwell[hr] += (Number(h.avg_exposure_time) || 0) * count;
+            hourlyWindowDwell[hr] += avgDw * count;
           }
           hSumV += count;
           hSumBikes += Number(h.bikes) || 0;
@@ -779,9 +790,8 @@ export default function LiveDashboard({
           hSumPrem += Number(h.premium) || 0;
           hSumLux += (Number(h.luxury) || 0) + (Number(h.ultra_luxury) || 0);
           hSumReach += Number(h.estimated_reach) || 0;
-          const avgDw = Number(h.avg_exposure_time) || 0;
           hDwellSum += avgDw * count;
-          if (Number(h.max_exposure_time) > hMaxDwell) hMaxDwell = Number(h.max_exposure_time);
+          if (avgDw > hMaxDwell) hMaxDwell = avgDw;
           if (count > dayMaxCount) {
             dayMaxCount = count;
             dayPeakHour = hr;
@@ -800,8 +810,10 @@ export default function LiveDashboard({
           dPrem = Number(dayRow.premium) || 0;
           dLux = (Number(dayRow.luxury) || 0) + (Number(dayRow.ultra_luxury) || 0);
           dReach = Number(dayRow.estimated_reach) || Math.round(dayTotal * 2.4);
-          dAvgDwell = Number(dayRow.avg_exposure_time) || (dayTotal > 0 && hDwellSum > 0 ? hDwellSum / dayTotal : 0);
-          dMaxDwell = Number(dayRow.max_exposure_time) || hMaxDwell;
+          const dayFlow = Number(dayRow.flow_rate) || (dayTotal > 0 ? dayTotal / (18 * 60) : 0);
+          const dayRatio = Math.min(1.0, Math.max(0.0, dayFlow / 50.0));
+          dAvgDwell = dayTotal > 0 && hDwellSum > 0 ? (hDwellSum / dayTotal) : Number((startDw + dayRatio * (endDw - startDw)).toFixed(1));
+          dMaxDwell = hMaxDwell > 0 ? hMaxDwell : Number((startDw + Math.min(1.0, (dayMaxCount > 0 ? (dayMaxCount / 60) / 50.0 : dayRatio)) * (endDw - startDw)).toFixed(1));
           hasRecordedData = true;
 
           if (hSumV > dayTotal) {
@@ -836,8 +848,10 @@ export default function LiveDashboard({
           dPrem = Number(liveOverviewRow.premium) || 0;
           dLux = (Number(liveOverviewRow.luxury) || 0) + (Number(liveOverviewRow.ultra_luxury) || 0);
           dReach = Number(liveOverviewRow.estimated_reach) || Math.round(dayTotal * 2.4);
-          dAvgDwell = Number(liveOverviewRow.avg_exposure_time) || 0;
-          dMaxDwell = Number(liveOverviewRow.max_exposure_time) || 0;
+          const liveFlow = Number(liveOverviewRow.flow_rate) || 0;
+          const liveRatio = Math.min(1.0, Math.max(0.0, liveFlow / 50.0));
+          dAvgDwell = Number((startDw + liveRatio * (endDw - startDw)).toFixed(1));
+          dMaxDwell = dAvgDwell;
           hasRecordedData = true;
         }
 
@@ -878,6 +892,8 @@ export default function LiveDashboard({
       // Automated Sanity Check & Failsafe
       if (totalVehiclesSum === 0 && dayRows.some(r => Number(r.total_vehicles) > 0)) {
         console.warn("[downloadReportAsPDF] Sanity check: re-aggregating from raw traffic_day rows");
+        const startDw = Number(selectedBillboard?.start_range_dwelltime) || 4;
+        const endDw = Number(selectedBillboard?.end_range_dwelltime) || 12;
         dayRows.forEach(r => {
           const v = Number(r.total_vehicles) || 0;
           if (v > 0) {
@@ -888,8 +904,11 @@ export default function LiveDashboard({
             totalPremium += Number(r.premium || 0);
             totalLuxury += (Number(r.luxury || 0) + Number(r.ultra_luxury || 0));
             totalReach += Number(r.estimated_reach) || Math.round(v * 2.4);
-            dwellWeightedSum += (Number(r.avg_exposure_time) || 0) * v;
-            maxDwellOverall = Math.max(maxDwellOverall, Number(r.max_exposure_time) || 0);
+            const rFlow = Number(r.flow_rate) || (v > 0 ? v / (18 * 60) : 0);
+            const rRatio = Math.min(1.0, Math.max(0.0, rFlow / 50.0));
+            const rDw = Number((startDw + rRatio * (endDw - startDw)).toFixed(1));
+            dwellWeightedSum += rDw * v;
+            maxDwellOverall = Math.max(maxDwellOverall, rDw);
             activeDaysWithDataCount++;
           }
         });
@@ -920,9 +939,9 @@ export default function LiveDashboard({
       const categories = [
         { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: totalBikes, pct: sumVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
         { name: 'Commercial', desc: 'Freight vehicles and public transport', count: totalCommercial, pct: sumVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
-        { name: 'Economy', desc: 'Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
-        { name: 'Premium', desc: '15L to 1 Cr', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
-        { name: 'Luxury', desc: '1 Cr and above (incl. Ultra Luxury)', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
+        { name: 'Standard', desc: 'Passenger Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
+        { name: 'Premium', desc: 'Passenger Cars between 15 Lakhs to 60 Lakhs', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
+        { name: 'Luxury', desc: 'Passenger Cars above 60 Lakhs', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
       ];
 
       // ── Step 2: Location-Specific Geospatial Site Intelligence (1000m Buffer Zone) ──
@@ -1331,7 +1350,7 @@ export default function LiveDashboard({
         {
           label: 'AVERAGE DWELL DURATION',
           val: avgDwellCalculated > 0 ? `${avgDwellCalculated}s` : (isZeroTelemetry ? '—' : '0.0s'),
-          sub: maxDwellOverall > 0 ? `Max Exposure: ${maxDwellOverall.toFixed(1)}s` : 'Max Exposure: —',
+          sub: maxDwellOverall > 0 ? `Max Dwell: ${maxDwellOverall.toFixed(1)}s` : 'Max Dwell: —',
           col: '#2563eb'
         },
         {
@@ -1771,7 +1790,7 @@ export default function LiveDashboard({
       const benchmarks = [
         { metric: 'Observed Daily Traffic Volume', recorded: isZeroTelemetry ? '—' : `${dailyAvgTraffic.toLocaleString()} veh/day`, benchmark: '18,500 veh/day', variance: '+38% vs Market Avg', status: 'Exceptional (Top 10%)', col: '#059669' },
         { metric: 'High-End Vehicle Concentration (Premium + Luxury)', recorded: isZeroTelemetry ? '—' : `${highEndPct}%`, benchmark: '16.2%', variance: `+${(Number(highEndPct) - 16.2).toFixed(1)}% Index`, status: 'High Affluence Tier', col: '#2563eb' },
-        { metric: 'Average Exposure Dwell Time', recorded: `${avgDwellCalculated}s`, benchmark: '6.0s standard', variance: '+42% Extended Dwell', status: 'High Receptivity', col: '#059669' },
+        { metric: 'Average Dwell Time', recorded: `${avgDwellCalculated}s`, benchmark: '6.0s standard', variance: '+42% Extended Dwell', status: 'High Receptivity', col: '#059669' },
         { metric: 'Commercial Catchment POI Density', recorded: `${locAnalytics?.features?.poi_density || 185.4}/km²`, benchmark: '110.0/km²', variance: '+68% Density', status: 'Prime Retail Hub', col: '#7c3aed' },
         { metric: 'Catchment Land Use Mix Entropy', recorded: `${landUseEntropy}%`, benchmark: '65.0%', variance: '+24.2% Diversity', status: 'Balanced Mixed-Use', col: '#d97706' }
       ];
@@ -2077,8 +2096,13 @@ export default function LiveDashboard({
   const premiumPctVal = Math.min(100, Math.round((digitalScreensCount / (totalMediasCount || 1)) * 43) || 43);
 
   // 5. Avg. Dwell Time
-  const formattedDwellVal = dbTrafficData
-    ? `${dbTrafficData.avg_exposure_time} sec`
+  const liveStartDw = Number(selectedBillboard?.start_range_dwelltime) || 4;
+  const liveEndDw = Number(selectedBillboard?.end_range_dwelltime) || 12;
+  const liveFlowVal = Number(dbTrafficData?.flow_rate) || 0;
+  const liveFlowRatioVal = Math.min(1.0, Math.max(0.0, liveFlowVal / 50.0));
+  const dwellVal = Number((liveStartDw + liveFlowRatioVal * (liveEndDw - liveStartDw)).toFixed(1));
+  const formattedDwellVal = dbTrafficData && Number(dbTrafficData.total_vehicles) > 0
+    ? `${dwellVal} sec`
     : '0 sec';
 
   // Dynamic Media Health Breakdown
