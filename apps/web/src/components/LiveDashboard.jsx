@@ -940,8 +940,8 @@ export default function LiveDashboard({
         { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: totalBikes, pct: sumVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
         { name: 'Commercial', desc: 'Freight vehicles and public transport', count: totalCommercial, pct: sumVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
         { name: 'Standard', desc: 'Passenger Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
-        { name: 'Premium', desc: 'Cars between 15 Lakhs to 60 Lakhs', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
-        { name: 'Luxury', desc: 'Cars above 60 Lakhs', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
+        { name: 'Premium', desc: 'Passenger Cars between 15 Lakhs to 60 Lakhs', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
+        { name: 'Luxury', desc: 'Passenger Cars above 60 Lakhs', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
       ];
 
       // ── Step 2: Location-Specific Geospatial Site Intelligence (1000m Buffer Zone) ──

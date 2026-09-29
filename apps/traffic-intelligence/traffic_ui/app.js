@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
                 economy: { name: 'Standard', desc: 'Passenger Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
-                premium: { name: 'Premium', desc: 'Cars between 15 Lakhs to 60 Lakhs', count: 0, pct: 0, color: '#F59E0B' },
-                luxury: { name: 'Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#10B981' },
-                ultra_luxury: { name: 'Ultra Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#EF4444' }
+                premium: { name: 'Premium', desc: 'Passenger Cars between 15 Lakhs to 60 Lakhs', count: 0, pct: 0, color: '#F59E0B' },
+                luxury: { name: 'Luxury', desc: 'Passenger Cars above 60 Lakhs', count: 0, pct: 0, color: '#10B981' },
+                ultra_luxury: { name: 'Ultra Luxury', desc: 'Passenger Cars above 60 Lakhs', count: 0, pct: 0, color: '#EF4444' }
             },
             dwellStats: {
                 avg: 0.0,
@@ -1440,8 +1440,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Two-Wheelers & Scooters',
                         'Freight vehicles and public transport',
                         'Passenger Cars under 15 Lakhs',
-                        'Cars between 15 Lakhs to 60 Lakhs',
-                        'Cars above 60 Lakhs'
+                        'Passenger Cars between 15 Lakhs to 60 Lakhs',
+                        'Passenger Cars above 60 Lakhs'
                     ];
                     const val = series[seriesIndex];
                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
@@ -1571,8 +1571,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const names = ['Standard', 'Premium', 'Luxury'];
                     const descs = [
                         'Passenger Cars under 15 Lakhs',
-                        'Cars between 15 Lakhs to 60 Lakhs',
-                        'Cars above 60 Lakhs'
+                        'Passenger Cars between 15 Lakhs to 60 Lakhs',
+                        'Passenger Cars above 60 Lakhs'
                     ];
                     const val = series[seriesIndex];
                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
