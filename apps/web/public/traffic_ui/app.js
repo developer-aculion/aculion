@@ -617,13 +617,35 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Vehicle Distribution Chart footer
         const descDistEl = elements.summaryDescDistribution || document.getElementById('summary-desc-distribution');
         if (descDistEl) {
-            const dominantEl = document.getElementById('donut-dominant-class');
-            const dominantClass = (dominantEl && dominantEl.textContent && dominantEl.textContent !== '--') 
-                ? dominantEl.textContent 
-                : (bikes.count > 0 || commercial.count > 0 ? (bikes.count >= commercial.count ? 'Bike' : 'Commercial') : '--');
+            let maxClass = '--';
+            let maxCount = 0;
+            let maxPct = 0;
+            let highValCount = 0;
+
+            Object.keys(classes).forEach(k => {
+                const item = classes[k] || {};
+                const count = Number(item.count) || 0;
+                if (count > maxCount) {
+                    maxCount = count;
+                    maxClass = item.name || k;
+                }
+                if (['luxury', 'premium'].includes(k)) {
+                    highValCount += count;
+                }
+            });
+
+            if (total > 0 && maxCount > 0) {
+                maxPct = Math.round((maxCount / total) * 100);
+            } else if (total > 0 && bikes.pct > 0) {
+                maxClass = 'Bike';
+                maxPct = bikes.pct;
+            }
+
+            const highValPct = total > 0 ? Math.round((highValCount / total) * 100) : highValuePct;
+
             descDistEl.innerHTML = `
-                <span class="summary-sentence-line"><strong>${bikes.pct}%</strong> of traffic are bikes and <strong>${commercial.pct}%</strong> are commercial vehicles.</span>
-                <span class="summary-sentence-line"><strong>${dominantClass}</strong> is the dominant class, with high-value mix at <strong>${highValuePct}%</strong>.</span>
+                <span class="summary-sentence-line"><strong>${maxClass}</strong> recorded the maximum volume in this class at <strong>${maxPct}%</strong>.</span>
+                <span class="summary-sentence-line">High-value vehicle mix stands at <strong>${highValPct}%</strong> of total observed traffic.</span>
             `;
         }
 
@@ -690,20 +712,22 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        // 7. Vehicle Value Mix footer
+        // 7. Vehicle Value Mix footer (Comparative Data)
         const descValueMixEl = elements.summaryDescValueMix || elements.valueMixSummaryText || document.getElementById('value-mix-summary-text');
         if (descValueMixEl) {
             const econCount = Number(economy.count) || 0;
             const premCount = Number(premium.count) || 0;
             const luxCount = Number(luxury.count) || 0;
             const fourWheelerTotal = econCount + premCount + luxCount;
-            const premPct = fourWheelerTotal > 0 ? Math.round((premCount / fourWheelerTotal) * 100) : (premium.pct || 0);
-            const luxPct = fourWheelerTotal > 0 ? Math.round((luxCount / fourWheelerTotal) * 100) : (luxury.pct || 0);
-            const highValCombined = premPct + luxPct;
+
+            const econCarPct = fourWheelerTotal > 0 ? Math.round((econCount / fourWheelerTotal) * 100) : 0;
+            const premCarPct = fourWheelerTotal > 0 ? Math.round((premCount / fourWheelerTotal) * 100) : 0;
+            const luxCarPct = fourWheelerTotal > 0 ? Math.round((luxCount / fourWheelerTotal) * 100) : 0;
+            const dominantCarText = (fourWheelerTotal > 0 && (premCount + luxCount) > econCount) ? 'Premium and Luxury' : 'Standard';
 
             descValueMixEl.innerHTML = `
-                <span class="summary-sentence-line"><strong>${premPct}%</strong> of vehicles are Premium out of 100.</span>
-                <span class="summary-sentence-line">High-value segments combine for <strong>${highValCombined}%</strong> of passenger car audience purchasing power.</span>
+                <span class="summary-sentence-line">Most cars are <strong>${dominantCarText}</strong>.</span>
+                <span class="summary-sentence-line">Premium and Luxury cars are <strong>${affluentCarShare}%</strong> combined.</span>
             `;
         }
     }
@@ -930,10 +954,36 @@ document.addEventListener('DOMContentLoaded', () => {
             maxVehicles = Math.max(...populatedValues);
         }
 
+        // Calculate peak vehicle hour according to the last day (e.g. Tuesday / current day)
+        const lastDayInfo = (Array.isArray(daysWithDates) && daysWithDates.length > 0)
+            ? daysWithDates[daysWithDates.length - 1]
+            : null;
+        const lastDayDate = lastDayInfo ? lastDayInfo.date : null;
+        const lastDayName = lastDayInfo ? lastDayInfo.dayName : '';
+
         let peakHourNum = null;
         let peakCountVal = 0;
 
-        if (populatedValues.length > 0 && maxVehicles > 0) {
+        // 1. Calculate peak vehicle hour strictly according to the last day (e.g. Tuesday)
+        if (lastDayInfo && Array.isArray(rows) && rows.length > 0) {
+            rows.forEach(r => {
+                const h = Number(r.hour);
+                if (h >= 10 && h <= 20) {
+                    const matchDate = (lastDayDate && r.date === lastDayDate);
+                    const matchDay = (r.day === lastDayName);
+                    if (matchDate || matchDay) {
+                        const val = Number(r.total_vehicles) || 0;
+                        if (val > peakCountVal) {
+                            peakCountVal = val;
+                            peakHourNum = h;
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Fallback to overall week max if the last day has no recorded traffic
+        if (peakCountVal === 0 && populatedValues.length > 0 && maxVehicles > 0) {
             for (const r of rows) {
                 const h = Number(r.hour);
                 const val = Number(r.total_vehicles);
@@ -1016,7 +1066,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Database row exists
                     val = Number(rec.total_vehicles);
                     isZero = (val === 0);
-                    isPeak = (val === maxVehicles && maxVehicles > 0);
+                    const isLastDay = (lastDayDate ? dayDate === lastDayDate : dayName === lastDayName);
+                    if (peakCountVal > 0 && peakHourNum !== null) {
+                        isPeak = (isLastDay && hour === peakHourNum);
+                    } else {
+                        isPeak = (val === maxVehicles && maxVehicles > 0);
+                    }
 
                     // Clean cell without text number for compact visual matrix
                     cellEl.textContent = '';
@@ -1748,10 +1803,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.mixPctLuxury) elements.mixPctLuxury.textContent = `(${luxPct}%)`;
 
         if (elements.valueMixSummaryText) {
-            const highValCombined = premPct + luxPct;
+            const fourWheelerTotal = economyCount + premiumCount + luxuryCount;
+            const econCarPct = fourWheelerTotal > 0 ? Math.round((economyCount / fourWheelerTotal) * 100) : 0;
+            const premCarPct = fourWheelerTotal > 0 ? Math.round((premiumCount / fourWheelerTotal) * 100) : 0;
+            const luxCarPct = fourWheelerTotal > 0 ? Math.round((luxuryCount / fourWheelerTotal) * 100) : 0;
+            const dominantCarText = (fourWheelerTotal > 0 && (premiumCount + luxuryCount) > economyCount) ? 'Premium and Luxury' : 'Standard';
+
             elements.valueMixSummaryText.innerHTML = `
-                <span class="summary-sentence-line"><strong>${premPct}%</strong> of vehicles are Premium out of 100.</span>
-                <span class="summary-sentence-line">High-value segments combine for <strong>${highValCombined}%</strong> of passenger car audience purchasing power.</span>
+                <span class="summary-sentence-line">Most cars are <strong>${dominantCarText}</strong>.</span>
+                <span class="summary-sentence-line">Premium and Luxury cars are <strong>${affluentCarShare}%</strong> combined.</span>
             `;
         }
 
