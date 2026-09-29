@@ -67,10 +67,14 @@
                 <div class="filter-group">
                     <label>Vehicle Category</label>
                     <div class="checkbox-group">
-                        <label title="Two-Wheelers & Scooters"><input type="checkbox" id="catBikes" checked> Bike</label>
-                        <label title="Freight vehicles and public transport"><input type="checkbox" id="catCommercial" checked> Commercial</label>
-                        <label title="Cars under 15 Lakhs"><input type="checkbox" id="catEconomy" checked> Standard Cars</label>
-                        <label title="Cars between 15 Lakhs to 60 Lakhs"><input type="checkbox" id="catPremium" checked> Premium</label>
+                        <label title="Two-Wheelers & Scooters"><input type="checkbox" id="catBikes" checked>
+                            Bike</label>
+                        <label title="Freight vehicles and public transport"><input type="checkbox" id="catCommercial"
+                                checked> Commercial</label>
+                        <label title="Passenger Cars under 15 Lakhs"><input type="checkbox" id="catEconomy" checked>
+                            Standard</label>
+                        <label title="Cars between 15 Lakhs to 60 Lakhs"><input type="checkbox" id="catPremium" checked>
+                            Premium</label>
                         <label title="Cars above 60 Lakhs"><input type="checkbox" id="catLuxury" checked> Luxury</label>
                     </div>
                 </div>
@@ -301,11 +305,16 @@
                         </div>
                         <div class="trend-header-controls">
                             <div class="traffic-trend-legend-pills">
-                                <span class="trend-legend-pill" title="Two-Wheelers & Scooters"><span class="legend-dot" style="background:#1E88FF;"></span>Bike</span>
-                                <span class="trend-legend-pill" title="Freight vehicles and public transport"><span class="legend-dot" style="background:#00C4FF;"></span>Commercial</span>
-                                <span class="trend-legend-pill" title="Cars under 15 Lakhs"><span class="legend-dot" style="background:#8B5CF6;"></span>Standard Cars</span>
-                                <span class="trend-legend-pill" title="Cars between 15 Lakhs to 60 Lakhs"><span class="legend-dot" style="background:#F59E0B;"></span>Premium</span>
-                                <span class="trend-legend-pill" title="Cars above 60 Lakhs"><span class="legend-dot" style="background:#10B981;"></span>Luxury</span>
+                                <span class="trend-legend-pill" title="Two-Wheelers & Scooters"><span class="legend-dot"
+                                        style="background:#1E88FF;"></span>Bike</span>
+                                <span class="trend-legend-pill" title="Freight vehicles and public transport"><span
+                                        class="legend-dot" style="background:#00C4FF;"></span>Commercial</span>
+                                <span class="trend-legend-pill" title="Passenger Cars under 15 Lakhs"><span
+                                        class="legend-dot" style="background:#8B5CF6;"></span>Standard</span>
+                                <span class="trend-legend-pill" title="Cars between 15 Lakhs to 60 Lakhs"><span
+                                        class="legend-dot" style="background:#F59E0B;"></span>Premium</span>
+                                <span class="trend-legend-pill" title="Cars above 60 Lakhs"><span class="legend-dot"
+                                        style="background:#10B981;"></span>Luxury</span>
                             </div>
                             <div class="chart-controls-simple">
                                 <span class="live-dot-pulse"></span>
@@ -495,14 +504,15 @@
                                 </div>
                             </div>
 
-                            <!-- Standard Cars -->
-                            <div class="class-item" id="class-economy" title="Cars under 15 Lakhs" data-tooltip="Cars under 15 Lakhs">
+                            <!-- Standard -->
+                            <div class="class-item" id="class-economy" title="Passenger Cars under 15 Lakhs"
+                                data-tooltip="Passenger Cars under 15 Lakhs">
                                 <div class="class-info">
                                     <div class="class-name">
                                         <span class="class-emoji">🚗</span>
                                         <div class="class-label-group">
-                                            <span class="class-label">Standard Cars</span>
-                                            <span class="class-desc">Cars under 15 Lakhs</span>
+                                            <span class="class-label">Standard</span>
+                                            <span class="class-desc">Passenger Cars under 15 Lakhs</span>
                                         </div>
                                     </div>
                                     <div class="class-stats">
@@ -516,7 +526,8 @@
                             </div>
 
                             <!-- Premium -->
-                            <div class="class-item" id="class-premium" title="Cars between 15 Lakhs to 60 Lakhs" data-tooltip="Cars between 15 Lakhs to 60 Lakhs">
+                            <div class="class-item" id="class-premium" title="Cars between 15 Lakhs to 60 Lakhs"
+                                data-tooltip="Cars between 15 Lakhs to 60 Lakhs">
                                 <div class="class-info">
                                     <div class="class-name">
                                         <span class="class-emoji">🚙</span>
@@ -536,7 +547,8 @@
                             </div>
 
                             <!-- Luxury -->
-                            <div class="class-item" id="class-luxury" title="Cars above 60 Lakhs" data-tooltip="Cars above 60 Lakhs">
+                            <div class="class-item" id="class-luxury" title="Cars above 60 Lakhs"
+                                data-tooltip="Cars above 60 Lakhs">
                                 <div class="class-info">
                                     <div class="class-name">
                                         <span class="class-emoji">🏎</span>
@@ -570,13 +582,15 @@
                         </div>
                         <!-- Semi-Donut Dynamic Legend Strip -->
                         <div class="value-mix-legend" id="valueMixLegend">
-                            <div class="mix-legend-item" title="Cars under 15 Lakhs" data-tooltip="Cars under 15 Lakhs">
+                            <div class="mix-legend-item" title="Passenger Cars under 15 Lakhs"
+                                data-tooltip="Passenger Cars under 15 Lakhs">
                                 <span class="legend-color-dot" style="background-color: #8B5CF6;"></span>
-                                <span class="mix-legend-label">Standard Cars</span>
+                                <span class="mix-legend-label">Standard</span>
                                 <span class="mix-legend-count" id="mix-count-economy">0</span>
                                 <span class="mix-legend-pct" id="mix-pct-economy">(0%)</span>
                             </div>
-                            <div class="mix-legend-item" title="Cars between 15 Lakhs to 60 Lakhs" data-tooltip="Cars between 15 Lakhs to 60 Lakhs">
+                            <div class="mix-legend-item" title="Cars between 15 Lakhs to 60 Lakhs"
+                                data-tooltip="Cars between 15 Lakhs to 60 Lakhs">
                                 <span class="legend-color-dot" style="background-color: #F59E0B;"></span>
                                 <span class="mix-legend-label">Premium</span>
                                 <span class="mix-legend-count" id="mix-count-premium">0</span>
@@ -593,7 +607,8 @@
                         <div class="value-mix-summary-footer">
                             <div class="summary-sentence-box">
                                 <span class="summary-sentence-text" id="value-mix-summary-text">
-                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out of 100.
+                                    <strong id="mix-premium-percentage-display">0%</strong> of vehicles are Premium out
+                                    of 100.
                                 </span>
                             </div>
                         </div>

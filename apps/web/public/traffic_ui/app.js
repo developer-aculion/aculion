@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             classes: {
                 bikes: { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: 0, pct: 0, color: '#1E88FF' },
                 commercial: { name: 'Commercial', desc: 'Freight vehicles and public transport', count: 0, pct: 0, color: '#00C4FF' },
-                economy: { name: 'Standard Cars', desc: 'Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
+                economy: { name: 'Standard', desc: 'Passenger Cars under 15 Lakhs', count: 0, pct: 0, color: '#8B5CF6' },
                 premium: { name: 'Premium', desc: 'Cars between 15 Lakhs to 60 Lakhs', count: 0, pct: 0, color: '#F59E0B' },
                 luxury: { name: 'Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#10B981' },
                 ultra_luxury: { name: 'Ultra Luxury', desc: 'Cars above 60 Lakhs', count: 0, pct: 0, color: '#EF4444' }
@@ -422,9 +422,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isManual) {
             try {
                 if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ 
+                    window.parent.postMessage({
                         type: 'ACULION_REFRESH_TRAFFIC_DATA',
-                        billboard_code: activeBillboardCode 
+                        billboard_code: activeBillboardCode
                     }, '*');
                 }
             } catch (e) {
@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let topClass = 'Standard Cars';
+        let topClass = 'Standard';
         let maxCount = 0;
         Object.keys(state.stats.classes).forEach(k => {
             if (state.stats.classes[k].count > maxCount) {
@@ -1365,7 +1365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 classes.premium.count,
                 classes.luxury.count
             ],
-            labels: ['Bike', 'Commercial', 'Standard Cars', 'Premium', 'Luxury'],
+            labels: ['Bike', 'Commercial', 'Standard', 'Premium', 'Luxury'],
             chart: {
                 type: 'donut',
                 width: '100%',
@@ -1434,12 +1434,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             tooltip: {
-                custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                    const names = ['Bike', 'Commercial', 'Standard Cars', 'Premium', 'Luxury'];
+                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                    const names = ['Bike', 'Commercial', 'Standard', 'Premium', 'Luxury'];
                     const descs = [
                         'Two-Wheelers & Scooters',
                         'Freight vehicles and public transport',
-                        'Cars under 15 Lakhs',
+                        'Passenger Cars under 15 Lakhs',
                         'Cars between 15 Lakhs to 60 Lakhs',
                         'Cars above 60 Lakhs'
                     ];
@@ -1489,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const options = {
             series: [economyCount, premiumCount, luxuryCount],
-            labels: ['Standard Cars', 'Premium', 'Luxury'],
+            labels: ['Standard', 'Premium', 'Luxury'],
             chart: {
                 type: 'donut',
                 width: '100%',
@@ -1506,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             theme: { mode: 'dark' },
             colors: [
-                '#8B5CF6', // Standard Cars - Purple
+                '#8B5CF6', // Standard - Purple
                 '#F59E0B', // Premium - Amber/Orange
                 '#10B981'  // Luxury - Emerald Green
             ],
@@ -1567,10 +1567,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             tooltip: {
-                custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                    const names = ['Standard Cars', 'Premium', 'Luxury'];
+                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                    const names = ['Standard', 'Premium', 'Luxury'];
                     const descs = [
-                        'Cars under 15 Lakhs',
+                        'Passenger Cars under 15 Lakhs',
                         'Cars between 15 Lakhs to 60 Lakhs',
                         'Cars above 60 Lakhs'
                     ];
@@ -1770,8 +1770,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const seriesData = dataToRender.map(d => Number(d.totalVehicles) || 0);
         const lastIndex = seriesData.length - 1;
-        const totalSum = (weeklyTotal !== undefined && weeklyTotal !== null && weeklyTotal > 0) 
-            ? weeklyTotal 
+        const totalSum = (weeklyTotal !== undefined && weeklyTotal !== null && weeklyTotal > 0)
+            ? weeklyTotal
             : seriesData.reduce((acc, v) => acc + v, 0);
         const dailyAvg = totalSum > 0 ? Math.round(totalSum / 7) : 0;
 
@@ -1985,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
             series: [
                 { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                { name: 'Standard Cars', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Standard', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                 { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
             ],
@@ -2063,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 series: [
                     { name: 'Bike', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Commercial', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-                    { name: 'Standard Cars', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                    { name: 'Standard', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Premium', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
                     { name: 'Luxury', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
                 ]
@@ -2100,7 +2100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 series: [
                     { name: 'Bike', data: bikes },
                     { name: 'Commercial', data: commercial },
-                    { name: 'Standard Cars', data: economy },
+                    { name: 'Standard', data: economy },
                     { name: 'Premium', data: premium },
                     { name: 'Luxury', data: luxury }
                 ]
@@ -2120,7 +2120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatedSeries = [
             { name: 'Bike', data: [bBase * 0.6, bBase * 0.8, bBase * 0.75, bBase * 0.9, bBase * 1.1, bBase * 0.95, bBase * 1.2, bBase * 1.4, bBase * 1.3, bBase].map(Math.round) },
             { name: 'Commercial', data: [cBase * 0.7, cBase * 0.9, cBase * 1.0, cBase * 0.95, cBase * 0.8, cBase * 0.75, cBase * 0.9, cBase * 1.1, cBase * 1.0, cBase].map(Math.round) },
-            { name: 'Standard Cars', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
+            { name: 'Standard', data: [eBase * 0.6, eBase * 0.75, eBase * 0.7, eBase * 0.85, eBase * 0.95, eBase * 0.8, eBase * 1.05, eBase * 1.2, eBase * 1.1, eBase].map(Math.round) },
             { name: 'Premium', data: [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round) },
             { name: 'Luxury', data: [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round) }
         ];
@@ -2477,7 +2477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Query selected date row for the active billboard
             const queryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${selectedDate}&limit=1&_nocache=${Date.now()}`;
-            
+
             // Query yesterday row in IST for percentage change calculation
             const yesterdayDate = getYesterdayIST(selectedDate);
             const yesterdayQueryUrl = `https://buqtshfptmqieaqcghfx.supabase.co/rest/v1/traffic_overview?select=*&billboard_code=eq.${encodeURIComponent(cleanCode)}&stat_date=eq.${yesterdayDate}&limit=1`;
@@ -2728,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateDashboardWithLiveData(row, cleanCode, yesterdayRow, hourlyDataList, historyDataList);
                     fetchWeeklyPeakTraffic(cleanCode);
                     fetchAndRenderPeakTrafficAnalysis(cleanCode, selectedDate);
-                    
+
                     // Offline detection: if last_updated is older than 180s and is_live is false
                     const lastUpdatedTimeMs = row.last_updated ? new Date(row.last_updated).getTime() : 0;
                     const diffSeconds = (Date.now() - lastUpdatedTimeMs) / 1000;
@@ -2893,7 +2893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.stats.classes.bikes.count = bikeCount;          // Bike
         state.stats.classes.commercial.count = commercialCount; // Commercial
-        state.stats.classes.economy.count = economyCount;       // Standard Cars (from DB economy column)
+        state.stats.classes.economy.count = economyCount;       // Standard (from DB economy column)
         state.stats.classes.premium.count = premiumCount;       // Premium
         state.stats.classes.luxury.count = totalLuxuryCount;    // Luxury + Ultra Luxury
         state.stats.classes.ultra_luxury.count = ultraLuxuryCount; // Ultra Luxury

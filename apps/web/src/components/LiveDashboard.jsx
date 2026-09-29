@@ -563,7 +563,7 @@ export default function LiveDashboard({
         try {
           const { data: bRec } = await supabase.from('billboards').select('billboard_code').eq('id', selectedBillboard.id).maybeSingle();
           if (bRec?.billboard_code) bbCode = bRec.billboard_code;
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!bbCode) bbCode = 'ACU-BB-0001';
 
@@ -939,7 +939,7 @@ export default function LiveDashboard({
       const categories = [
         { name: 'Bike', desc: 'Two-Wheelers & Scooters', count: totalBikes, pct: sumVehicles > 0 ? +((totalBikes / divisorV) * 100).toFixed(1) : 0, color: '#2563EB' },
         { name: 'Commercial', desc: 'Freight vehicles and public transport', count: totalCommercial, pct: sumVehicles > 0 ? +((totalCommercial / divisorV) * 100).toFixed(1) : 0, color: '#0284C7' },
-        { name: 'Standard Cars', desc: 'Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
+        { name: 'Standard', desc: 'Passenger Cars under 15 Lakhs', count: totalEconomy, pct: sumVehicles > 0 ? +((totalEconomy / divisorV) * 100).toFixed(1) : 0, color: '#7C3AED' },
         { name: 'Premium', desc: 'Cars between 15 Lakhs to 60 Lakhs', count: totalPremium, pct: sumVehicles > 0 ? +((totalPremium / divisorV) * 100).toFixed(1) : 0, color: '#D97706' },
         { name: 'Luxury', desc: 'Cars above 60 Lakhs', count: totalLuxury, pct: sumVehicles > 0 ? +((totalLuxury / divisorV) * 100).toFixed(1) : 0, color: '#059669' }
       ];
