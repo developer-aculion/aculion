@@ -662,6 +662,52 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Bottom Trend Chart: High-Value Segment (Premium vs Luxury) for Current Running Day -->
+                <div class="glass-panel analytics-card trend-chart-panel col-span-full" id="prem-lux-trend-card">
+                    <div class="card-header">
+                        <div class="header-info">
+                            <h2>High-Value Vehicle Mix Trend (Premium &amp; Luxury)</h2>
+                            <p class="card-subtitle">Real-time combined vehicle flow rates for high-value segments on the currently running day</p>
+                        </div>
+                        <div class="trend-header-controls">
+                            <!-- Toggle Button Pill: Single Line (Combined) vs Split (2 Lines) -->
+                            <div class="trend-mode-toggle" id="premLuxModeToggle" style="display: inline-flex; align-items: center; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 2px; gap: 2px;">
+                                <button type="button" id="btnModeSingle" class="trend-toggle-btn active" style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                    Single Line (Combined)
+                                </button>
+                                <button type="button" id="btnModeSplit" class="trend-toggle-btn" style="background: transparent; color: #94a3b8; border: 1px solid transparent; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    Split (2 Lines)
+                                </button>
+                            </div>
+                            <!-- Live Running Day Leader Pill -->
+                            <div class="trend-summary-stat-box" id="premLuxLeaderBadge" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35);">
+                                <span class="trend-stat-label">Currently Higher:</span>
+                                <span class="trend-stat-value" id="premLuxLeaderText" style="color: #F59E0B;">Evaluating...</span>
+                            </div>
+                            <div class="traffic-trend-legend-pills" id="premLuxLegendPills">
+                                <span class="trend-legend-pill" title="Combined High-Value Vehicles (Premium + Luxury)">
+                                    <span class="legend-dot" style="background:#F59E0B;"></span>High-Value Mix (Premium + Luxury)
+                                </span>
+                            </div>
+                            <div class="chart-controls-simple">
+                                <span class="live-dot-pulse"></span>
+                                <span class="pulse-text">Live Syncing</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="trend-chart-container">
+                        <div id="premiumLuxuryTrendLineChart"></div>
+                    </div>
+                    <!-- Feature Footer Summary -->
+                    <div class="feature-footer-summary">
+                        <div class="summary-sentence-box">
+                            <div class="summary-sentence-text" id="summary-desc-prem-lux-trend">
+                                <span class="summary-sentence-line">Real-time high-value flow rate is currently <strong>0.0 veh/hr</strong> across <strong>0</strong> arrivals • Evaluating whether Premium or Luxury vehicles lead in today's running traffic...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>

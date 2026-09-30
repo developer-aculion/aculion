@@ -106,7 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
         spawnChance: 0, // only spawn vehicles on canvas when live traffic exists
 
         // Chart Instances
-        charts: {}
+        charts: {},
+
+        // High-Value Mix Trend Mode ('single' or 'split')
+        premLuxMode: 'single',
+        premLuxCache: { categories: [], premData: [], luxData: [], mixData: [] }
     };
 
     // --- Dom Elements ---
@@ -2376,12 +2380,434 @@ document.addEventListener('DOMContentLoaded', () => {
             xaxis: { categories: newCats },
             series: updatedSeries
         }, false, false);
+
+        // Step High-Value (Premium vs Luxury / High-Value Mix) stream in tandem
+        if (state.charts.premLuxTrend && (pBase > 0 || lBase > 0)) {
+            const premLuxChart = state.charts.premLuxTrend;
+            const plCats = [...(state.premLuxCache?.categories || premLuxChart.w.config.xaxis.categories || [])];
+            plCats.push(timeStr);
+            if (plCats.length > 10) plCats.shift();
+
+            const pPoint = Math.max(0, Math.round(pBase + (Math.random() - 0.5) * Math.max(2, pBase * 0.12)));
+            const lPoint = Math.max(0, Math.round(lBase + (Math.random() - 0.5) * Math.max(2, lBase * 0.12)));
+            const mixPoint = pPoint + lPoint;
+
+            const curPrem = [...(state.premLuxCache?.premData || [pBase]).slice(-9), pPoint];
+            const curLux = [...(state.premLuxCache?.luxData || [lBase]).slice(-9), lPoint];
+            const curMix = [...(state.premLuxCache?.mixData || [pBase + lBase]).slice(-9), mixPoint];
+
+            state.premLuxCache = {
+                categories: plCats,
+                premData: curPrem,
+                luxData: curLux,
+                mixData: curMix
+            };
+
+            if (state.premLuxMode === 'single') {
+                premLuxChart.updateOptions({
+                    xaxis: { categories: plCats },
+                    series: [{ name: 'High-Value Mix', data: curMix }],
+                    colors: ['#F59E0B'],
+                    stroke: { width: 3.0 }
+                }, false, false);
+            } else {
+                premLuxChart.updateOptions({
+                    xaxis: { categories: plCats },
+                    series: [
+                        { name: 'Premium', data: curPrem },
+                        { name: 'Luxury', data: curLux }
+                    ],
+                    colors: ['#F59E0B', '#10B981'],
+                    stroke: { width: 2.8 }
+                }, false, false);
+            }
+        }
     }
 
     if (window.__trendStreamInterval) {
         clearInterval(window.__trendStreamInterval);
     }
     window.__trendStreamInterval = setInterval(stepTrafficTrendStream, 5000);
+
+    // --- High-Value Segment: Premium vs. Luxury Running Day Traffic Trend Chart ---
+    function initPremiumLuxuryTrendChart() {
+        const container = document.querySelector("#premiumLuxuryTrendLineChart");
+        if (!container) return;
+
+        const initialCats = generateTimeWindowCategories(10, 30);
+        state.premLuxCache = {
+            categories: initialCats,
+            premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            luxData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            mixData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        };
+
+        const options = {
+            series: state.premLuxMode === 'single'
+                ? [{ name: 'High-Value Mix', data: state.premLuxCache.mixData }]
+                : [
+                    { name: 'Premium', data: state.premLuxCache.premData },
+                    { name: 'Luxury', data: state.premLuxCache.luxData }
+                ],
+            chart: {
+                type: 'line',
+                width: '100%',
+                height: 280,
+                background: 'transparent',
+                foreColor: '#94a3b8',
+                toolbar: { show: false },
+                zoom: { enabled: false },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 600,
+                    dynamicAnimation: { enabled: true, speed: 400 }
+                }
+            },
+            colors: state.premLuxMode === 'single' ? ['#F59E0B'] : ['#F59E0B', '#10B981'],
+            stroke: {
+                curve: 'smooth',
+                width: state.premLuxMode === 'single' ? 3.0 : 2.8,
+                lineCap: 'round'
+            },
+            grid: {
+                borderColor: 'rgba(255, 255, 255, 0.05)',
+                xaxis: { lines: { show: false } },
+                yaxis: { lines: { show: true } },
+                padding: { top: 0, right: 18, bottom: 0, left: 10 }
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            xaxis: {
+                categories: initialCats,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Outfit, monospace' }
+                }
+            },
+            yaxis: {
+                title: {
+                    text: 'Vehicles / Interval',
+                    style: { color: '#94a3b8', fontSize: '11px', fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 600 }
+                },
+                min: 0,
+                labels: {
+                    style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Outfit, monospace' },
+                    formatter: (val) => Math.round(val)
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                shared: true,
+                intersect: false,
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const cat = (w.globals.categoryLabels && w.globals.categoryLabels[dataPointIndex]) || (state.premLuxCache.categories && state.premLuxCache.categories[dataPointIndex]) || '';
+                    const cache = state.premLuxCache;
+                    const pVal = (cache.premData && cache.premData[dataPointIndex] !== undefined) ? cache.premData[dataPointIndex] : 0;
+                    const lVal = (cache.luxData && cache.luxData[dataPointIndex] !== undefined) ? cache.luxData[dataPointIndex] : 0;
+                    const mixVal = (cache.mixData && cache.mixData[dataPointIndex] !== undefined) ? cache.mixData[dataPointIndex] : (pVal + lVal);
+                    const tot = pVal + lVal;
+                    const pPct = tot > 0 ? Math.round((pVal / tot) * 100) : 50;
+                    const lPct = tot > 0 ? (100 - pPct) : 50;
+                    const isPrem = pVal > lVal;
+                    const isLux = lVal > pVal;
+                    const leadText = isPrem 
+                        ? `<span style="color:#F59E0B;font-weight:700;">Premium (+${Math.round(((pVal - lVal)/Math.max(1,lVal))*100)}%)</span>`
+                        : (isLux 
+                            ? `<span style="color:#10B981;font-weight:700;">Luxury (+${Math.round(((lVal - pVal)/Math.max(1,pVal))*100)}%)</span>`
+                            : `<span style="color:#38bdf8;font-weight:700;">Evenly Balanced</span>`);
+
+                    return `
+                        <div style="background: rgba(15, 23, 42, 0.96); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px 14px; box-shadow: 0 12px 28px rgba(0,0,0,0.55); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; min-width: 220px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 8px;">
+                                <span style="color:#94a3b8; font-family:'Outfit',monospace; font-size:11px;">${cat}</span>
+                                <span style="color:#38bdf8; font-size:10px; font-weight:700;">IST (Running Day)</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                                <span style="color:#F59E0B; font-weight:700; display:flex; align-items:center; gap:6px;">
+                                    <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block;"></span>
+                                    High-Value Mix:
+                                </span>
+                                <span style="color:#ffffff; font-weight:800; font-family:'Outfit',monospace; font-size:12px;">${mixVal.toLocaleString()} veh</span>
+                            </div>
+                            <div style="padding-left: 14px; border-left: 2px solid rgba(245, 158, 11, 0.35); margin-bottom: 8px; display:flex; flex-direction:column; gap:3px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#cbd5e1;">↳ Premium:</span>
+                                    <span style="color:#F59E0B; font-family:'Outfit',monospace; font-weight:600;">${pVal.toLocaleString()} veh (${pPct}%)</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#cbd5e1;">↳ Luxury:</span>
+                                    <span style="color:#10B981; font-family:'Outfit',monospace; font-weight:600;">${lVal.toLocaleString()} veh (${lPct}%)</span>
+                                </div>
+                            </div>
+                            <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; display:flex; justify-content:space-between; align-items:center; font-size:10.5px;">
+                                <span style="color:#94a3b8;">Current Leader:</span>
+                                ${leadText}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        container.innerHTML = '';
+        state.charts.premLuxTrend = new ApexCharts(container, options);
+        state.charts.premLuxTrend.render();
+
+        // Attach listeners to Toggle Buttons
+        const btnSingle = document.getElementById('btnModeSingle');
+        const btnSplit = document.getElementById('btnModeSplit');
+        const legendPills = document.getElementById('premLuxLegendPills');
+
+        function switchMode(mode) {
+            state.premLuxMode = mode;
+            if (mode === 'single') {
+                if (btnSingle) {
+                    btnSingle.classList.add('active');
+                    btnSingle.style.background = 'rgba(245, 158, 11, 0.2)';
+                    btnSingle.style.color = '#F59E0B';
+                    btnSingle.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+                }
+                if (btnSplit) {
+                    btnSplit.classList.remove('active');
+                    btnSplit.style.background = 'transparent';
+                    btnSplit.style.color = '#94a3b8';
+                    btnSplit.style.borderColor = 'transparent';
+                }
+                if (legendPills) {
+                    legendPills.innerHTML = `
+                        <span class="trend-legend-pill" title="Combined High-Value Vehicles (Premium + Luxury)">
+                            <span class="legend-dot" style="background:#F59E0B;"></span>High-Value Mix (Premium + Luxury)
+                        </span>
+                    `;
+                }
+                if (state.charts.premLuxTrend) {
+                    state.charts.premLuxTrend.updateOptions({
+                        series: [{ name: 'High-Value Mix', data: state.premLuxCache.mixData }],
+                        colors: ['#F59E0B'],
+                        stroke: { width: 3.0 }
+                    }, false, false);
+                }
+            } else {
+                if (btnSplit) {
+                    btnSplit.classList.add('active');
+                    btnSplit.style.background = 'rgba(16, 185, 129, 0.2)';
+                    btnSplit.style.color = '#10B981';
+                    btnSplit.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+                }
+                if (btnSingle) {
+                    btnSingle.classList.remove('active');
+                    btnSingle.style.background = 'transparent';
+                    btnSingle.style.color = '#94a3b8';
+                    btnSingle.style.borderColor = 'transparent';
+                }
+                if (legendPills) {
+                    legendPills.innerHTML = `
+                        <span class="trend-legend-pill">
+                            <span class="legend-dot" style="background:#F59E0B;"></span>Premium
+                        </span>
+                        <span class="trend-legend-pill">
+                            <span class="legend-dot" style="background:#10B981;"></span>Luxury
+                        </span>
+                    `;
+                }
+                if (state.charts.premLuxTrend) {
+                    state.charts.premLuxTrend.updateOptions({
+                        series: [
+                            { name: 'Premium', data: state.premLuxCache.premData },
+                            { name: 'Luxury', data: state.premLuxCache.luxData }
+                        ],
+                        colors: ['#F59E0B', '#10B981'],
+                        stroke: { width: 2.8 }
+                    }, false, false);
+                }
+            }
+        }
+
+        if (btnSingle) {
+            btnSingle.onclick = () => switchMode('single');
+        }
+        if (btnSplit) {
+            btnSplit.onclick = () => switchMode('split');
+        }
+    }
+
+    function updatePremiumLuxuryTrendChart(historyRows = null, liveRow = null, hourlyRows = null) {
+        if (!state.charts.premLuxTrend) return;
+
+        const pCount = Number(state.stats.classes.premium.count) || (liveRow ? Number(liveRow.premium) : 0) || 0;
+        const lCount = Number(state.stats.classes.luxury.count) || (liveRow ? (Number(liveRow.luxury) || 0) + (Number(liveRow.ultra_luxury) || 0) : 0) || 0;
+        const totalHV = pCount + lCount;
+
+        const leaderBadgeEl = document.getElementById('premLuxLeaderBadge');
+        const leaderTextEl = document.getElementById('premLuxLeaderText');
+        const descTrendEl = document.getElementById('summary-desc-prem-lux-trend');
+
+        const isPremHigher = pCount > lCount;
+        const isLuxHigher = lCount > pCount;
+
+        const pPct = totalHV > 0 ? Math.round((pCount / totalHV) * 100) : 50;
+        const lPct = totalHV > 0 ? (100 - pPct) : 50;
+
+        const totalVeh = Number(state.stats.totalVehicles) || (liveRow ? Number(liveRow.total_vehicles) : 0) || 0;
+        const totalFlow = Number(state.stats.flowRate) || (liveRow ? Number(liveRow.flow_rate) : 0) || 0;
+        const hvRatio = totalVeh > 0 ? (totalHV / totalVeh) : 0.15;
+        const hvFlow = (totalFlow * hvRatio);
+
+        if (leaderTextEl && leaderBadgeEl) {
+            if (totalHV === 0) {
+                leaderTextEl.textContent = 'Awaiting Traffic';
+                leaderTextEl.style.color = '#94a3b8';
+                leaderBadgeEl.style.background = 'rgba(148, 163, 184, 0.1)';
+                leaderBadgeEl.style.borderColor = 'rgba(148, 163, 184, 0.25)';
+            } else if (isPremHigher) {
+                const diffPct = Math.round(((pCount - lCount) / Math.max(1, lCount)) * 100);
+                leaderTextEl.textContent = `Premium Leading (+${diffPct}%)`;
+                leaderTextEl.style.color = '#F59E0B';
+                leaderBadgeEl.style.background = 'rgba(245, 158, 11, 0.12)';
+                leaderBadgeEl.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+            } else if (isLuxHigher) {
+                const diffPct = Math.round(((lCount - pCount) / Math.max(1, pCount)) * 100);
+                leaderTextEl.textContent = `Luxury Leading (+${diffPct}%)`;
+                leaderTextEl.style.color = '#10B981';
+                leaderBadgeEl.style.background = 'rgba(16, 185, 129, 0.12)';
+                leaderBadgeEl.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+            } else {
+                leaderTextEl.textContent = 'Evenly Balanced (50% / 50%)';
+                leaderTextEl.style.color = '#38bdf8';
+                leaderBadgeEl.style.background = 'rgba(56, 189, 248, 0.12)';
+                leaderBadgeEl.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+            }
+        }
+
+        if (descTrendEl) {
+            if (totalHV === 0) {
+                descTrendEl.innerHTML = `
+                    <span class="summary-sentence-line">Real-time high-value flow rate is currently <strong>0.0 veh/hr</strong> across <strong>0</strong> arrivals • Awaiting vehicle sensor detections for today's running day.</span>
+                `;
+            } else if (isPremHigher) {
+                descTrendEl.innerHTML = `
+                    <span class="summary-sentence-line">Real-time high-value flow rate is currently <strong>${hvFlow.toFixed(1)} veh/hr</strong> across <strong>${formatIndianNumber(totalHV)}</strong> tracked high-value arrivals • In today's running traffic, <strong>Premium is higher</strong> at <strong>${pPct}%</strong> (${formatIndianNumber(pCount)} veh) vs. <strong>Luxury at ${lPct}%</strong> (${formatIndianNumber(lCount)} veh), leading by <strong>+${formatIndianNumber(pCount - lCount)} vehicles</strong>.</span>
+                `;
+            } else if (isLuxHigher) {
+                descTrendEl.innerHTML = `
+                    <span class="summary-sentence-line">Real-time high-value flow rate is currently <strong>${hvFlow.toFixed(1)} veh/hr</strong> across <strong>${formatIndianNumber(totalHV)}</strong> tracked high-value arrivals • In today's running traffic, <strong>Luxury is higher</strong> at <strong>${lPct}%</strong> (${formatIndianNumber(lCount)} veh) vs. <strong>Premium at ${pPct}%</strong> (${formatIndianNumber(pCount)} veh), leading by <strong>+${formatIndianNumber(lCount - pCount)} vehicles</strong>.</span>
+                `;
+            } else {
+                descTrendEl.innerHTML = `
+                    <span class="summary-sentence-line">Real-time high-value flow rate is currently <strong>${hvFlow.toFixed(1)} veh/hr</strong> across <strong>${formatIndianNumber(totalHV)}</strong> tracked high-value arrivals • Premium and Luxury vehicles are evenly balanced at <strong>50%</strong> each (${formatIndianNumber(pCount)} veh each) in today's running traffic.</span>
+                `;
+            }
+        }
+
+        if (totalVeh === 0 && totalHV === 0) {
+            const initialCats = generateTimeWindowCategories(10, 30);
+            state.premLuxCache = {
+                categories: initialCats,
+                premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                luxData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                mixData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            };
+            if (state.premLuxMode === 'single') {
+                state.charts.premLuxTrend.updateOptions({
+                    xaxis: { categories: initialCats },
+                    series: [{ name: 'High-Value Mix', data: state.premLuxCache.mixData }],
+                    colors: ['#F59E0B'],
+                    stroke: { width: 3.0 }
+                }, false, false);
+            } else {
+                state.charts.premLuxTrend.updateOptions({
+                    xaxis: { categories: initialCats },
+                    series: [
+                        { name: 'Premium', data: state.premLuxCache.premData },
+                        { name: 'Luxury', data: state.premLuxCache.luxData }
+                    ],
+                    colors: ['#F59E0B', '#10B981'],
+                    stroke: { width: 2.8 }
+                }, false, false);
+            }
+            return;
+        }
+
+        if (Array.isArray(historyRows) && historyRows.length >= 4) {
+            const sorted = [...historyRows].sort((a, b) => new Date(a.recorded_at || a.last_updated) - new Date(b.recorded_at || b.last_updated));
+            const recent = sorted.slice(-10);
+
+            const categories = [];
+            const premData = [];
+            const luxData = [];
+            const mixData = [];
+
+            recent.forEach(r => {
+                const dt = new Date(r.recorded_at || r.last_updated || Date.now());
+                const timeStr = dt.toLocaleTimeString('en-US', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+                categories.push(timeStr);
+                const p = Number(r.premium) || 0;
+                const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                premData.push(p);
+                luxData.push(l);
+                mixData.push(p + l);
+            });
+
+            state.premLuxCache = { categories, premData, luxData, mixData };
+
+            if (state.premLuxMode === 'single') {
+                state.charts.premLuxTrend.updateOptions({
+                    xaxis: { categories: categories },
+                    series: [{ name: 'High-Value Mix', data: mixData }],
+                    colors: ['#F59E0B'],
+                    stroke: { width: 3.0 }
+                }, false, false);
+            } else {
+                state.charts.premLuxTrend.updateOptions({
+                    xaxis: { categories: categories },
+                    series: [
+                        { name: 'Premium', data: premData },
+                        { name: 'Luxury', data: luxData }
+                    ],
+                    colors: ['#F59E0B', '#10B981'],
+                    stroke: { width: 2.8 }
+                }, false, false);
+            }
+            return;
+        }
+
+        const pBase = Math.max(1, Math.round(pCount / 45));
+        const lBase = Math.max(1, Math.round(lCount / 45));
+        const categories = generateTimeWindowCategories(10, 30);
+
+        const premData = [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round);
+        const luxData = [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round);
+        const mixData = premData.map((p, idx) => p + luxData[idx]);
+
+        state.premLuxCache = { categories, premData, luxData, mixData };
+
+        if (state.premLuxMode === 'single') {
+            state.charts.premLuxTrend.updateOptions({
+                xaxis: { categories: categories },
+                series: [{ name: 'High-Value Mix', data: mixData }],
+                colors: ['#F59E0B'],
+                stroke: { width: 3.0 }
+            }, false, false);
+        } else {
+            state.charts.premLuxTrend.updateOptions({
+                xaxis: { categories: categories },
+                series: [
+                    { name: 'Premium', data: premData },
+                    { name: 'Luxury', data: luxData }
+                ],
+                colors: ['#F59E0B', '#10B981'],
+                stroke: { width: 2.8 }
+            }, false, false);
+        }
+    }
 
     // --- CCTV Live Canvas Simulation ---
     const canvas = elements.canvas;
@@ -3006,6 +3432,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.charts.trendLine) {
                 updateTrafficTrendChart([], null, []);
             }
+            if (state.charts.premLuxTrend) {
+                updatePremiumLuxuryTrendChart([], null, []);
+            }
 
             if (state.charts.sparkVehicles) {
                 state.charts.sparkVehicles.updateSeries([{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0] }], false);
@@ -3224,6 +3653,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.charts.trendLine) {
                 updateTrafficTrendChart(historyDataList, data, hourlyDataList);
             }
+            if (state.charts.premLuxTrend) {
+                updatePremiumLuxuryTrendChart(historyDataList, data, hourlyDataList);
+            }
         }
     }
 
@@ -3390,6 +3822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initValueMixChart();
     initDwellAreaChart();
     initTrafficTrendChart();
+    initPremiumLuxuryTrendChart();
     initVehicleTrafficLast7DaysChart();
     fetchAndRenderPeakTrafficAnalysis(activeBillboardCode, selectedDate);
     fetchWeeklyPeakTraffic(activeBillboardCode);
