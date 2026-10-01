@@ -75,9 +75,19 @@ const formatHourTimestamp = (hour) => {
   return `${pad(h12)}:00 ${ampm}`;
 };
 
-// Operating hours for running day high-value trend: from 10:00 AM to 08:00 PM (night 8) only
-const OPERATING_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-const OPERATING_CATEGORIES = OPERATING_HOURS.map((h) => formatHourTimestamp(h));
+// Dynamic running-day operating hours: starts at 10:00 AM and extends dynamically up to current hour, capped at 08:00 PM (night 8)
+const getRunningOperatingHours = () => {
+  const currentHour = new Date().getHours();
+  const endHour = Math.min(20, Math.max(10, currentHour));
+  const hours = [];
+  for (let h = 10; h <= endHour; h++) {
+    hours.push(h);
+  }
+  return hours;
+};
+
+const ALL_PREM_MULTIPLIERS = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95];
+const ALL_LUX_MULTIPLIERS = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90];
 
 // Mock trend data for Audience Trend (7D & 30D)
 const TREND_DATA_7D = [
@@ -188,57 +198,58 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
 
           const pBase = Math.max(1, Math.round(curPrem / 45));
           const lBase = Math.max(1, Math.round(curLux / 45));
-          const pMultipliers = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95];
-          const lMultipliers = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90];
+          const operatingHours = getRunningOperatingHours();
+          const operatingCategories = operatingHours.map((h) => formatHourTimestamp(h));
 
           if (hourlyRows.length >= 2) {
-            // Priority 1: Hourly records from traffic_hour mapped to 10:00 AM - 08:00 PM
+            // Priority 1: Hourly records from traffic_hour mapped to running operating hours (10:00 AM up to current hour)
             const hourMap = new Map();
             hourlyRows.forEach((r) => hourMap.set(Number(r.hour), r));
-            const series = OPERATING_HOURS.map((h, idx) => {
-              const timeStr = OPERATING_CATEGORIES[idx];
+            const series = operatingHours.map((h, idx) => {
+              const timeStr = operatingCategories[idx];
               if (hourMap.has(h)) {
                 const r = hourMap.get(h);
                 const p = Number(r.premium) || 0;
                 const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
                 return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
               }
-              const p = Math.round(pBase * pMultipliers[idx]);
-              const l = Math.round(lBase * lMultipliers[idx]);
+              const p = Math.round(pBase * ALL_PREM_MULTIPLIERS[idx % ALL_PREM_MULTIPLIERS.length]);
+              const l = Math.round(lBase * ALL_LUX_MULTIPLIERS[idx % ALL_LUX_MULTIPLIERS.length]);
               return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
             });
             setTrendSeriesData(series);
           } else if (historyRows.length >= 4) {
-            // Priority 2: History snapshots mapped to 10:00 AM - 08:00 PM
+            // Priority 2: History snapshots mapped to running operating hours
             const hourMap = new Map();
+            const maxRunningHour = operatingHours[operatingHours.length - 1];
             historyRows.forEach((r) => {
               const dt = new Date(r.recorded_at || Date.now());
               const h = dt.getHours();
-              if (h >= 10 && h <= 20) {
+              if (h >= 10 && h <= maxRunningHour) {
                 hourMap.set(h, r);
               }
             });
 
             if (hourMap.size >= 2) {
-              const series = OPERATING_HOURS.map((h, idx) => {
-                const timeStr = OPERATING_CATEGORIES[idx];
+              const series = operatingHours.map((h, idx) => {
+                const timeStr = operatingCategories[idx];
                 if (hourMap.has(h)) {
                   const r = hourMap.get(h);
                   const p = Number(r.premium) || 0;
                   const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
                   return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
                 }
-                const p = Math.round(pBase * pMultipliers[idx]);
-                const l = Math.round(lBase * lMultipliers[idx]);
+                const p = Math.round(pBase * ALL_PREM_MULTIPLIERS[idx % ALL_PREM_MULTIPLIERS.length]);
+                const l = Math.round(lBase * ALL_LUX_MULTIPLIERS[idx % ALL_LUX_MULTIPLIERS.length]);
                 return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
               });
               setTrendSeriesData(series);
             } else {
-              // Priority 3: Fallback running-day curve scaled to current totals across 10:00 AM - 08:00 PM
-              const series = OPERATING_HOURS.map((h, idx) => {
-                const timeStr = OPERATING_CATEGORIES[idx];
-                const p = Math.round(pBase * pMultipliers[idx]);
-                const l = Math.round(lBase * lMultipliers[idx]);
+              // Priority 3: Fallback running-day curve scaled to current totals across running operating hours
+              const series = operatingHours.map((h, idx) => {
+                const timeStr = operatingCategories[idx];
+                const p = Math.round(pBase * ALL_PREM_MULTIPLIERS[idx % ALL_PREM_MULTIPLIERS.length]);
+                const l = Math.round(lBase * ALL_LUX_MULTIPLIERS[idx % ALL_LUX_MULTIPLIERS.length]);
                 return {
                   time: timeStr,
                   premium: p,
@@ -249,11 +260,11 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
               setTrendSeriesData(series);
             }
           } else {
-            // Priority 3: Fallback running-day curve scaled to current totals across 10:00 AM - 08:00 PM
-            const series = OPERATING_HOURS.map((h, idx) => {
-              const timeStr = OPERATING_CATEGORIES[idx];
-              const p = Math.round(pBase * pMultipliers[idx]);
-              const l = Math.round(lBase * lMultipliers[idx]);
+            // Priority 3: Fallback running-day curve scaled to current totals across running operating hours
+            const series = operatingHours.map((h, idx) => {
+              const timeStr = operatingCategories[idx];
+              const p = Math.round(pBase * ALL_PREM_MULTIPLIERS[idx % ALL_PREM_MULTIPLIERS.length]);
+              const l = Math.round(lBase * ALL_LUX_MULTIPLIERS[idx % ALL_LUX_MULTIPLIERS.length]);
               return {
                 time: timeStr,
                 premium: p,
