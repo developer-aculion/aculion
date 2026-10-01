@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body style="background:#0b101d; color:white; padding:20px;">
+<h2>Test ApexCharts null handling</h2>
+<div id="chart" style="width:800px; height:300px;"></div>
+<script>
+const options = {
+  series: [{ name: 'High-Value Mix', data: [34, 40, 46, 44, 49, 46, 62, null, null, null, null] }],
+  chart: { type: 'line', height: 280 },
+  stroke: { curve: 'smooth', width: 3 },
+  xaxis: { categories: ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'] }
+};
+const chart = new ApexCharts(document.querySelector('#chart'), options);
+chart.render();
+</script>
+</body>
+</html>
