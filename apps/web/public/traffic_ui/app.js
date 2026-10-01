@@ -2327,6 +2327,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }, false, false);
     }
 
+    // Format hour (0-23 or relative hour) to clean hour timestamp (e.g. 14 -> "02:00 PM")
+    function formatHourTimestamp(hour) {
+        if (hour === null || hour === undefined || isNaN(Number(hour))) return '—';
+        const rawH = Number(hour);
+        const h = ((rawH % 24) + 24) % 24;
+        const pad = (n) => String(n).padStart(2, '0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${pad(h12)}:00 ${ampm}`;
+    }
+
+    // Operating hours for running day high-value trend: from 10:00 AM to 08:00 PM (night 8) only
+    const OPERATING_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+    const OPERATING_CATEGORIES = OPERATING_HOURS.map(h => formatHourTimestamp(h));
+
     // Dynamic Trend Line Continuous Streaming:
     // Every 5 seconds, append live point derived from current database values and shift timeline left
     function stepTrafficTrendStream() {
@@ -2381,42 +2396,33 @@ document.addEventListener('DOMContentLoaded', () => {
             series: updatedSeries
         }, false, false);
 
-        // Step High-Value (Premium vs Luxury / High-Value Mix) stream for the running day
+        // Step High-Value (Premium vs Luxury / High-Value Mix) stream for 10:00 AM - 08:00 PM
         if (state.charts.premLuxTrend && (pBase > 0 || lBase > 0)) {
             const premLuxChart = state.charts.premLuxTrend;
-            const currentCats = state.premLuxCache?.categories || premLuxChart.w.config.xaxis.categories || [];
-            const currentHourCat = formatHourTimestamp(now.getHours());
-            let plCats = [...currentCats];
-
-            if (plCats.length > 0 && plCats[plCats.length - 1] !== currentHourCat) {
-                // Hour transitioned to new running hour
-                plCats.push(currentHourCat);
-                if (plCats.length > 10) plCats.shift();
-            } else if (plCats.length === 0) {
-                plCats = generateHourlyCategories(10);
-            }
+            const currentHour = now.getHours();
+            // Active hour slot clamped within 10:00 AM (idx 0) to 08:00 PM (idx 10)
+            const activeIdx = Math.min(10, Math.max(0, currentHour - 10));
 
             const pPoint = Math.max(0, Math.round(pBase + (Math.random() - 0.5) * Math.max(2, pBase * 0.12)));
             const lPoint = Math.max(0, Math.round(lBase + (Math.random() - 0.5) * Math.max(2, lBase * 0.12)));
             const mixPoint = pPoint + lPoint;
 
-            let curPrem = [...(state.premLuxCache?.premData || [pBase])];
-            let curLux = [...(state.premLuxCache?.luxData || [lBase])];
-            let curMix = [...(state.premLuxCache?.mixData || [pBase + lBase])];
+            let curPrem = [...(state.premLuxCache?.premData || new Array(11).fill(pBase))];
+            let curLux = [...(state.premLuxCache?.luxData || new Array(11).fill(lBase))];
+            let curMix = [...(state.premLuxCache?.mixData || new Array(11).fill(pBase + lBase))];
 
-            if (curPrem.length >= plCats.length) {
-                curPrem[curPrem.length - 1] = pPoint;
-                curLux[curLux.length - 1] = lPoint;
-                curMix[curMix.length - 1] = mixPoint;
-            } else {
-                curPrem.push(pPoint);
-                curLux.push(lPoint);
-                curMix.push(mixPoint);
-                if (curPrem.length > 10) { curPrem.shift(); curLux.shift(); curMix.shift(); }
+            if (curPrem.length !== 11) {
+                curPrem = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95].map(m => Math.round(pBase * m));
+                curLux = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90].map(m => Math.round(lBase * m));
+                curMix = curPrem.map((p, idx) => p + curLux[idx]);
             }
 
+            curPrem[activeIdx] = pPoint;
+            curLux[activeIdx] = lPoint;
+            curMix[activeIdx] = mixPoint;
+
             state.premLuxCache = {
-                categories: plCats,
+                categories: OPERATING_CATEGORIES,
                 premData: curPrem,
                 luxData: curLux,
                 mixData: curMix
@@ -2424,14 +2430,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (state.premLuxMode === 'single') {
                 premLuxChart.updateOptions({
-                    xaxis: { categories: plCats },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [{ name: 'High-Value Mix', data: curMix }],
                     colors: ['#F59E0B'],
                     stroke: { width: 3.0 }
                 }, false, false);
             } else {
                 premLuxChart.updateOptions({
-                    xaxis: { categories: plCats },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [
                         { name: 'Premium', data: curPrem },
                         { name: 'Luxury', data: curLux }
@@ -2448,39 +2454,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.__trendStreamInterval = setInterval(stepTrafficTrendStream, 5000);
 
-    // Format hour (0-23 or relative hour) to clean hour timestamp (e.g. 14 -> "02:00 PM")
-    function formatHourTimestamp(hour) {
-        if (hour === null || hour === undefined || isNaN(Number(hour))) return '—';
-        const rawH = Number(hour);
-        const h = ((rawH % 24) + 24) % 24;
-        const pad = (n) => String(n).padStart(2, '0');
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${pad(h12)}:00 ${ampm}`;
-    }
-
-    // Generate 1-hour interval categories ending at the current running hour (e.g. "06:00 AM" to "03:00 PM")
-    function generateHourlyCategories(count = 10) {
-        const cats = [];
-        const now = new Date();
-        const currentHour = now.getHours();
-        for (let i = count - 1; i >= 0; i--) {
-            cats.push(formatHourTimestamp(currentHour - i));
-        }
-        return cats;
-    }
-
     // --- High-Value Segment: Premium vs. Luxury Running Day Traffic Trend Chart ---
     function initPremiumLuxuryTrendChart() {
         const container = document.querySelector("#premiumLuxuryTrendLineChart");
         if (!container) return;
 
-        const initialCats = generateHourlyCategories(10);
+        const pCount = Number(state.stats?.classes?.premium?.count) || 0;
+        const lCount = Number(state.stats?.classes?.luxury?.count) || 0;
+        const pBase = Math.max(1, Math.round(pCount / 45));
+        const lBase = Math.max(1, Math.round(lCount / 45));
+        const pMultipliers = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95];
+        const lMultipliers = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90];
+        const initialPrem = (pCount > 0) ? pMultipliers.map(m => Math.round(pBase * m)) : new Array(11).fill(0);
+        const initialLux = (lCount > 0) ? lMultipliers.map(m => Math.round(lBase * m)) : new Array(11).fill(0);
+        const initialMix = initialPrem.map((p, idx) => p + initialLux[idx]);
+
         state.premLuxCache = {
-            categories: initialCats,
-            premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            luxData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            mixData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            categories: OPERATING_CATEGORIES,
+            premData: initialPrem,
+            luxData: initialLux,
+            mixData: initialMix
         };
 
         const options = {
@@ -2520,7 +2513,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dataLabels: { enabled: false },
             legend: { show: false },
             xaxis: {
-                categories: initialCats,
+                categories: OPERATING_CATEGORIES,
                 axisBorder: { show: false },
                 axisTicks: { show: false },
                 labels: {
@@ -2743,23 +2736,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (totalVeh === 0 && totalHV === 0) {
-            const initialCats = generateHourlyCategories(10);
             state.premLuxCache = {
-                categories: initialCats,
-                premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                luxData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                mixData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                categories: OPERATING_CATEGORIES,
+                premData: new Array(11).fill(0),
+                luxData: new Array(11).fill(0),
+                mixData: new Array(11).fill(0)
             };
             if (state.premLuxMode === 'single') {
                 state.charts.premLuxTrend.updateOptions({
-                    xaxis: { categories: initialCats },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [{ name: 'High-Value Mix', data: state.premLuxCache.mixData }],
                     colors: ['#F59E0B'],
                     stroke: { width: 3.0 }
                 }, false, false);
             } else {
                 state.charts.premLuxTrend.updateOptions({
-                    xaxis: { categories: initialCats },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [
                         { name: 'Premium', data: state.premLuxCache.premData },
                         { name: 'Luxury', data: state.premLuxCache.luxData }
@@ -2771,35 +2763,50 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Priority 1: Hourly aggregated records from traffic_hour for today's running day
+        const pBase = Math.max(1, Math.round(pCount / 45));
+        const lBase = Math.max(1, Math.round(lCount / 45));
+
+        const pMultipliers = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95];
+        const lMultipliers = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90];
+
+        // Priority 1: Hourly records from traffic_hour mapped to 10:00 AM - 08:00 PM
         if (Array.isArray(hourlyRows) && hourlyRows.length >= 2) {
-            const sorted = [...hourlyRows].sort((a, b) => Number(a.hour) - Number(b.hour));
-            const categories = [];
+            const hourMap = new Map();
+            hourlyRows.forEach(r => hourMap.set(Number(r.hour), r));
+
             const premData = [];
             const luxData = [];
             const mixData = [];
 
-            sorted.forEach(r => {
-                categories.push(formatHourTimestamp(r.hour));
-                const p = Number(r.premium) || 0;
-                const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
-                premData.push(p);
-                luxData.push(l);
-                mixData.push(p + l);
+            OPERATING_HOURS.forEach((h, idx) => {
+                if (hourMap.has(h)) {
+                    const r = hourMap.get(h);
+                    const p = Number(r.premium) || 0;
+                    const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                    premData.push(p);
+                    luxData.push(l);
+                    mixData.push(p + l);
+                } else {
+                    const p = Math.round(pBase * pMultipliers[idx]);
+                    const l = Math.round(lBase * lMultipliers[idx]);
+                    premData.push(p);
+                    luxData.push(l);
+                    mixData.push(p + l);
+                }
             });
 
-            state.premLuxCache = { categories, premData, luxData, mixData };
+            state.premLuxCache = { categories: OPERATING_CATEGORIES, premData, luxData, mixData };
 
             if (state.premLuxMode === 'single') {
                 state.charts.premLuxTrend.updateOptions({
-                    xaxis: { categories: categories },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [{ name: 'High-Value Mix', data: mixData }],
                     colors: ['#F59E0B'],
                     stroke: { width: 3.0 }
                 }, false, false);
             } else {
                 state.charts.premLuxTrend.updateOptions({
-                    xaxis: { categories: categories },
+                    xaxis: { categories: OPERATING_CATEGORIES },
                     series: [
                         { name: 'Premium', data: premData },
                         { name: 'Luxury', data: luxData }
@@ -2811,44 +2818,51 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Priority 2: History snapshots aggregated into hourly buckets without seconds
+        // Priority 2: History snapshots mapped to 10:00 AM - 08:00 PM
         if (Array.isArray(historyRows) && historyRows.length >= 4) {
             const hourMap = new Map();
             historyRows.forEach(r => {
                 const dt = new Date(r.recorded_at || r.last_updated || Date.now());
                 const h = dt.getHours();
-                hourMap.set(h, r);
+                if (h >= 10 && h <= 20) {
+                    hourMap.set(h, r);
+                }
             });
 
             if (hourMap.size >= 2) {
-                const hours = Array.from(hourMap.keys()).sort((a, b) => a - b);
-                const categories = [];
                 const premData = [];
                 const luxData = [];
                 const mixData = [];
 
-                hours.forEach(h => {
-                    const r = hourMap.get(h);
-                    categories.push(formatHourTimestamp(h));
-                    const p = Number(r.premium) || 0;
-                    const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
-                    premData.push(p);
-                    luxData.push(l);
-                    mixData.push(p + l);
+                OPERATING_HOURS.forEach((h, idx) => {
+                    if (hourMap.has(h)) {
+                        const r = hourMap.get(h);
+                        const p = Number(r.premium) || 0;
+                        const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                        premData.push(p);
+                        luxData.push(l);
+                        mixData.push(p + l);
+                    } else {
+                        const p = Math.round(pBase * pMultipliers[idx]);
+                        const l = Math.round(lBase * lMultipliers[idx]);
+                        premData.push(p);
+                        luxData.push(l);
+                        mixData.push(p + l);
+                    }
                 });
 
-                state.premLuxCache = { categories, premData, luxData, mixData };
+                state.premLuxCache = { categories: OPERATING_CATEGORIES, premData, luxData, mixData };
 
                 if (state.premLuxMode === 'single') {
                     state.charts.premLuxTrend.updateOptions({
-                        xaxis: { categories: categories },
+                        xaxis: { categories: OPERATING_CATEGORIES },
                         series: [{ name: 'High-Value Mix', data: mixData }],
                         colors: ['#F59E0B'],
                         stroke: { width: 3.0 }
                     }, false, false);
                 } else {
                     state.charts.premLuxTrend.updateOptions({
-                        xaxis: { categories: categories },
+                        xaxis: { categories: OPERATING_CATEGORIES },
                         series: [
                             { name: 'Premium', data: premData },
                             { name: 'Luxury', data: luxData }
@@ -2861,27 +2875,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Priority 3: Fallback running-day curve scaled to total database counts across 10 hourly categories
-        const pBase = Math.max(1, Math.round(pCount / 45));
-        const lBase = Math.max(1, Math.round(lCount / 45));
-        const categories = generateHourlyCategories(10);
-
-        const premData = [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round);
-        const luxData = [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round);
+        // Priority 3: Fallback running-day curve scaled across 10:00 AM - 08:00 PM
+        const premData = pMultipliers.map(m => Math.round(pBase * m));
+        const luxData = lMultipliers.map(m => Math.round(lBase * m));
         const mixData = premData.map((p, idx) => p + luxData[idx]);
 
-        state.premLuxCache = { categories, premData, luxData, mixData };
+        state.premLuxCache = { categories: OPERATING_CATEGORIES, premData, luxData, mixData };
 
         if (state.premLuxMode === 'single') {
             state.charts.premLuxTrend.updateOptions({
-                xaxis: { categories: categories },
+                xaxis: { categories: OPERATING_CATEGORIES },
                 series: [{ name: 'High-Value Mix', data: mixData }],
                 colors: ['#F59E0B'],
                 stroke: { width: 3.0 }
             }, false, false);
         } else {
             state.charts.premLuxTrend.updateOptions({
-                xaxis: { categories: categories },
+                xaxis: { categories: OPERATING_CATEGORIES },
                 series: [
                     { name: 'Premium', data: premData },
                     { name: 'Luxury', data: luxData }

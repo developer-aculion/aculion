@@ -62,6 +62,8 @@ const CustomPremLuxTooltip = ({ active, payload, label }) => {
       </div>
     );
   }
+  return null;
+};
 // Format hour (0-23 or relative hour) to clean hour timestamp (e.g. 14 -> "02:00 PM")
 const formatHourTimestamp = (hour) => {
   if (hour === null || hour === undefined || isNaN(Number(hour))) return '—';
@@ -72,6 +74,10 @@ const formatHourTimestamp = (hour) => {
   const h12 = h % 12 || 12;
   return `${pad(h12)}:00 ${ampm}`;
 };
+
+// Operating hours for running day high-value trend: from 10:00 AM to 08:00 PM (night 8) only
+const OPERATING_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const OPERATING_CATEGORIES = OPERATING_HOURS.map((h) => formatHourTimestamp(h));
 
 // Mock trend data for Audience Trend (7D & 30D)
 const TREND_DATA_7D = [
@@ -180,56 +186,58 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
           const curPrem = Number(overview?.premium) || 0;
           const curLux = (Number(overview?.luxury) || 0) + (Number(overview?.ultra_luxury) || 0);
 
+          const pBase = Math.max(1, Math.round(curPrem / 45));
+          const lBase = Math.max(1, Math.round(curLux / 45));
+          const pMultipliers = [0.55, 0.65, 0.75, 0.70, 0.80, 0.75, 0.90, 1.10, 1.25, 1.15, 0.95];
+          const lMultipliers = [0.50, 0.60, 0.70, 0.65, 0.75, 0.70, 0.85, 1.15, 1.30, 1.20, 0.90];
+
           if (hourlyRows.length >= 2) {
-            // Priority 1: True hourly records from traffic_hour
-            const sorted = [...hourlyRows].sort((a, b) => Number(a.hour) - Number(b.hour));
-            const series = sorted.map((r) => {
-              const timeStr = formatHourTimestamp(r.hour);
-              const p = Number(r.premium) || 0;
-              const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
-              return {
-                time: timeStr,
-                premium: p,
-                luxury: l,
-                highValueMix: p + l
-              };
+            // Priority 1: Hourly records from traffic_hour mapped to 10:00 AM - 08:00 PM
+            const hourMap = new Map();
+            hourlyRows.forEach((r) => hourMap.set(Number(r.hour), r));
+            const series = OPERATING_HOURS.map((h, idx) => {
+              const timeStr = OPERATING_CATEGORIES[idx];
+              if (hourMap.has(h)) {
+                const r = hourMap.get(h);
+                const p = Number(r.premium) || 0;
+                const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
+              }
+              const p = Math.round(pBase * pMultipliers[idx]);
+              const l = Math.round(lBase * lMultipliers[idx]);
+              return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
             });
             setTrendSeriesData(series);
           } else if (historyRows.length >= 4) {
-            // Priority 2: History snapshots aggregated into distinct hours
+            // Priority 2: History snapshots mapped to 10:00 AM - 08:00 PM
             const hourMap = new Map();
             historyRows.forEach((r) => {
               const dt = new Date(r.recorded_at || Date.now());
               const h = dt.getHours();
-              hourMap.set(h, r);
+              if (h >= 10 && h <= 20) {
+                hourMap.set(h, r);
+              }
             });
 
             if (hourMap.size >= 2) {
-              const hours = Array.from(hourMap.keys()).sort((a, b) => a - b);
-              const series = hours.map((h) => {
-                const r = hourMap.get(h);
-                const timeStr = formatHourTimestamp(h);
-                const p = Number(r.premium) || 0;
-                const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
-                return {
-                  time: timeStr,
-                  premium: p,
-                  luxury: l,
-                  highValueMix: p + l
-                };
+              const series = OPERATING_HOURS.map((h, idx) => {
+                const timeStr = OPERATING_CATEGORIES[idx];
+                if (hourMap.has(h)) {
+                  const r = hourMap.get(h);
+                  const p = Number(r.premium) || 0;
+                  const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                  return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
+                }
+                const p = Math.round(pBase * pMultipliers[idx]);
+                const l = Math.round(lBase * lMultipliers[idx]);
+                return { time: timeStr, premium: p, luxury: l, highValueMix: p + l };
               });
               setTrendSeriesData(series);
             } else {
-              // Less than 2 distinct hours in snapshots; fallback to running day hourly curve
-              const pBase = Math.max(1, Math.round(curPrem / 45));
-              const lBase = Math.max(1, Math.round(curLux / 45));
-              const pMultipliers = [0.5, 0.6, 0.7, 0.65, 0.85, 0.8, 0.95, 1.15, 1.0, 1.0];
-              const lMultipliers = [0.5, 0.6, 0.6, 0.75, 0.7, 0.6, 0.9, 1.2, 0.9, 1.0];
-              const now = new Date();
-              const currentHour = now.getHours();
-              const series = pMultipliers.map((m, idx) => {
-                const timeStr = formatHourTimestamp(currentHour - (9 - idx));
-                const p = Math.round(pBase * m);
+              // Priority 3: Fallback running-day curve scaled to current totals across 10:00 AM - 08:00 PM
+              const series = OPERATING_HOURS.map((h, idx) => {
+                const timeStr = OPERATING_CATEGORIES[idx];
+                const p = Math.round(pBase * pMultipliers[idx]);
                 const l = Math.round(lBase * lMultipliers[idx]);
                 return {
                   time: timeStr,
@@ -241,16 +249,10 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
               setTrendSeriesData(series);
             }
           } else {
-            // Priority 3: Fallback 10-point hourly running-day curve scaled to current totals
-            const pBase = Math.max(1, Math.round(curPrem / 45));
-            const lBase = Math.max(1, Math.round(curLux / 45));
-            const pMultipliers = [0.5, 0.6, 0.7, 0.65, 0.85, 0.8, 0.95, 1.15, 1.0, 1.0];
-            const lMultipliers = [0.5, 0.6, 0.6, 0.75, 0.7, 0.6, 0.9, 1.2, 0.9, 1.0];
-            const now = new Date();
-            const currentHour = now.getHours();
-            const series = pMultipliers.map((m, idx) => {
-              const timeStr = formatHourTimestamp(currentHour - (9 - idx));
-              const p = Math.round(pBase * m);
+            // Priority 3: Fallback running-day curve scaled to current totals across 10:00 AM - 08:00 PM
+            const series = OPERATING_HOURS.map((h, idx) => {
+              const timeStr = OPERATING_CATEGORIES[idx];
+              const p = Math.round(pBase * pMultipliers[idx]);
               const l = Math.round(lBase * lMultipliers[idx]);
               return {
                 time: timeStr,
