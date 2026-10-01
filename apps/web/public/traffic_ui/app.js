@@ -2381,20 +2381,39 @@ document.addEventListener('DOMContentLoaded', () => {
             series: updatedSeries
         }, false, false);
 
-        // Step High-Value (Premium vs Luxury / High-Value Mix) stream in tandem
+        // Step High-Value (Premium vs Luxury / High-Value Mix) stream for the running day
         if (state.charts.premLuxTrend && (pBase > 0 || lBase > 0)) {
             const premLuxChart = state.charts.premLuxTrend;
-            const plCats = [...(state.premLuxCache?.categories || premLuxChart.w.config.xaxis.categories || [])];
-            plCats.push(timeStr);
-            if (plCats.length > 10) plCats.shift();
+            const currentCats = state.premLuxCache?.categories || premLuxChart.w.config.xaxis.categories || [];
+            const currentHourCat = formatHourTimestamp(now.getHours());
+            let plCats = [...currentCats];
+
+            if (plCats.length > 0 && plCats[plCats.length - 1] !== currentHourCat) {
+                // Hour transitioned to new running hour
+                plCats.push(currentHourCat);
+                if (plCats.length > 10) plCats.shift();
+            } else if (plCats.length === 0) {
+                plCats = generateHourlyCategories(10);
+            }
 
             const pPoint = Math.max(0, Math.round(pBase + (Math.random() - 0.5) * Math.max(2, pBase * 0.12)));
             const lPoint = Math.max(0, Math.round(lBase + (Math.random() - 0.5) * Math.max(2, lBase * 0.12)));
             const mixPoint = pPoint + lPoint;
 
-            const curPrem = [...(state.premLuxCache?.premData || [pBase]).slice(-9), pPoint];
-            const curLux = [...(state.premLuxCache?.luxData || [lBase]).slice(-9), lPoint];
-            const curMix = [...(state.premLuxCache?.mixData || [pBase + lBase]).slice(-9), mixPoint];
+            let curPrem = [...(state.premLuxCache?.premData || [pBase])];
+            let curLux = [...(state.premLuxCache?.luxData || [lBase])];
+            let curMix = [...(state.premLuxCache?.mixData || [pBase + lBase])];
+
+            if (curPrem.length >= plCats.length) {
+                curPrem[curPrem.length - 1] = pPoint;
+                curLux[curLux.length - 1] = lPoint;
+                curMix[curMix.length - 1] = mixPoint;
+            } else {
+                curPrem.push(pPoint);
+                curLux.push(lPoint);
+                curMix.push(mixPoint);
+                if (curPrem.length > 10) { curPrem.shift(); curLux.shift(); curMix.shift(); }
+            }
 
             state.premLuxCache = {
                 categories: plCats,
@@ -2429,12 +2448,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.__trendStreamInterval = setInterval(stepTrafficTrendStream, 5000);
 
+    // Format hour (0-23 or relative hour) to clean hour timestamp (e.g. 14 -> "02:00 PM")
+    function formatHourTimestamp(hour) {
+        if (hour === null || hour === undefined || isNaN(Number(hour))) return '—';
+        const rawH = Number(hour);
+        const h = ((rawH % 24) + 24) % 24;
+        const pad = (n) => String(n).padStart(2, '0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${pad(h12)}:00 ${ampm}`;
+    }
+
+    // Generate 1-hour interval categories ending at the current running hour (e.g. "06:00 AM" to "03:00 PM")
+    function generateHourlyCategories(count = 10) {
+        const cats = [];
+        const now = new Date();
+        const currentHour = now.getHours();
+        for (let i = count - 1; i >= 0; i--) {
+            cats.push(formatHourTimestamp(currentHour - i));
+        }
+        return cats;
+    }
+
     // --- High-Value Segment: Premium vs. Luxury Running Day Traffic Trend Chart ---
     function initPremiumLuxuryTrendChart() {
         const container = document.querySelector("#premiumLuxuryTrendLineChart");
         if (!container) return;
 
-        const initialCats = generateTimeWindowCategories(10, 30);
+        const initialCats = generateHourlyCategories(10);
         state.premLuxCache = {
             categories: initialCats,
             premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2702,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (totalVeh === 0 && totalHV === 0) {
-            const initialCats = generateTimeWindowCategories(10, 30);
+            const initialCats = generateHourlyCategories(10);
             state.premLuxCache = {
                 categories: initialCats,
                 premData: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2730,25 +2771,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (Array.isArray(historyRows) && historyRows.length >= 4) {
-            const sorted = [...historyRows].sort((a, b) => new Date(a.recorded_at || a.last_updated) - new Date(b.recorded_at || b.last_updated));
-            const recent = sorted.slice(-10);
-
+        // Priority 1: Hourly aggregated records from traffic_hour for today's running day
+        if (Array.isArray(hourlyRows) && hourlyRows.length >= 2) {
+            const sorted = [...hourlyRows].sort((a, b) => Number(a.hour) - Number(b.hour));
             const categories = [];
             const premData = [];
             const luxData = [];
             const mixData = [];
 
-            recent.forEach(r => {
-                const dt = new Date(r.recorded_at || r.last_updated || Date.now());
-                const timeStr = dt.toLocaleTimeString('en-US', {
-                    timeZone: 'Asia/Kolkata',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                });
-                categories.push(timeStr);
+            sorted.forEach(r => {
+                categories.push(formatHourTimestamp(r.hour));
                 const p = Number(r.premium) || 0;
                 const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
                 premData.push(p);
@@ -2779,9 +2811,60 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Priority 2: History snapshots aggregated into hourly buckets without seconds
+        if (Array.isArray(historyRows) && historyRows.length >= 4) {
+            const hourMap = new Map();
+            historyRows.forEach(r => {
+                const dt = new Date(r.recorded_at || r.last_updated || Date.now());
+                const h = dt.getHours();
+                hourMap.set(h, r);
+            });
+
+            if (hourMap.size >= 2) {
+                const hours = Array.from(hourMap.keys()).sort((a, b) => a - b);
+                const categories = [];
+                const premData = [];
+                const luxData = [];
+                const mixData = [];
+
+                hours.forEach(h => {
+                    const r = hourMap.get(h);
+                    categories.push(formatHourTimestamp(h));
+                    const p = Number(r.premium) || 0;
+                    const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                    premData.push(p);
+                    luxData.push(l);
+                    mixData.push(p + l);
+                });
+
+                state.premLuxCache = { categories, premData, luxData, mixData };
+
+                if (state.premLuxMode === 'single') {
+                    state.charts.premLuxTrend.updateOptions({
+                        xaxis: { categories: categories },
+                        series: [{ name: 'High-Value Mix', data: mixData }],
+                        colors: ['#F59E0B'],
+                        stroke: { width: 3.0 }
+                    }, false, false);
+                } else {
+                    state.charts.premLuxTrend.updateOptions({
+                        xaxis: { categories: categories },
+                        series: [
+                            { name: 'Premium', data: premData },
+                            { name: 'Luxury', data: luxData }
+                        ],
+                        colors: ['#F59E0B', '#10B981'],
+                        stroke: { width: 2.8 }
+                    }, false, false);
+                }
+                return;
+            }
+        }
+
+        // Priority 3: Fallback running-day curve scaled to total database counts across 10 hourly categories
         const pBase = Math.max(1, Math.round(pCount / 45));
         const lBase = Math.max(1, Math.round(lCount / 45));
-        const categories = generateTimeWindowCategories(10, 30);
+        const categories = generateHourlyCategories(10);
 
         const premData = [pBase * 0.5, pBase * 0.6, pBase * 0.7, pBase * 0.65, pBase * 0.85, pBase * 0.8, pBase * 0.95, pBase * 1.15, pBase * 1.0, pBase].map(Math.round);
         const luxData = [lBase * 0.5, lBase * 0.6, lBase * 0.6, lBase * 0.75, lBase * 0.7, lBase * 0.6, lBase * 0.9, lBase * 1.2, lBase * 0.9, lBase].map(Math.round);

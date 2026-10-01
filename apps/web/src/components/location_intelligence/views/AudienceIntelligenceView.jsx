@@ -62,7 +62,15 @@ const CustomPremLuxTooltip = ({ active, payload, label }) => {
       </div>
     );
   }
-  return null;
+// Format hour (0-23 or relative hour) to clean hour timestamp (e.g. 14 -> "02:00 PM")
+const formatHourTimestamp = (hour) => {
+  if (hour === null || hour === undefined || isNaN(Number(hour))) return '—';
+  const rawH = Number(hour);
+  const h = ((rawH % 24) + 24) % 24;
+  const pad = (n) => String(n).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${pad(h12)}:00 ${ampm}`;
 };
 
 // Mock trend data for Audience Trend (7D & 30D)
@@ -148,7 +156,7 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
       if (!bbCode) return;
       setLoadingTraffic(true);
       try {
-        const [overview, peakRes, histRes] = await Promise.all([
+        const [overview, peakRes, histRes, hourlyRes] = await Promise.all([
           billboardService.getLatestTrafficData(bbCode),
           billboardService.getPeakTrafficHour(bbCode),
           supabase
@@ -156,28 +164,27 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
             .select('recorded_at, stat_date, total_vehicles, premium, luxury, ultra_luxury, flow_rate')
             .eq('billboard_code', bbCode)
             .order('recorded_at', { ascending: false })
-            .limit(15)
+            .limit(15),
+          supabase
+            .from('traffic_hour')
+            .select('hour, total_vehicles, premium, luxury, ultra_luxury, flow_rate')
+            .eq('billboard_code', bbCode)
+            .order('hour', { ascending: true })
         ]);
         if (isMounted) {
           if (overview) setTrafficOverview(overview);
           if (peakRes) setPeakTrafficData(peakRes);
           const historyRows = (histRes && histRes.data && Array.isArray(histRes.data)) ? histRes.data : [];
+          const hourlyRows = (hourlyRes && hourlyRes.data && Array.isArray(hourlyRes.data)) ? hourlyRes.data : [];
 
           const curPrem = Number(overview?.premium) || 0;
           const curLux = (Number(overview?.luxury) || 0) + (Number(overview?.ultra_luxury) || 0);
 
-          if (historyRows.length >= 4) {
-            const sorted = [...historyRows].sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
-            const recent = sorted.slice(-10);
-            const series = recent.map((r) => {
-              const dt = new Date(r.recorded_at || Date.now());
-              const timeStr = dt.toLocaleTimeString('en-US', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              });
+          if (hourlyRows.length >= 2) {
+            // Priority 1: True hourly records from traffic_hour
+            const sorted = [...hourlyRows].sort((a, b) => Number(a.hour) - Number(b.hour));
+            const series = sorted.map((r) => {
+              const timeStr = formatHourTimestamp(r.hour);
               const p = Number(r.premium) || 0;
               const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
               return {
@@ -188,21 +195,61 @@ export default function AudienceIntelligenceView({ selectedBillboard, showIcon =
               };
             });
             setTrendSeriesData(series);
+          } else if (historyRows.length >= 4) {
+            // Priority 2: History snapshots aggregated into distinct hours
+            const hourMap = new Map();
+            historyRows.forEach((r) => {
+              const dt = new Date(r.recorded_at || Date.now());
+              const h = dt.getHours();
+              hourMap.set(h, r);
+            });
+
+            if (hourMap.size >= 2) {
+              const hours = Array.from(hourMap.keys()).sort((a, b) => a - b);
+              const series = hours.map((h) => {
+                const r = hourMap.get(h);
+                const timeStr = formatHourTimestamp(h);
+                const p = Number(r.premium) || 0;
+                const l = (Number(r.luxury) || 0) + (Number(r.ultra_luxury) || 0);
+                return {
+                  time: timeStr,
+                  premium: p,
+                  luxury: l,
+                  highValueMix: p + l
+                };
+              });
+              setTrendSeriesData(series);
+            } else {
+              // Less than 2 distinct hours in snapshots; fallback to running day hourly curve
+              const pBase = Math.max(1, Math.round(curPrem / 45));
+              const lBase = Math.max(1, Math.round(curLux / 45));
+              const pMultipliers = [0.5, 0.6, 0.7, 0.65, 0.85, 0.8, 0.95, 1.15, 1.0, 1.0];
+              const lMultipliers = [0.5, 0.6, 0.6, 0.75, 0.7, 0.6, 0.9, 1.2, 0.9, 1.0];
+              const now = new Date();
+              const currentHour = now.getHours();
+              const series = pMultipliers.map((m, idx) => {
+                const timeStr = formatHourTimestamp(currentHour - (9 - idx));
+                const p = Math.round(pBase * m);
+                const l = Math.round(lBase * lMultipliers[idx]);
+                return {
+                  time: timeStr,
+                  premium: p,
+                  luxury: l,
+                  highValueMix: p + l
+                };
+              });
+              setTrendSeriesData(series);
+            }
           } else {
+            // Priority 3: Fallback 10-point hourly running-day curve scaled to current totals
             const pBase = Math.max(1, Math.round(curPrem / 45));
             const lBase = Math.max(1, Math.round(curLux / 45));
             const pMultipliers = [0.5, 0.6, 0.7, 0.65, 0.85, 0.8, 0.95, 1.15, 1.0, 1.0];
             const lMultipliers = [0.5, 0.6, 0.6, 0.75, 0.7, 0.6, 0.9, 1.2, 0.9, 1.0];
-            const now = Date.now();
+            const now = new Date();
+            const currentHour = now.getHours();
             const series = pMultipliers.map((m, idx) => {
-              const d = new Date(now - (9 - idx) * 30 * 1000);
-              const timeStr = d.toLocaleTimeString('en-US', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              });
+              const timeStr = formatHourTimestamp(currentHour - (9 - idx));
               const p = Math.round(pBase * m);
               const l = Math.round(lBase * lMultipliers[idx]);
               return {
