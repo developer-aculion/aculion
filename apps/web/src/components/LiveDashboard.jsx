@@ -1120,16 +1120,18 @@ export default function LiveDashboard({
         text(`Period: ${dateStr}`, pageW - margin, 19.5, { align: 'right' });
       };
 
-      // Universal Report Footer matching user specification (Image 1) with zero confidential markings
+      // Universal Report Footer matching user specification with zero confidential markings
       const drawReportFooter = (pageNum) => {
         const footTopY = pageH - 18;
         fillRect(0, footTopY, pageW, 0.6, '#e2e8f0');
 
-        // Left Footer: Report Title & Asset Details
+        // Left Footer: Report Title & Asset Details & Methodology
         setFont('bold', 6.5, '#475569');
-        text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report`, margin, footTopY + 5.5);
-        setFont('normal', 5.6, '#64748b');
-        text(`Site ID: SITE_${siteCode}   |   Asset: ${bbCode} (${bbName})   |   Page ${pageNum} of ${TOTAL_PAGES}`, margin, footTopY + 10.5);
+        text(`Aculion OOH Intelligence Platform — Campaign Intelligence Report`, margin, footTopY + 4.8);
+        setFont('normal', 5.4, '#64748b');
+        text(`Site ID: SITE_${siteCode}   |   Asset: ${bbCode} (${bbName})   |   Page ${pageNum} of ${TOTAL_PAGES}`, margin, footTopY + 9.2);
+        setFont('normal', 5.0, '#64748b');
+        text(`Observed | Modelled | Derived | Third-party data`, margin, footTopY + 13.6);
 
         // Right Footer: "POWERED BY" + Aculion Logo & Wordmark + connect@aculion.com
         const rightX = pageW - margin;
@@ -1773,70 +1775,13 @@ export default function LiveDashboard({
 
       // Title & Subtitle Block
       setFont('bold', 11.5, '#0f172a');
-      text('Performance Summary Against Benchmarks & Actionable Guidelines', margin, y);
+      text('Performance Summary & Actionable Guidelines', margin, y);
       y += 4.5;
       setFont('normal', 7.0, '#64748b');
       text(`Comprehensive Cross-Metric Synthesis for Site ${siteCode} (${landmark}, ${city}) • Flight Evaluation`, margin, y);
-      y += 6.5;
+      y += 7.0;
 
-      // Section 1: Campaign Performance vs Industry Benchmarks Table
-      fillRect(margin, y, contentW, 5.2, '#eff6ff');
-      fillRect(margin, y, 3, 5.2, '#2563eb');
-      setFont('bold', 7.0, '#1d4ed8');
-      text('  CAMPAIGN PERFORMANCE VS INDUSTRY & URBAN BENCHMARKS', margin + 3.5, y + 3.6);
-      y += 6.8;
-
-      const dailyAvgTraffic = Math.round(totalVehiclesSum / (activeDaysWithDataCount || 1));
-      const benchmarks = [
-        { metric: 'Observed Daily Traffic Volume', recorded: isZeroTelemetry ? '—' : `${dailyAvgTraffic.toLocaleString()} veh/day`, benchmark: '18,500 veh/day', variance: '+38% vs Market Avg', status: 'Exceptional (Top 10%)', col: '#059669' },
-        { metric: 'High-End Vehicle Concentration (Premium + Luxury)', recorded: isZeroTelemetry ? '—' : `${highEndPct}%`, benchmark: '16.2%', variance: `+${(Number(highEndPct) - 16.2).toFixed(1)}% Index`, status: 'High Affluence Tier', col: '#2563eb' },
-        { metric: 'Average Dwell Time', recorded: `${avgDwellCalculated}s`, benchmark: '6.0s standard', variance: '+42% Extended Dwell', status: 'High Receptivity', col: '#059669' },
-        { metric: 'Commercial Catchment POI Density', recorded: `${locAnalytics?.features?.poi_density || 185.4}/km²`, benchmark: '110.0/km²', variance: '+68% Density', status: 'Prime Retail Hub', col: '#7c3aed' },
-        { metric: 'Catchment Land Use Mix Entropy', recorded: `${landUseEntropy}%`, benchmark: '65.0%', variance: '+24.2% Diversity', status: 'Balanced Mixed-Use', col: '#d97706' }
-      ];
-
-      const benchTableH = 44;
-      fillRect(margin, y, contentW, benchTableH, '#f8fafc');
-      strokeRect(margin, y, contentW, benchTableH, '#e2e8f0');
-
-      let byY = y + 2.0;
-      fillRect(margin + 2, byY, contentW - 4, 4.8, '#f1f5f9');
-      strokeRect(margin + 2, byY, contentW - 4, 4.8, '#e2e8f0');
-
-      setFont('bold', 5.6, '#475569');
-      text('KEY PERFORMANCE METRIC', margin + 6, byY + 3.3);
-      text('CAMPAIGN RECORDED', margin + 74, byY + 3.3);
-      text('MARKET BENCHMARK', margin + 112, byY + 3.3);
-      text('VARIANCE / INDEX', margin + 148, byY + 3.3);
-      text('RATING', margin + 174, byY + 3.3);
-      byY += 5.2;
-
-      benchmarks.forEach((b, idx) => {
-        const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-        fillRect(margin + 2, byY, contentW - 4, 6.8, rowBg);
-        strokeRect(margin + 2, byY, contentW - 4, 6.8, '#f1f5f9');
-
-        setFont('bold', 5.8, '#0f172a');
-        text(b.metric, margin + 6, byY + 4.3);
-
-        setFont('bold', 5.8, b.col);
-        text(b.recorded, margin + 74, byY + 4.3);
-
-        setFont('normal', 5.6, '#64748b');
-        text(b.benchmark, margin + 112, byY + 4.3);
-
-        setFont('bold', 5.6, b.col);
-        text(b.variance, margin + 148, byY + 4.3);
-
-        setFont('bold', 5.6, '#0f172a');
-        text(b.status, margin + 174, byY + 4.3);
-
-        byY += 7.2;
-      });
-
-      y += benchTableH + 5.0;
-
-      // Section 2: Key Strategic Takeaways (3 Highlights Grid)
+      // Section 1: Key Strategic Takeaways (3 Highlights Grid)
       fillRect(margin, y, contentW, 5.2, '#f5f3ff');
       fillRect(margin, y, 3, 5.2, '#7c3aed');
       setFont('bold', 7.0, '#6d28d9');
@@ -1844,26 +1789,27 @@ export default function LiveDashboard({
       y += 6.8;
 
       const takeaways = [
-        { title: 'Affluent Consumer Corridor', desc: `With ${highEndPct}% high-value vehicles (Rs. 15L to >1 Cr), this billboard directly captures high-disposable-income consumers, business leaders, and corporate decision-makers.`, col: '#7c3aed' },
-        { title: 'Peak Transit Primacy', desc: `Concentrated mobility surges during ${overallPeakMobilityWindow} offer an unbeatable dayparting window to align time-sensitive promotional activations.`, col: '#2563eb' },
-        { title: 'Extended Sightline Visibility', desc: `Above-benchmark average dwell velocity (${avgDwellCalculated}s) gives drivers and passengers sufficient viewing time for multi-layer brand messaging.`, col: '#059669' }
+        { title: 'Affluent Consumer Corridor', desc: `With ${highEndPct}% high-value vehicles (Rs. 15L to >1 Cr), this billboard directly captures high-disposable-income consumers, business leaders, and corporate decision-makers across prime arterial traffic.`, col: '#7c3aed' },
+        { title: 'Peak Transit Primacy', desc: `Concentrated mobility surges during ${overallPeakMobilityWindow} offer an unbeatable dayparting window to align time-sensitive promotional activations and drive peak brand resonance.`, col: '#2563eb' },
+        { title: 'Extended Sightline Visibility', desc: `Measured average dwell velocity of ${avgDwellCalculated}s gives drivers and passengers sufficient viewing time for multi-layer brand messaging and higher recall.`, col: '#059669' }
       ];
 
       const tkCardW = (contentW - 2 * 3.5) / 3;
+      const tkCardH = 34;
       takeaways.forEach((tk, idx) => {
         const tx = margin + idx * (tkCardW + 3.5);
-        fillRect(tx, y, tkCardW, 26, '#f8fafc');
-        strokeRect(tx, y, tkCardW, 26, '#e2e8f0');
-        fillRect(tx, y, tkCardW, 1.5, tk.col);
-        setFont('bold', 6.4, tk.col);
-        text(tk.title, tx + 3.5, y + 5.8);
-        setFont('normal', 5.2, '#334155');
+        fillRect(tx, y, tkCardW, tkCardH, '#f8fafc');
+        strokeRect(tx, y, tkCardW, tkCardH, '#e2e8f0');
+        fillRect(tx, y, tkCardW, 1.6, tk.col);
+        setFont('bold', 6.6, tk.col);
+        text(tk.title, tx + 3.5, y + 6.0);
+        setFont('normal', 5.3, '#334155');
         const lines = doc.splitTextToSize(tk.desc, tkCardW - 7);
-        doc.text(lines, tx + 3.5, y + 10.5);
+        doc.text(lines, tx + 3.5, y + 11.2);
       });
-      y += 30.0;
+      y += tkCardH + 6.5;
 
-      // Section 3: Actionable Campaign Recommendations (4 Structured Action Cards)
+      // Section 2: Actionable Campaign Recommendations (4 Structured Action Cards)
       fillRect(margin, y, contentW, 5.2, '#ecfdf5');
       fillRect(margin, y, 3, 5.2, '#059669');
       setFont('bold', 7.0, '#047857');
@@ -1893,24 +1839,36 @@ export default function LiveDashboard({
         }
       ];
 
-      const recCardH = 18.5;
+      const recCardH = 22.0;
       recs.forEach((rec, idx) => {
-        const ry = y + idx * (recCardH + 3.0);
+        const ry = y + idx * (recCardH + 3.2);
         fillRect(margin, ry, contentW, recCardH, '#f8fafc');
         strokeRect(margin, ry, contentW, recCardH, '#e2e8f0');
 
         // Number Badge
         fillRect(margin, ry, 14, recCardH, '#eff6ff');
         setFont('bold', 9.0, '#2563eb');
-        text(rec.num, margin + 7, ry + 11.5, { align: 'center' });
+        text(rec.num, margin + 7, ry + 13.0, { align: 'center' });
 
         // Content
-        setFont('bold', 6.4, '#0f172a');
-        text(rec.title, margin + 17, ry + 5.2);
-        setFont('normal', 5.2, '#334155');
-        const splitBody = doc.splitTextToSize(rec.body, contentW - 20);
-        doc.text(splitBody, margin + 17, ry + 9.5);
+        setFont('bold', 6.6, '#0f172a');
+        text(rec.title, margin + 17, ry + 5.8);
+        setFont('normal', 5.3, '#334155');
+        const splitBody = doc.splitTextToSize(rec.body, contentW - 22);
+        doc.text(splitBody, margin + 17, ry + 10.5);
       });
+      y += recs.length * (recCardH + 3.2) + 2.5;
+
+      // Section 3: Executive Flight Synthesis Callout
+      fillRect(margin, y, contentW, 20.0, '#eff6ff');
+      strokeRect(margin, y, contentW, 20.0, '#bfdbfe');
+      fillRect(margin, y, 2.5, 20.0, '#2563eb');
+      setFont('bold', 6.0, '#1e40af');
+      text('• EXECUTIVE FLIGHT SYNTHESIS & CAMPAIGN ACTION PLAN', margin + 4.5, y + 4.5);
+      setFont('normal', 5.3, '#334155');
+      const synText = `Site ${siteCode} (${bbName}) demonstrates robust mobility volume, verified high-affluence audience concentration (${highEndPct}% premium & luxury), and steady dwell duration (${avgDwellCalculated}s). Implementing daypart-aligned creative rotations and geotargeted mobile synchronization will deliver maximum brand engagement and campaign return on investment.`;
+      const synLines = doc.splitTextToSize(synText, contentW - 9);
+      doc.text(synLines, margin + 4.5, y + 9.5);
 
       drawReportFooter(4);
 
