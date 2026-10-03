@@ -453,9 +453,9 @@ a {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 215px;
+  min-width: 175px;
   width: max-content;
-  max-width: 270px;
+  max-width: 220px;
   background: var(--bg-midnight-card);
   border: 1px solid var(--graphite-border);
   border-radius: 12px;

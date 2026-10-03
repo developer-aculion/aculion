@@ -1333,27 +1333,7 @@ export default function App() {
                       navigateTo(e, target);
                     }}
                   >
-                    <i className="fa-solid fa-tv"></i> My Medias
-                  </a>
-                  <a
-                    href={
-                      selectedBillboard
-                        ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
-                        : '/dashboard'
-                    }
-                    className="dropdown-item"
-                    role="menuitem"
-                    tabIndex={dropdownOpen ? 0 : -1}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setDropdownOpen(false);
-                      const target = selectedBillboard
-                        ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
-                        : '/dashboard';
-                      navigateTo(e, target);
-                    }}
-                  >
-                    <i className="fa-solid fa-users-viewfinder"></i> Audience Intelligence
+                    <i className="fa-solid fa-tv"></i> My Media
                   </a>
                   <button
                     className="dropdown-item danger-item w-full"
@@ -1404,19 +1384,7 @@ export default function App() {
                     setMobileMenuOpen(false);
                   }}
                 >
-                  <i className="fa-solid fa-tv"></i> My Medias
-                </button>
-                <button
-                  className="btn btn-outline w-full"
-                  onClick={(e) => {
-                    const target = selectedBillboard
-                      ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
-                      : '/dashboard';
-                    navigateTo(e, target);
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <i className="fa-solid fa-users-viewfinder"></i> Audience Intelligence
+                  <i className="fa-solid fa-tv"></i> My Media
                 </button>
                 <button className="btn btn-outline w-full" style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }} onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Sign Out</button>
               </div>
