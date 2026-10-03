@@ -411,7 +411,14 @@ export default function App() {
         if (!selectedBillboard) {
           setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
         }
-      } else if (route === '/location-intelligence' || route === '/front-camera' || route === '/live-view' || route === '/audience-intelligence') {
+      } else if (
+        route === '/dashboard' ||
+        route.startsWith('/dashboard') ||
+        route === '/location-intelligence' ||
+        route === '/front-camera' ||
+        route === '/live-view' ||
+        route === '/audience-intelligence'
+      ) {
         if (!selectedBillboard) {
           setSelectedBillboard(billboards[0] || INITIAL_BILLBOARDS[0]);
         }
@@ -1315,13 +1322,38 @@ export default function App() {
                   onMouseLeave={scheduleClose}
                 >
                   <a
-                    href="/dashboard"
+                    href={user?.role === 'Brand Advertiser' ? '/demo-dashboard' : `/${getUserSlug(user)}/media-profile/`}
                     className="dropdown-item"
                     role="menuitem"
                     tabIndex={dropdownOpen ? 0 : -1}
-                    onClick={(e) => { e.preventDefault(); setDropdownOpen(false); navigateTo(e, '/dashboard'); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDropdownOpen(false);
+                      const target = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : `/${getUserSlug(user)}/media-profile/`;
+                      navigateTo(e, target);
+                    }}
                   >
-                    <i className="fa-solid fa-chart-line"></i> Dashboard
+                    <i className="fa-solid fa-tv"></i> My Medias
+                  </a>
+                  <a
+                    href={
+                      selectedBillboard
+                        ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
+                        : '/dashboard'
+                    }
+                    className="dropdown-item"
+                    role="menuitem"
+                    tabIndex={dropdownOpen ? 0 : -1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDropdownOpen(false);
+                      const target = selectedBillboard
+                        ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
+                        : '/dashboard';
+                      navigateTo(e, target);
+                    }}
+                  >
+                    <i className="fa-solid fa-users-viewfinder"></i> Audience Intelligence
                   </a>
                   <button
                     className="dropdown-item danger-item w-full"
@@ -1363,7 +1395,31 @@ export default function App() {
                 <button className="btn btn-primary w-full" onClick={(e) => { navigateTo(e, '/sign-in'); setMobileMenuOpen(false); }}>Sign In</button>
               </>
             ) : (
-              <button className="btn btn-outline w-full" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Sign Out</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <button
+                  className="btn btn-primary w-full"
+                  onClick={(e) => {
+                    const target = user?.role === 'Brand Advertiser' ? '/demo-dashboard' : `/${getUserSlug(user)}/media-profile/`;
+                    navigateTo(e, target);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <i className="fa-solid fa-tv"></i> My Medias
+                </button>
+                <button
+                  className="btn btn-outline w-full"
+                  onClick={(e) => {
+                    const target = selectedBillboard
+                      ? `/${getUserSlug(user)}/${selectedBillboard.billboard_code || selectedBillboard.id}/dashboard/audience-intelligence`
+                      : '/dashboard';
+                    navigateTo(e, target);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <i className="fa-solid fa-users-viewfinder"></i> Audience Intelligence
+                </button>
+                <button className="btn btn-outline w-full" style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }} onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Sign Out</button>
+              </div>
             )}
           </div>
         </div>
